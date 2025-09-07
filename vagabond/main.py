@@ -5,9 +5,9 @@ import click
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
 from random import randint
 import json
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-#load_dotenv()
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -16,9 +16,9 @@ app = Flask(__name__)
 
 DB_CONFIG = {
     "host": "127.0.0.1",
-    "database": "forum",
-    "user": "admin",
-    "password": "root",
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
     "port": "5432"
 }
 
@@ -34,7 +34,7 @@ def log_request_info():
             conn.commit()
 
         conn.close()
-    except post.Error:
+    except post.Error as e:
         print(f"An error occured: {e}")
 
 
@@ -45,19 +45,22 @@ def index():
 
     
     # get the forum posts as a json format and convert to python
-    
-    conn = post.connect(**DB_CONFIG)
-    cur = conn.cursor()
+    try:
+        conn = post.connect(**DB_CONFIG)
+        cur = conn.cursor()
 
-    cur.execute("SELECT json_agg(t.*) FROM posts AS t;")
-    posts = cur.fetchall()[0][0]
-    print(posts)
-    
-    
-    cur.close()
-    conn.close()
+        cur.execute("SELECT json_agg(t.*) FROM posts AS t;")
+        posts = cur.fetchall()[0][0]
+        print(posts)
+        
+        
+        cur.close()
+        conn.close()
 
-    # lets load the forum posts in a table
+        # lets load the forum posts in a table
+    except Exception as e:
+        print(f"An error occured: {e}")
+        return '', 400
 
     return render_template("index.html", number=random_number, posts=posts)
 
@@ -109,10 +112,8 @@ def poke_at_postgresql():
             cursor.execute(commands)
             #print(commands)
             conn.commit()
-
-        
         conn.close()
 
-    except post.Error as e:
-        print(f"An error occured: {e}")
+    except Exception as err:
+        print(f"An error occured: {err}")
     
