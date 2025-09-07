@@ -1,12 +1,29 @@
 <html>
-    <p>Random number of the day: {{number}}</p>
-    <form action="/post" method="POST">
-        <label for="title">Title:</label>
-        <input type="text" id="title" name="title" required>
-        <br><br>
-        <label for="description">Description:</label>
-        <textarea id="description" name="description" rows="5" cols="50" required></textarea>
-        <br><br>
-        <input type="submit" value="Submit">
-    </form>
+    <head>
+        <p>Random number of the day: {{number}}</p>
+        <form action="/post" method="POST">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required>
+            <br><br>
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" rows="5" cols="50" required></textarea>
+            <br><br>
+            <input type="submit" value="Submit">
+        </form>
+    </head>
+    <body>
+        <!-- this is where we are going to render our forum posts -->
+        {% if posts %}
+        <table>
+            {% for post in posts %}
+                <tr>
+                    <td><b>{{ post.title }}</b> by <i>{{ post.author }}</i> at {{ post.creation_date }}</td>
+                    <td>{{ post.contents }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>There are no current posts.</p>
+        {% endif %}
+    </body>
 </html>

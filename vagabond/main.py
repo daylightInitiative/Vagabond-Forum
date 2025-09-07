@@ -2,8 +2,9 @@
 import os
 import psycopg2 as post # for connecting to postgresql
 import click 
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
 from random import randint
+import json
 #from dotenv import load_dotenv
 
 #load_dotenv()
@@ -36,40 +37,64 @@ def log_request_info():
     except post.Error:
         print(f"An error occured: {e}")
 
-@app.route('/post', methods=['POST'])
-def submit_new_post():
-    name = request.form.get('title', type=str)
-    description = request.form.get('description', type=str)
-    
-    author = "Anon"
-
-    conn = post.connect(**DB_CONFIG)
-
-    with conn.cursor() as cur:
-        cur.execute("INSERT INTO posts (contents, author) VALUES (%s, %s)",
-                    (description, author))
-        conn.commit()
-
-    conn.close()
-
-    # for right now the author is anon
-    return '<p>post submitted...</p>', 200
 
 @app.route("/")
 def index():
     # serve a random number to the template
     random_number = randint(1, 99999)
-    return render_template("index.html", number=random_number)
+
+    
+    # get the forum posts as a json format and convert to python
+    
+    conn = post.connect(**DB_CONFIG)
+    cur = conn.cursor()
+
+    cur.execute("SELECT json_agg(t.*) FROM posts AS t;")
+    posts = cur.fetchall()[0][0]
+    print(posts)
+    
+    
+    cur.close()
+    conn.close()
+
+    # lets load the forum posts in a table
+
+    return render_template("index.html", number=random_number, posts=posts)
 
 # all this clowning around with formatting is a thing of the past
-
 
 def read_sql_file(filename):
     with open(filename, mode='r') as f:
         filetext = f.read()
         return filetext
-        
 
+
+@app.route('/post', methods=['POST'])
+def submit_new_post():
+    title = request.form.get('title', type=str)
+    description = request.form.get('description', type=str)
+    
+    if not title or not description:
+        return '', 400
+
+    author = "Anon"
+
+    conn = post.connect(**DB_CONFIG)
+
+    with conn.cursor() as cur:
+        cur.execute("INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s)",
+                    (title, description, author))
+        conn.commit()
+
+    conn.close()
+
+    # for right now the author is anon
+    #return '<p>post submitted...</p>', 200
+    return redirect(url_for('index')), 302
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
 
 @app.cli.command("testdb")
 def poke_at_postgresql():
