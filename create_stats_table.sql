@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS webstats;
-CREATE TABLE webstats (
+
+CREATE TABLE IF NOT EXISTS webstats (
     hits INT
 );
 INSERT INTO webstats (hits) VALUES (0);
