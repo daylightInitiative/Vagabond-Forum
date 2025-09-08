@@ -64,6 +64,11 @@ def index():
 
     return render_template("index.html", number=random_number, posts=posts)
 
+@app.route("/forums")
+def serve_forum():
+    return render_template("forums.html")
+
+
 # all this clowning around with formatting is a thing of the past
 
 def read_sql_file(filename):

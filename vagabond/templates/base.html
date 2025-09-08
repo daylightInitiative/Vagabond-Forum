@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- base.html template -->
+<html>
+    <head>
+        <link rel="stylesheet" href="/static/css/styles.css">
+
+        <nav class="navbar">
+            <a id="home-link" href="/">Vagabond Forum</a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/forums">Forum</a>
+                <a href="/">Recent News</a>
+                <a href="/">Reading List</a>
+                <a href="/">Profile</a>
+            </div>
+        </nav>
+    </head>
+    <body>
+        {% block content %}{% endblock %}
+    </body>
+</html>
