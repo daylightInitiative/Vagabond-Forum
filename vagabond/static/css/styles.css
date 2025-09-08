@@ -1,8 +1,135 @@
-body {
-    text-align: center;
-    
+/* Default: Dark Theme */
+:root {
+  --bg-color: #2c1b1b;
+  --text-color: #e3d9c3;
+  --header-bg: #5e2b2b;
+  --nav-bg: #5e2b2b;
+  --link-color: #e3d9c3;
+  --link-hover: #c98c7b;
+  --card-bg: #5e2b2b;
+  --button-bg: #a74c3c;
+  --button-hover: #c98c7b;
+  --meta-color: #c98c7b;
+  --border-color: #a74c3c;
 }
 
-div {
-    margin-top:14%;
+/* Light Theme Override */
+.light-theme {
+  --bg-color: #e3d9c3;
+  --text-color: #2c1b1b;
+  --header-bg: #c98c7b;
+  --nav-bg: #c98c7b;
+  --link-color: #2c1b1b;
+  --link-hover: #5e2b2b;
+  --card-bg: #f7eee3;
+  --button-bg: #a74c3c;
+  --button-hover: #5e2b2b;
+  --meta-color: #5e2b2b;
+  --border-color: #a74c3c;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'InterVariable', sans-serif;
+  margin: 0;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+}
+
+#home-link {
+  font-weight: bold;
+  font-size: 1.5rem;
+  text-decoration: none;
+  color: var(--link-color);
+}
+
+body { text-align: center; font-size: 14px; }
+/* div { margin-top:14%; } */
+
+input {
+    background-color: var(--card-bg);
+    color:#fff;
+}
+
+textarea {
+    background-color: var(--card-bg);
+    color:#fff;
+}
+
+#description {
+    margin-left: 5%;
+}
+
+.header {
+  background-color: var(--header-bg);
+  color: var(--text-color);
+  padding: 1rem 2rem;
+  text-align: center;
+  font-size: 2rem;
+}
+
+.navbar {
+  background-color: var(--nav-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 2rem; /* reduce vertical padding from 1rem to 0.5rem */
+  height: auto; /* let content define height */
+}
+
+.navbar a {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.3s;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
+.navbar a:hover {
+  color: var(--link-hover);
+}
+
+.forum-container {
+  padding: 2rem;
+}
+
+.forum-thread {
+  background-color: var(--card-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 5px solid var(--border-color);
+}
+
+
+.new-post-btn {
+  background-color: var(--button-bg);
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.new-post-btn:hover {
+  background-color: var(--button-hover);
+  color: #fff;
+}
+
+.post-card {
+  background-color: var(--card-bg);
+  border-left: 5px solid var(--border-color);
+  padding: 0.1rem;
+  margin-bottom: 1rem;
+  border-radius: 5px;
+}
+
+.meta {
+  font-size: 0.7rem;
+  color: var(--meta-color);
 }
