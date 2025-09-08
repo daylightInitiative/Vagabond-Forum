@@ -66,7 +66,24 @@ def index():
 
 @app.route("/forums")
 def serve_forum():
-    return render_template("forums.html")
+    try:
+        conn = post.connect(**DB_CONFIG)
+        cur = conn.cursor()
+
+        cur.execute("SELECT json_agg(t.*) FROM posts AS t;")
+        posts = cur.fetchall()[0][0]
+        print(posts)
+        
+        
+        cur.close()
+        conn.close()
+
+        # lets load the forum posts in a table
+    except Exception as e:
+        print(f"An error occured: {e}")
+        return '', 400
+
+    return render_template("forums.html", posts=posts)
 
 
 # all this clowning around with formatting is a thing of the past

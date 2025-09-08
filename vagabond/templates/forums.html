@@ -2,4 +2,55 @@
 
 {% block content %}
     <p>This is the forums page.</p>
+    <div>
+
+        
+        <!-- <form class="input-box" action="/post" method="POST">
+            <label for="title">Post Title:</label>
+            <input type="text" id="title" name="title" required>
+            <br><br>
+            <label id="description" for="description">Post Description:</label>
+            <textarea id="description" name="description" rows="5" cols="50" required></textarea>
+            <br><br>
+            <button class="new-post-btn">Submit Post</button>
+        </form> -->
+
+        {% if posts %}
+            <table>
+                <tr>
+                    <th>Topic</th>
+                    <th>Replies</th>
+                    <th>Views</th>
+                    <th>Last Post</th>
+                </tr>
+                <!-- <tr>
+                    <td>
+                        <div>
+                            <a href="/">Example post title</a>
+                            <span>by User</span>
+                        </div>
+                    </td>
+                    <td>7</td>
+                    <td>432</td>
+                    <td>
+                        <div>
+                            NI
+                            <span>by User</span>
+                        </div>
+                    </td>
+                </tr> -->
+
+                {% for post in posts %}
+                    <tr>
+                        <td><b>{{ post.title }}</b> by <i>{{ post.author }}</i></td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>Never</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>There are no current posts.</p>
+        {% endif %}
+    </div>
 {% endblock %}

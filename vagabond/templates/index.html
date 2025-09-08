@@ -2,4 +2,25 @@
 
 {% block content %}
     <p>Example content that was added.</p>
+    <main class="forum-container">
+        <div class="box">
+            <h2>A forum for nomads, explorers and travellers</h2>
+            <p>This forum is dedicated to sharing and storing information for bushcraft, urban exploration, rock climbing and general advice for a nomadic lifestyle.</p>
+            <p>Take a look at our reading list for FM's, Guides and cookbooks.</p>
+        </div>
+
+        <div>
+            <p>Random number of the day: {{number}}</p>
+            <form class="new-post-form" action="/post" method="POST">
+                <h4>New Post</h4>
+                <label for="title">Post Title:</label>
+                <input type="text" id="title" name="title" required>
+                <br><br>
+                <label id="description" for="description">Post Description:</label>
+                <textarea id="description" name="description" rows="5" cols="50" required></textarea>
+                <br><br>
+                <input type="submit" value="Submit">
+            </form>
+        </div>
+    </main>
 {% endblock %}
