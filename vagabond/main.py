@@ -43,6 +43,9 @@ def log_request_info():
     except post.Error as e:
         print(f"An error occured: {e}")
 
+@app.route("/reading_list.html")
+def reading_list():
+    return render_template("reading.html")
 
 @app.route("/")
 def index():
@@ -83,10 +86,13 @@ def serve_forum():
                     # we're going to read from one specific post
                     query_singular_post_cmd = read_sql_file("view_post_by_num.sql")
                     cur.execute(query_singular_post_cmd, (post_num))
-                    single_post = cur.fetchall()[0][0]
+                    single_post = cur.fetchall()[0][0][0]
                     print(single_post)
 
-                    return render_template("forums.html", post=single_post)
+                    # lets increment the views on this post
+                    cur.execute('UPDATE posts SET views = views + 1 WHERE id = %s;', (post_num))
+
+                    return render_template("view_post.html", post=single_post)
                 
                 print(f"queried post {page_num}")
                 if not page_num:

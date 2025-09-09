@@ -180,6 +180,14 @@ textarea {
   min-height: 150px;
 }
 
+.user-post {
+    color: var(--text-color);
+}
+
+a {
+    color: var(--text-color);
+}
+
 textarea {
     color: var(--text-color);
 }

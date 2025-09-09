@@ -42,9 +42,9 @@
 
                 {% for post in posts %}
                     <tr>
-                        <td><b>{{ post.title }}</b> by <i>{{ post.author }}</i></td>
+                        <td><a href="/forums?post={{ post.id }}">{{ post.title }}</a> by <i>{{ post.author }}</i></td>
                         <td>0</td>
-                        <td>0</td>
+                        <td>{{ post.views }}</td>
                         <td>Never</td>
                     </tr>
                 {% endfor %}
