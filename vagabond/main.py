@@ -1,17 +1,26 @@
 
 import os
 import psycopg2 as post # for connecting to postgresql
-import click 
-from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
-from random import randint
+import click
 import json
 import re
+
+from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
+from random import randint
 
 load_dotenv()
 
 app = Flask(__name__)
-
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["100 per hour"],
+    storage_options={"socket_timeout": 5},
+    storage_uri="memory://localhost:11211",
+)
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -52,26 +61,14 @@ def index():
     # serve a random number to the template
     random_number = randint(1, 99999)
 
-    
-    # get the forum posts as a json format and convert to python
-    try:
-        with post.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT json_agg(t.*) FROM posts AS t;")
-                posts = cur.fetchall()[0][0]
-                print(posts)
-
-        # lets load the forum posts in a table
-    except Exception as e:
-        print(f"An error occured: {e}")
-        return '', 400
-
-    return render_template("index.html", number=random_number, posts=posts)
+    return render_template("index.html", number=random_number)
 
 PAGE_LIMIT = 10
 
 
 @app.route("/forums", methods=["GET", "POST"])
+@limiter.limit("125 per minute", methods=["GET"])
+@limiter.limit("80 per minute", methods=["POST"])
 def serve_forum():
     try:
         with post.connect(**DB_CONFIG) as conn:
@@ -126,7 +123,7 @@ def serve_forum():
 
                     # minimum of 20 characters in a reply
                     # (we can detect spamming later)
-                    if post_id is None or len(reply) <= 25:
+                    if post_id is None or len(reply) <= 5:
                         return '<p>Post is too short or invalid post id</p>', 400
                     
                     # no logging in yet author is just Anon
@@ -157,6 +154,7 @@ def serve_forum():
 
 
 @app.route('/post', methods=['POST'])
+@limiter.limit("70 per minute", methods=["POST"])
 def submit_new_post():
     title = request.form.get('title', type=str)
     description = request.form.get('description', type=str)
@@ -176,6 +174,7 @@ def submit_new_post():
     return redirect(url_for('index')), 302
 
 @app.route('/static/<path:filename>')
+@limiter.exempt
 def serve_static(filename):
     return send_from_directory('static', filename)
 

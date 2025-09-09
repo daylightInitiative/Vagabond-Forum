@@ -8,6 +8,7 @@ flask = "*"
 psycopg2-binary = "*"
 psycopg2 = "*"
 python-dotenv = "*"
+flask-limiter = "*"
 
 [dev-packages]
 
