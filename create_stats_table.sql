@@ -12,3 +12,12 @@ CREATE TABLE IF NOT EXISTS posts (
     author TEXT,
     creation_date TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS replies (
+    id SERIAL PRIMARY KEY,
+    parent_post_id INTEGER,
+    contents TEXT,
+    author TEXT,
+    creation_date TIMESTAMPTZ DEFAULT NOW(),
+    FOREIGN KEY (parent_post_id) REFERENCES posts(id) ON DELETE CASCADE
+);

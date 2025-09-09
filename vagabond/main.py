@@ -71,43 +71,78 @@ def index():
 PAGE_LIMIT = 10
 
 
-@app.route("/forums")
+@app.route("/forums", methods=["GET", "POST"])
 def serve_forum():
     try:
         with post.connect(**DB_CONFIG) as conn:
             with conn.cursor() as cur:
 
-                page_num = request.args.get('page')
-                post_num = request.args.get('post')
+                if request.method == "GET":
 
-                if page_num is None and post_num:
+                    page_num = request.args.get('page')
+                    post_num = request.args.get('post')
 
-                    print("we have visited a post and not a page, dynamically load it")
-                    # we're going to read from one specific post
-                    query_singular_post_cmd = read_sql_file("view_post_by_num.sql")
-                    cur.execute(query_singular_post_cmd, (post_num))
-                    single_post = cur.fetchall()[0][0][0]
-                    print(single_post)
+                    if page_num is None and post_num:
 
-                    # lets increment the views on this post
-                    cur.execute('UPDATE posts SET views = views + 1 WHERE id = %s;', (post_num))
+                        print("we have visited a post and not a page, dynamically load it")
+                        # we're going to read from one specific post
+                        query_singular_post_cmd = read_sql_file("view_post_by_num.sql")
+                        cur.execute(query_singular_post_cmd, (post_num,))
+                        single_post = cur.fetchall()[0][0][0]
+                        #print(single_post)
 
-                    return render_template("view_post.html", post=single_post)
-                
-                print(f"queried post {page_num}")
-                if not page_num:
-                    # one can not simply visit /forum we redirect to the default if they do
-                    return redirect(url_for("serve_forum") + "?page=1")
-                page_num = int(page_num)
+                        # lets increment the views on this post
+                        cur.execute('UPDATE posts SET views = views + 1 WHERE id = %s;', (post_num))
 
-                page_offset = str((page_num - 1) * PAGE_LIMIT)
-                print(page_offset, "is the page offset")
+                        # get all the posts replies
+                        query_post_replies = read_sql_file("query_page_replies.sql")
+                        cur.execute(query_post_replies, (post_num,))
+                        replies_list = cur.fetchall()[0][0]
+                        print(replies_list)
 
-                # query the response as json, order by created at time and limit it by 10 with the offset
-                query_posts_cmd = read_sql_file("query_page_posts.sql")
-                cur.execute(query_posts_cmd, (page_offset,))
-                posts = cur.fetchall()[0][0]
-                print(posts)
+                        return render_template("view_post.html", post=single_post, replies=replies_list)
+                    
+                    print(f"queried post {page_num}")
+                    if not page_num:
+                        # one can not simply visit /forum we redirect to the default if they do
+                        return redirect(url_for("serve_forum") + "?page=1")
+                    page_num = int(page_num)
+
+                    page_offset = str((page_num - 1) * PAGE_LIMIT)
+                    print(page_offset, "is the page offset")
+
+                    # query the response as json, order by created at time and limit it by 10 with the offset
+                    query_posts_cmd = read_sql_file("query_page_posts.sql")
+                    cur.execute(query_posts_cmd, (page_offset,))
+                    posts = cur.fetchall()[0][0]
+                    #print(posts)
+
+
+
+                elif request.method == "POST":
+                    # for replies we get the data, and save it nothing more
+                    post_id = request.form.get('post_id') # hacky way of saving the postid
+                    reply = request.form.get('reply')
+
+                    # minimum of 20 characters in a reply
+                    # (we can detect spamming later)
+                    if post_id is None or len(reply) <= 25:
+                        return '<p>Post is too short or invalid post id</p>', 400
+                    
+                    # no logging in yet author is just Anon
+                    author = "Anon"
+
+                    # parent_post_id, contents, author,
+                    print("creating a reply linked to the parent post")
+                    cur.execute("INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
+                        (post_id, reply, author))
+                    conn.commit()
+
+                    # return back to the view forum to trigger the refresh
+                    return redirect(url_for("serve_forum") + f"?post={post_id}")
+
+                    
+
 
     except Exception as e:
         print(f"An error occured: {e}")
@@ -118,7 +153,7 @@ def serve_forum():
 
 # all this clowning around with formatting is a thing of the past
 
-
+#@app.route('/forums?post=<code>?reply')
 
 
 @app.route('/post', methods=['POST'])
