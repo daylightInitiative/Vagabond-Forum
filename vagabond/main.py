@@ -52,6 +52,10 @@ def log_request_info():
     except post.Error as e:
         print(f"An error occured: {e}")
 
+@app.route("/news.html")
+def news():
+    return render_template("news.html")
+
 @app.route("/reading_list.html")
 def reading_list():
     return render_template("reading.html")
@@ -114,8 +118,6 @@ def serve_forum():
                     posts = cur.fetchall()[0][0]
                     #print(posts)
 
-
-
                 elif request.method == "POST":
                     # for replies we get the data, and save it nothing more
                     post_id = request.form.get('post_id') # hacky way of saving the postid
@@ -137,8 +139,10 @@ def serve_forum():
 
                     # return back to the view forum to trigger the refresh
                     return redirect(url_for("serve_forum") + f"?post={post_id}")
+        # before we render the template we need to get the number of replies mapped to the posts in posts
+        # TODO: JOIN the replies with the 
+        # we have to get the replies and add them into the posts dict
 
-                    
 
 
     except Exception as e:
