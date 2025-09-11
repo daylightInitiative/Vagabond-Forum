@@ -4,6 +4,7 @@ import psycopg2 as post # for connecting to postgresql
 import click
 import json
 import re
+import traceback
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
 from flask_limiter import Limiter
@@ -11,6 +12,7 @@ from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from random import randint
 
+PAGE_LIMIT = 10
 load_dotenv()
 
 app = Flask(__name__)
@@ -42,7 +44,6 @@ def read_sql_file(filename):
 @app.before_request
 def log_request_info():
     print(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
-    # need to update the hits by one
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
     try:
@@ -51,8 +52,9 @@ def log_request_info():
                 cur.execute('UPDATE webstats SET hits = hits + 1;')
                 conn.commit()
 
-    except post.Error as e:
-        print(f"An error occured: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
 
 @app.route("/news.html")
 def news():
@@ -67,10 +69,11 @@ def news():
 
                 return render_template("news.html", news_feed=news_feed)
 
-    except post.Error as e:
-        print(f"An error occured: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
 
-    return render_template("news.html")
+    return render_template("news.html", news_feed=[])
 
 @app.route("/reading_list.html")
 def reading_list():
@@ -78,7 +81,6 @@ def reading_list():
 
 @app.route("/")
 def index():
-    # serve a random number to the template
     random_number = randint(1, 99999)
 
     # get the number of website hits
@@ -88,12 +90,13 @@ def index():
                     cur.execute("SELECT hits FROM webstats;")
                     num_hits = cur.fetchall()[0][0]
                     return render_template("index.html", number=random_number, num_hits=num_hits)
-    except post.Error as e:
-        print(f"An error occured: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
 
     return render_template("index.html")
 
-PAGE_LIMIT = 10
+
 
 
 @app.route("/forums", methods=["GET", "POST"])
@@ -109,38 +112,48 @@ def serve_forum():
                     page_num = request.args.get('page')
                     post_num = request.args.get('post')
 
-                    if page_num is None and post_num:
+
+                    if post_num and not page_num:
+
+                        try:
+                            post_num = int(post_num)
+                            if post_num <= 0:
+                                raise ValueError("Invalid post number")
+                        except (TypeError, ValueError):
+                            # redirect to the first page if page_num is invalid (postgres id starts at 1)
+                            return redirect(url_for("serve_forum") + "?page=1")
 
                         print("we have visited a post and not a page, dynamically load it")
                         # we're going to read from one specific post
                         query_singular_post_cmd = read_sql_file("view_post_by_num.sql")
                         cur.execute(query_singular_post_cmd, (post_num,))
                         single_post = cur.fetchall()[0][0][0]
-                        #print(single_post)
 
-                        # lets increment the views on this post
-                        cur.execute('UPDATE posts SET views = views + 1 WHERE id = %s;', (post_num))
+                        cur.execute('UPDATE posts SET views = views + 1 WHERE id = %s;', (post_num,))
 
                         # get all the posts replies
                         query_post_replies = read_sql_file("query_page_replies.sql")
                         cur.execute(query_post_replies, (post_num,))
                         replies_list = cur.fetchall()[0][0]
-                        print(replies_list)
+                        #print(replies_list)
 
                         return render_template("view_post.html", post=single_post, replies=replies_list)
                     
                     print(f"queried post {page_num}")
-                    if not page_num:
-                        # one can not simply visit /forum we redirect to the default if they do
+                    try:
+                        page_num = int(page_num)
+                        if page_num <= 0:
+                            raise ValueError("Invalid page number")
+                    except (TypeError, ValueError):
+                        # redirect to the first page if page_num is invalid (postgres id starts at 1)
                         return redirect(url_for("serve_forum") + "?page=1")
-                    page_num = int(page_num)
 
                     page_offset = str((page_num - 1) * PAGE_LIMIT)
                     print(page_offset, "is the page offset")
 
-                    # query the response as json, order by created at time and limit it by 10 with the offset
+                    # query the response as json, page the query, include nested replies table
                     query_posts_cmd = read_sql_file("query_page_posts.sql")
-                    cur.execute(query_posts_cmd, (page_offset,))
+                    cur.execute(query_posts_cmd, (str(PAGE_LIMIT), page_offset,))
                     posts = cur.fetchall()[0][0]
                     #print(posts)
 
@@ -157,29 +170,19 @@ def serve_forum():
                     # no logging in yet author is just Anon
                     author = "Anon"
 
-                    # parent_post_id, contents, author,
                     print("creating a reply linked to the parent post")
                     cur.execute("INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
                         (post_id, reply, author))
                     conn.commit()
 
-                    # return back to the view forum to trigger the refresh
+                    # redirect back to the view_forum to trigger the refresh
                     return redirect(url_for("serve_forum") + f"?post={post_id}")
-        # before we render the template we need to get the number of replies mapped to the posts in posts
-        # TODO: JOIN the replies with the 
-        # we have to get the replies and add them into the posts dict
-
-
 
     except Exception as e:
-        print(f"An error occured: {e}")
-        return '', 400
+        print(f"An error occurred: {e}")
+        traceback.print_exc()
 
     return render_template("forums.html", posts=posts)
-
-
-# all this clowning around with formatting is a thing of the past
-
 
 # for posting we can just reuse this route
 @app.route('/post', methods=['GET', 'POST'])
@@ -201,23 +204,20 @@ def submit_new_post():
             return '', 400
 
         author = "Anon"
-        with post.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cur:
-                cur.execute("INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
-                            (title, description, author))
-                new_post_id = cur.fetchone()[0]
-                #print(new_post_id)
-                conn.commit()
-                # return in here
+        try:
+            with post.connect(**DB_CONFIG) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
+                                (title, description, author))
+                    new_post_id = cur.fetchone()[0]
+                    #print(new_post_id)
+                    conn.commit()
 
-                return redirect(f'/forums?post={new_post_id}')
-
-        # if we use RETURNING it gives us the created id
-        
-
-        # for right now the author is anon
-        #return '<p>post submitted...</p>', 200
-        #return redirect(url_for('index')), 302
+                    return redirect(f'/forums?post={new_post_id}')
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            traceback.print_exc()
+    return '<p>Internal Server Error</p>', 500
 
 @app.route('/static/<path:filename>')
 @limiter.exempt
@@ -234,9 +234,9 @@ def poke_at_postgresql():
                 print("Running: " + db_version[0])
                 commands = read_sql_file("create_stats_table.sql")
                 cursor.execute(commands)
-                #print(commands)
                 conn.commit()
 
-    except Exception as err:
-        print(f"An error occured: {err}")
+    except Exception as e:
+            print(f"An error occurred: {e}")
+            traceback.print_exc()
     

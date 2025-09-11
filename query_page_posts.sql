@@ -7,7 +7,7 @@ FROM (
         SELECT *
         FROM posts
         ORDER BY creation_date DESC
-        LIMIT 10 OFFSET %s
+        LIMIT %s OFFSET %s
     ) AS p
     LEFT JOIN (
         SELECT parent_post_id, COUNT(*) AS reply_count
