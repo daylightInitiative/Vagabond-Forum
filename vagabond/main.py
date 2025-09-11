@@ -56,6 +56,20 @@ def log_request_info():
 
 @app.route("/news.html")
 def news():
+
+    try:
+        with post.connect(**DB_CONFIG) as conn:
+            with conn.cursor() as cur:
+                query_news_feed = read_sql_file("query_news_posts.sql")
+                cur.execute(query_news_feed)
+                news_feed = cur.fetchall()[0][0]
+                print(news_feed)
+
+                return render_template("news.html", news_feed=news_feed)
+
+    except post.Error as e:
+        print(f"An error occured: {e}")
+
     return render_template("news.html")
 
 @app.route("/reading_list.html")
@@ -68,14 +82,16 @@ def index():
     random_number = randint(1, 99999)
 
     # get the number of website hits
-    num_hits = 0
-    with post.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT hits FROM webstats;")
-                num_hits = cur.fetchall()[0][0]
-                print(num_hits)
+    try:
+        with post.connect(**DB_CONFIG) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT hits FROM webstats;")
+                    num_hits = cur.fetchall()[0][0]
+                    return render_template("index.html", number=random_number, num_hits=num_hits)
+    except post.Error as e:
+        print(f"An error occured: {e}")
 
-    return render_template("index.html", number=random_number, num_hits=num_hits)
+    return render_template("index.html")
 
 PAGE_LIMIT = 10
 

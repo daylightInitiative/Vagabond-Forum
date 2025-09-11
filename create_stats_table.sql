@@ -4,6 +4,15 @@ CREATE TABLE IF NOT EXISTS webstats (
 );
 INSERT INTO webstats (hits) VALUES (0);
 
+CREATE TABLE IF NOT EXISTS news_feed (
+    id SERIAL PRIMARY KEY,
+    title TEXT,
+    pinned BOOLEAN,
+    contents TEXT,
+    author TEXT,
+    creation_date TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS posts (
     id SERIAL PRIMARY KEY,
     title TEXT,
