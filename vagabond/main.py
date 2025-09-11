@@ -43,6 +43,8 @@ def read_sql_file(filename):
 def log_request_info():
     print(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     # need to update the hits by one
+    if '/static' in request.path: # we dont want resources to count as a website visit
+        return
     try:
         with post.connect(**DB_CONFIG) as conn:
             with conn.cursor() as cur:
@@ -65,7 +67,15 @@ def index():
     # serve a random number to the template
     random_number = randint(1, 99999)
 
-    return render_template("index.html", number=random_number)
+    # get the number of website hits
+    num_hits = 0
+    with post.connect(**DB_CONFIG) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT hits FROM webstats;")
+                num_hits = cur.fetchall()[0][0]
+                print(num_hits)
+
+    return render_template("index.html", number=random_number, num_hits=num_hits)
 
 PAGE_LIMIT = 10
 
@@ -154,28 +164,44 @@ def serve_forum():
 
 # all this clowning around with formatting is a thing of the past
 
-#@app.route('/forums?post=<code>?reply')
 
-
-@app.route('/post', methods=['POST'])
+# for posting we can just reuse this route
+@app.route('/post', methods=['GET', 'POST'])
+@limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("70 per minute", methods=["POST"])
 def submit_new_post():
-    title = request.form.get('title', type=str)
-    description = request.form.get('description', type=str)
-    
-    if not title or not description:
-        return '', 400
 
-    author = "Anon"
-    with post.connect(**DB_CONFIG) as conn:
-        with conn.cursor() as cur:
-            cur.execute("INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s)",
-                        (title, description, author))
-            conn.commit()
+    if request.method == "GET":
 
-    # for right now the author is anon
-    #return '<p>post submitted...</p>', 200
-    return redirect(url_for('index')), 302
+        # TODO: pass user info into this template like the username and stuff
+        return render_template("create_post.html")
+
+    elif request.method == "POST":
+
+        title = request.form.get('title', type=str)
+        description = request.form.get('description', type=str)
+        
+        if not title or not description:
+            return '', 400
+
+        author = "Anon"
+        with post.connect(**DB_CONFIG) as conn:
+            with conn.cursor() as cur:
+                cur.execute("INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
+                            (title, description, author))
+                new_post_id = cur.fetchone()[0]
+                #print(new_post_id)
+                conn.commit()
+                # return in here
+
+                return redirect(f'/forums?post={new_post_id}')
+
+        # if we use RETURNING it gives us the created id
+        
+
+        # for right now the author is anon
+        #return '<p>post submitted...</p>', 200
+        #return redirect(url_for('index')), 302
 
 @app.route('/static/<path:filename>')
 @limiter.exempt

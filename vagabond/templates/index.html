@@ -11,16 +11,7 @@
 
         <div>
             <p>Random number of the day: {{number}}</p>
-            <form class="new-post-form" action="/post" method="POST">
-                <h4>New Post</h4>
-                <label for="title">Post Title:</label>
-                <input type="text" id="title" name="title" required>
-                <br><br>
-                <label id="description" for="description">Post Description:</label>
-                <textarea id="description" name="description" rows="5" cols="50" required></textarea>
-                <br><br>
-                <input type="submit" value="Submit">
-            </form>
+            <p>Total website hits: {{num_hits}}</p>
         </div>
     </main>
 {% endblock %}
