@@ -1,6 +1,8 @@
 import psycopg2 as post
-import logging as log
+import logging
 import traceback
+
+log = logging.getLogger(__name__)
 
 # when you need state, error handling but also functions I find that using a class here works nice
 class DBManager:
@@ -26,7 +28,7 @@ class DBManager:
                     if fetch:
                         return cur.fetchall()
             except Exception as e:
-                log.exception("Database query failed")
+                log.critical("Database write query failed")
                 conn.rollback()
                 traceback.print_exc()
                 raise

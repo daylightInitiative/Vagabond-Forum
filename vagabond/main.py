@@ -1,6 +1,6 @@
 
 import os
-import logging as log
+import logging
 import traceback
 import json
 
@@ -29,6 +29,17 @@ with open(config_path, "r") as f:
 app_config = Config(config_data)
 app.config["custom_config"] = app_config
 
+# setup logging
+
+logging.basicConfig(
+    level=app_config.log_level,  # or INFO in production
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(),  # to stdout
+        logging.FileHandler("app.log"),  # optional: log to file
+    ]
+)
+
 # create the our db manager
 dbmanager = DBManager(app_config)
 
@@ -45,7 +56,7 @@ limiter = Limiter(
 
 @app.before_request
 def log_request_info():
-    print(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
+    logging.debug(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1;')
@@ -102,7 +113,7 @@ def serve_forum():
                 # redirect to the first page if page_num is invalid (postgres id starts at 1)
                 return redirect(url_for("serve_forum") + "?page=1")
 
-            print("we have visited a post and not a page, dynamically load it")
+            logging.debug("we have visited a post and not a page, dynamically load it")
             # we're going to read from one specific post
             single_post = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, params=(post_num,))[0][0][0]
 
@@ -111,11 +122,11 @@ def serve_forum():
 
             # get all the posts replies
             replies_list = dbmanager.read(query_str=QUERY_PAGE_REPLIES, params=(post_num,))[0][0]
-            #print(replies_list, single_post, post_num)
+            #logging.debug(replies_list, single_post, post_num)
 
             return render_template("view_post.html", post=single_post, replies=replies_list)
         
-        print(f"queried post {page_num}")
+        logging.debug(f"queried post {page_num}")
         try:
             page_num = int(page_num)
             if page_num <= 0:
@@ -125,11 +136,11 @@ def serve_forum():
             return redirect(url_for("serve_forum") + "?page=1")
 
         page_offset = str((page_num - 1) * PAGE_LIMIT)
-        print(page_offset, "is the page offset")
+        logging.debug(page_offset, "is the page offset")
 
         # query the response as json, page the query, include nested replies table
         posts = dbmanager.read(query_str=QUERY_PAGE_POSTS, params=(str(PAGE_LIMIT), page_offset,))[0][0]
-        #print(posts)
+        #logging.debug(posts)
 
     elif request.method == "POST":
         # for replies we get the data, and save it nothing more
@@ -144,8 +155,8 @@ def serve_forum():
         # no logging in yet author is just Anon
         author = "Anon"
 
-        print(post_id)
-        print("creating a reply linked to the parent post")
+        logging.debug(post_id)
+        logging.debug("creating a reply linked to the parent post")
         dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
             params=(post_id, reply, author))
 
@@ -194,6 +205,6 @@ def serve_static(filename):
 def poke_at_postgresql():
 
     db_version = dbmanager.write(query_str=SHOW_SERVER_VERSION, fetch=True)
-    print("Running: ", db_version[0][0])
+    logging.debug("Running: ", db_version[0][0])
     dbmanager.write(INIT_DB_TABLES)
     
