@@ -14,8 +14,8 @@ class DBManager:
     # avoids redundant calls to .commit() and fetch
     def write(self, query_str, fetch=False, params=None):
         """Executes a query on the db, then calls .commit()"""
-        try:
-            with self._get_connection() as conn:
+        with self._get_connection() as conn:
+            try:
                 with conn.cursor() as cur:
 
                     if params:
@@ -25,10 +25,11 @@ class DBManager:
                     conn.commit()
                     if fetch:
                         return cur.fetchall()
-        except Exception as e:
-            log.exception("Database query failed")
-            traceback.print_exc()
-            raise
+            except Exception as e:
+                log.exception("Database query failed")
+                conn.rollback()
+                traceback.print_exc()
+                raise
         return None
 
 

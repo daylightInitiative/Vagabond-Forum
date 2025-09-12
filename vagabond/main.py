@@ -50,6 +50,15 @@ def log_request_info():
         return
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1;')
 
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('error_pages/404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    #db.session.rollback()
+    return render_template('error_pages/500.html'), 500
+
 @app.route("/news.html")
 def news():
 
