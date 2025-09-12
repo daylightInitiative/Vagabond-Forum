@@ -1,10 +1,12 @@
 
 import os
 import psycopg2 as post # for connecting to postgresql
-import click
-import json
-import re
+import logging as log
 import traceback
+import json
+
+from queries import *
+from config import Config
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
 from flask_limiter import Limiter
@@ -16,10 +18,21 @@ PAGE_LIMIT = 10
 load_dotenv()
 
 app = Flask(__name__)
+config_path = os.getenv("CONFIG_PATH", "")
+if not config_path:
+    log.critical("USAGE: CONFIG_PATH=/path/to/config.json")
+    quit(1)
+
+with open(config_path, "r") as f:
+    config_data = json.load(f)
+
+app_config = Config(config_data)
+app.config["custom_config"] = app_config
+
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["100 per hour"],
+    default_limits=["400 per hour"],
     storage_options={"socket_timeout": 5},
     storage_uri="memory://localhost:11211",
 )
@@ -35,10 +48,6 @@ DB_CONFIG = {
     "port": "5432"
 }
 
-def read_sql_file(filename):
-    with open(filename, mode='r') as f:
-        filetext = f.read()
-        return filetext
 
 
 @app.before_request
@@ -62,10 +71,8 @@ def news():
     try:
         with post.connect(**DB_CONFIG) as conn:
             with conn.cursor() as cur:
-                query_news_feed = read_sql_file("query_news_posts.sql")
-                cur.execute(query_news_feed)
+                cur.execute(QUERY_NEWS_POSTS)
                 news_feed = cur.fetchall()[0][0]
-                print(news_feed)
 
                 return render_template("news.html", news_feed=news_feed)
 
@@ -125,17 +132,14 @@ def serve_forum():
 
                         print("we have visited a post and not a page, dynamically load it")
                         # we're going to read from one specific post
-                        query_singular_post_cmd = read_sql_file("view_post_by_num.sql")
-                        cur.execute(query_singular_post_cmd, (post_num,))
+                        cur.execute(VIEW_POST_BY_ID, (post_num,))
                         single_post = cur.fetchall()[0][0][0]
 
                         cur.execute('UPDATE posts SET views = views + 1 WHERE id = %s;', (post_num,))
 
                         # get all the posts replies
-                        query_post_replies = read_sql_file("query_page_replies.sql")
-                        cur.execute(query_post_replies, (post_num,))
+                        cur.execute(QUERY_PAGE_REPLIES, (post_num,))
                         replies_list = cur.fetchall()[0][0]
-                        #print(replies_list)
 
                         return render_template("view_post.html", post=single_post, replies=replies_list)
                     
@@ -152,8 +156,7 @@ def serve_forum():
                     print(page_offset, "is the page offset")
 
                     # query the response as json, page the query, include nested replies table
-                    query_posts_cmd = read_sql_file("query_page_posts.sql")
-                    cur.execute(query_posts_cmd, (str(PAGE_LIMIT), page_offset,))
+                    cur.execute(QUERY_PAGE_POSTS, (str(PAGE_LIMIT), page_offset,))
                     posts = cur.fetchall()[0][0]
                     #print(posts)
 
@@ -229,11 +232,10 @@ def poke_at_postgresql():
     try:
         with post.connect(**DB_CONFIG) as conn:
             with conn.cursor() as cursor:
-                cursor.execute('SHOW server_version;')
+                cursor.execute(SHOW_SERVER_VERSION)
                 db_version = cursor.fetchone()
                 print("Running: " + db_version[0])
-                commands = read_sql_file("create_stats_table.sql")
-                cursor.execute(commands)
+                cursor.execute(INIT_DB_TABLES)
                 conn.commit()
 
     except Exception as e:
