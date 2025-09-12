@@ -43,39 +43,20 @@ limiter = Limiter(
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
 
-DB_CONFIG = {
-    "host": "127.0.0.1",
-    "database": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "port": "5432"
-}
-
-
-
 @app.before_request
 def log_request_info():
     print(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
-    dbmanager.write('UPDATE webstats SET hits = hits + 1;')
+    dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1;')
 
 @app.route("/news.html")
 def news():
 
-    try:
-        with post.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cur:
-                cur.execute(QUERY_NEWS_POSTS)
-                news_feed = cur.fetchall()[0][0]
+    # will be fixing the json soon to return just a tuple or dict by RealDictCursor
+    news_feed = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)[0][0]
 
-                return render_template("news.html", news_feed=news_feed)
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        traceback.print_exc()
-
-    return render_template("news.html", news_feed=[])
+    return render_template("news.html", news_feed=news_feed or [])
 
 @app.route("/reading_list.html")
 def reading_list():
@@ -84,22 +65,9 @@ def reading_list():
 @app.route("/")
 def index():
     random_number = randint(1, 99999)
-    num_hits = dbmanager.read("SELECT hits FROM webstats;")[0][0]
+    num_hits = dbmanager.read(query_str="SELECT hits FROM webstats;")[0][0]
 
     return render_template("index.html", number=random_number, num_hits=num_hits)
-
-    # get the number of website hits
-    # try:
-    #     with post.connect(**DB_CONFIG) as conn:
-    #             with conn.cursor() as cur:
-    #                 cur.execute("SELECT hits FROM webstats;")
-    #                 num_hits = cur.fetchall()[0][0]
-    #                 return render_template("index.html", number=random_number, num_hits=num_hits)
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
-    #     traceback.print_exc()
-
-    # return render_template("index.html")
 
 
 
@@ -108,80 +76,72 @@ def index():
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("80 per minute", methods=["POST"])
 def serve_forum():
-    try:
-        with post.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cur:
 
-                if request.method == "GET":
+    if request.method == "GET":
 
-                    page_num = request.args.get('page')
-                    post_num = request.args.get('post')
+        page_num = request.args.get('page')
+        post_num = request.args.get('post')
 
 
-                    if post_num and not page_num:
+        if post_num and not page_num:
 
-                        try:
-                            post_num = int(post_num)
-                            if post_num <= 0:
-                                raise ValueError("Invalid post number")
-                        except (TypeError, ValueError):
-                            # redirect to the first page if page_num is invalid (postgres id starts at 1)
-                            return redirect(url_for("serve_forum") + "?page=1")
+            try:
+                post_num = int(post_num)
+                if post_num <= 0:
+                    raise ValueError("Invalid post number")
+            except (TypeError, ValueError):
+                # redirect to the first page if page_num is invalid (postgres id starts at 1)
+                return redirect(url_for("serve_forum") + "?page=1")
 
-                        print("we have visited a post and not a page, dynamically load it")
-                        # we're going to read from one specific post
-                        cur.execute(VIEW_POST_BY_ID, (post_num,))
-                        single_post = cur.fetchall()[0][0][0]
+            print("we have visited a post and not a page, dynamically load it")
+            # we're going to read from one specific post
+            single_post = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, params=(post_num,))[0][0][0]
 
-                        cur.execute('UPDATE posts SET views = views + 1 WHERE id = %s;', (post_num,))
+            dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
+                params=(post_num,))
 
-                        # get all the posts replies
-                        cur.execute(QUERY_PAGE_REPLIES, (post_num,))
-                        replies_list = cur.fetchall()[0][0]
+            # get all the posts replies
+            replies_list = dbmanager.read(query_str=QUERY_PAGE_REPLIES, params=(post_num,))[0][0]
+            #print(replies_list, single_post, post_num)
 
-                        return render_template("view_post.html", post=single_post, replies=replies_list)
-                    
-                    print(f"queried post {page_num}")
-                    try:
-                        page_num = int(page_num)
-                        if page_num <= 0:
-                            raise ValueError("Invalid page number")
-                    except (TypeError, ValueError):
-                        # redirect to the first page if page_num is invalid (postgres id starts at 1)
-                        return redirect(url_for("serve_forum") + "?page=1")
+            return render_template("view_post.html", post=single_post, replies=replies_list)
+        
+        print(f"queried post {page_num}")
+        try:
+            page_num = int(page_num)
+            if page_num <= 0:
+                raise ValueError("Invalid page number")
+        except (TypeError, ValueError):
+            # redirect to the first page if page_num is invalid (postgres id starts at 1)
+            return redirect(url_for("serve_forum") + "?page=1")
 
-                    page_offset = str((page_num - 1) * PAGE_LIMIT)
-                    print(page_offset, "is the page offset")
+        page_offset = str((page_num - 1) * PAGE_LIMIT)
+        print(page_offset, "is the page offset")
 
-                    # query the response as json, page the query, include nested replies table
-                    cur.execute(QUERY_PAGE_POSTS, (str(PAGE_LIMIT), page_offset,))
-                    posts = cur.fetchall()[0][0]
-                    #print(posts)
+        # query the response as json, page the query, include nested replies table
+        posts = dbmanager.read(query_str=QUERY_PAGE_POSTS, params=(str(PAGE_LIMIT), page_offset,))[0][0]
+        #print(posts)
 
-                elif request.method == "POST":
-                    # for replies we get the data, and save it nothing more
-                    post_id = request.form.get('post_id') # hacky way of saving the postid
-                    reply = request.form.get('reply')
+    elif request.method == "POST":
+        # for replies we get the data, and save it nothing more
+        post_id = request.form.get('post_id') # hacky way of saving the postid
+        reply = request.form.get('reply')
 
-                    # minimum of 20 characters in a reply
-                    # (we can detect spamming later)
-                    if post_id is None or len(reply) <= 5:
-                        return '<p>Post is too short or invalid post id</p>', 400
-                    
-                    # no logging in yet author is just Anon
-                    author = "Anon"
+        # minimum of 20 characters in a reply
+        # (we can detect spamming later)
+        if post_id is None or len(reply) <= 5:
+            return '<p>Post is too short or invalid post id</p>', 400
+        
+        # no logging in yet author is just Anon
+        author = "Anon"
 
-                    print("creating a reply linked to the parent post")
-                    cur.execute("INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
-                        (post_id, reply, author))
-                    conn.commit()
+        print(post_id)
+        print("creating a reply linked to the parent post")
+        dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
+            params=(post_id, reply, author))
 
-                    # redirect back to the view_forum to trigger the refresh
-                    return redirect(url_for("serve_forum") + f"?post={post_id}")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        traceback.print_exc()
+        # redirect back to the view_forum to trigger the refresh
+        return redirect(url_for("serve_forum") + f"?post={post_id}")
 
     return render_template("forums.html", posts=posts)
 
@@ -205,19 +165,15 @@ def submit_new_post():
             return '', 400
 
         author = "Anon"
-        try:
-            with post.connect(**DB_CONFIG) as conn:
-                with conn.cursor() as cur:
-                    cur.execute("INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
-                                (title, description, author))
-                    new_post_id = cur.fetchone()[0]
-                    #print(new_post_id)
-                    conn.commit()
+        retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
+            fetch=True, 
+            params=(title, description, author)
+        )
 
-                    return redirect(f'/forums?post={new_post_id}')
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            traceback.print_exc()
+        new_post_id = retrieved[0]
+        if new_post_id:
+            return redirect(f'/forums?post={new_post_id}')
+
     return '<p>Internal Server Error</p>', 500
 
 @app.route('/static/<path:filename>')
@@ -227,16 +183,8 @@ def serve_static(filename):
 
 @app.cli.command("testdb")
 def poke_at_postgresql():
-    try:
-        with post.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(SHOW_SERVER_VERSION)
-                db_version = cursor.fetchone()
-                print("Running: " + db_version[0])
-                cursor.execute(INIT_DB_TABLES)
-                conn.commit()
 
-    except Exception as e:
-            print(f"An error occurred: {e}")
-            traceback.print_exc()
+    db_version = dbmanager.write(query_str=SHOW_SERVER_VERSION, fetch=True)
+    print("Running: ", db_version[0][0])
+    dbmanager.write(INIT_DB_TABLES)
     
