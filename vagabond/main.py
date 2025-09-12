@@ -33,7 +33,7 @@ app.config["custom_config"] = app_config
 
 logging.basicConfig(
     level=app_config.log_level,  # or INFO in production
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'",
     handlers=[
         logging.StreamHandler(),  # to stdout
         logging.FileHandler("app.log"),  # optional: log to file

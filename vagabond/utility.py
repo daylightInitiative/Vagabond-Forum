@@ -14,6 +14,7 @@ class DBManager:
         return post.connect(**self.db_config)
 
     # avoids redundant calls to .commit() and fetch
+    # TODO: add bit flagging for fetch and commit to unionize this function
     def write(self, query_str, fetch=False, params=None):
         """Executes a query on the db, then calls .commit()"""
         with self._get_connection() as conn:
