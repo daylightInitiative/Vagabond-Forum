@@ -1,3 +1,9 @@
 {
-    "log_level": "INFO"
+    "log_level": "INFO",
+    "db_config": {
+        "host": "127.0.0.1",
+        "database": "forum",
+        "user": "admin",
+        "port": "5432"
+    }
 }

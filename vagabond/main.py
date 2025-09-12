@@ -1,12 +1,12 @@
 
 import os
-import psycopg2 as post # for connecting to postgresql
 import logging as log
 import traceback
 import json
 
 from queries import *
 from config import Config
+from utility import DBManager
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
 from flask_limiter import Limiter
@@ -28,6 +28,9 @@ with open(config_path, "r") as f:
 
 app_config = Config(config_data)
 app.config["custom_config"] = app_config
+
+# create the our db manager
+dbmanager = DBManager(app_config)
 
 limiter = Limiter(
     get_remote_address,
@@ -55,15 +58,7 @@ def log_request_info():
     print(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
-    try:
-        with post.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cur:
-                cur.execute('UPDATE webstats SET hits = hits + 1;')
-                conn.commit()
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        traceback.print_exc()
+    dbmanager.write('UPDATE webstats SET hits = hits + 1;')
 
 @app.route("/news.html")
 def news():
@@ -89,19 +84,22 @@ def reading_list():
 @app.route("/")
 def index():
     random_number = randint(1, 99999)
+    num_hits = dbmanager.read("SELECT hits FROM webstats;")[0][0]
+
+    return render_template("index.html", number=random_number, num_hits=num_hits)
 
     # get the number of website hits
-    try:
-        with post.connect(**DB_CONFIG) as conn:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT hits FROM webstats;")
-                    num_hits = cur.fetchall()[0][0]
-                    return render_template("index.html", number=random_number, num_hits=num_hits)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        traceback.print_exc()
+    # try:
+    #     with post.connect(**DB_CONFIG) as conn:
+    #             with conn.cursor() as cur:
+    #                 cur.execute("SELECT hits FROM webstats;")
+    #                 num_hits = cur.fetchall()[0][0]
+    #                 return render_template("index.html", number=random_number, num_hits=num_hits)
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
+    #     traceback.print_exc()
 
-    return render_template("index.html")
+    # return render_template("index.html")
 
 
 
