@@ -12,7 +12,7 @@ QUERY_NEWS_POSTS = read_sql_file("query_news_posts.sql")
 QUERY_PAGE_POSTS = read_sql_file("query_page_posts.sql")
 QUERY_PAGE_REPLIES = read_sql_file("query_page_replies.sql")
 VIEW_POST_BY_ID = read_sql_file("view_post_by_id.sql")
-INIT_DB_TABLES = read_sql_file("init_database_tables.sql")
+INIT_DB_TABLES = read_sql_file("init_db_tables.sql")
 
 
 SHOW_SERVER_VERSION = 'SHOW server_version;'
