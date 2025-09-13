@@ -5,12 +5,12 @@ CREATE TABLE IF NOT EXISTS webstats (
 INSERT INTO webstats (hits) VALUES (0);
 
 CREATE TABLE IF NOT EXISTS users (
-    userid SERIAL PRIMARY KEY,
-    email VARCHAR(254) NOT NULL,
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
     username VARCHAR(20) UNIQUE NOT NULL CHECK (char_length(username) >= 3),
     account_locked BOOLEAN NOT NULL DEFAULT FALSE,
     is_online BOOLEAN NOT NULL DEFAULT FALSE,
-    hashed_password TEXT NOT NULL,
+    hashed_password CHAR(255) NOT NULL,
     ipaddr inet NOT NULL,
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
     join_date TIMESTAMPTZ DEFAULT NOW()
@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS posts (
     creation_date TIMESTAMPTZ DEFAULT NOW()
 );
 
+
 CREATE TABLE IF NOT EXISTS replies (
     id SERIAL PRIMARY KEY,
     parent_post_id INTEGER NOT NULL,
@@ -42,3 +43,4 @@ CREATE TABLE IF NOT EXISTS replies (
     creation_date TIMESTAMPTZ DEFAULT NOW(),
     FOREIGN KEY (parent_post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
+

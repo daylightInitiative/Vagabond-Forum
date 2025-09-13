@@ -1,0 +1,2 @@
+INSERT INTO users (email, username, account_locked, is_online, hashed_password, ipaddr, is_superuser)
+    VALUES ("admin@nowhere.com", "admin", "False", "False", "root", "127.0.0.1", "True") RETURNING id

@@ -73,8 +73,12 @@ def internal_error(error):
 @app.route("/news.html")
 def news():
 
-    # will be fixing the json soon to return just a tuple or dict by RealDictCursor
-    news_feed = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)[0][0]
+    # returns an array of tuples, index one out
+    raw_rows = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)
+    
+    column_names = ["id", "title", "pinned", "contents", "author", "creation_date"]
+    news_feed = [dict(zip(column_names, row)) for row in raw_rows]
+    logging.debug(news_feed)
 
     return render_template("news.html", news_feed=news_feed or [])
 
@@ -117,14 +121,20 @@ def serve_forum():
             
             logging.debug("we have visited a post and not a page, dynamically load it")
             # we're going to read from one specific post
-            single_post = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, params=(post_num,))[0][0][0]
+            view_single = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, params=(post_num,))
+            column_names = ["id", "title", "views", "contents", "author", "creation_date"]
+            single_post = [dict(zip(column_names, row)) for row in view_single][0]
+            #print(single_post)
             
             dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
                 params=(post_num,))
 
             # get all the posts replies
-            replies_list = dbmanager.read(query_str=QUERY_PAGE_REPLIES, params=(post_num,))[0][0]
+            raw_replies = dbmanager.read(query_str=QUERY_PAGE_REPLIES, params=(post_num,))
             #logging.debug(replies_list, single_post, post_num)
+            column_names = ["id", "parent_post_id", "contents", "author", "creation_date"]
+            replies_list = [dict(zip(column_names, row)) for row in raw_replies]
+            print(replies_list)
 
             return render_template("view_post.html", post=single_post, replies=replies_list)
         
@@ -138,10 +148,14 @@ def serve_forum():
             return redirect(url_for("serve_forum") + "?page=1")
 
         page_offset = str((page_num - 1) * PAGE_LIMIT)
-        logging.debug(page_offset, "is the page offset")
+        logging.debug("is the page offset")
+        print(page_offset)
 
         # query the response as json, page the query, include nested replies table
-        posts = dbmanager.read(query_str=QUERY_PAGE_POSTS, params=(str(PAGE_LIMIT), page_offset,))[0][0]
+        raw_posts = dbmanager.read(query_str=QUERY_PAGE_POSTS, params=(str(PAGE_LIMIT), page_offset,))
+        column_names = ["id", "title", "views", "contents", "author", "creation_date"]
+        posts = [dict(zip(column_names, row)) for row in raw_posts]
+        print("!!", posts)
         #logging.debug(posts)
 
     elif request.method == "POST":
@@ -155,7 +169,7 @@ def serve_forum():
             return '<p>Post is too short or invalid post id</p>', 400
         
         # no logging in yet author is just Anon
-        author = "Anon"
+        author = "1"
 
         logging.debug(post_id)
         logging.debug("creating a reply linked to the parent post")
@@ -191,7 +205,7 @@ def submit_new_post():
         if not title or not description:
             return '', 400
 
-        author = "Anon"
+        author = "1"
         retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
             fetch=True, 
             params=(title, description, author)
