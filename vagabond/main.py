@@ -90,7 +90,9 @@ def index():
     return render_template("index.html", number=random_number, num_hits=num_hits)
 
 
-
+@app.route("/login", methods=["GET", "POST"])
+def serve_login():
+    return render_template("login.html")
 
 @app.route("/forums", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET"])
@@ -164,6 +166,11 @@ def serve_forum():
         return redirect(url_for("serve_forum") + f"?post={post_id}")
 
     return render_template("forums.html", posts=posts)
+
+# here we go....
+@app.route('/signup', methods=['GET', 'POST'])
+def signup_page():
+    pass
 
 # for posting we can just reuse this route
 @app.route('/post', methods=['GET', 'POST'])
