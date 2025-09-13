@@ -112,11 +112,11 @@ def serve_forum():
             except (TypeError, ValueError):
                 # redirect to the first page if page_num is invalid (postgres id starts at 1)
                 return redirect(url_for("serve_forum") + "?page=1")
-
+            
             logging.debug("we have visited a post and not a page, dynamically load it")
             # we're going to read from one specific post
             single_post = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, params=(post_num,))[0][0][0]
-
+            
             dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
                 params=(post_num,))
 
@@ -201,10 +201,4 @@ def submit_new_post():
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-@app.cli.command("testdb")
-def poke_at_postgresql():
-
-    db_version = dbmanager.write(query_str=SHOW_SERVER_VERSION, fetch=True)
-    logging.debug("Running: ", db_version[0][0])
-    dbmanager.write(INIT_DB_TABLES)
     
