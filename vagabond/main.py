@@ -6,7 +6,7 @@ import json
 
 from queries import *
 from config import Config
-from utility import DBManager
+from utility import DBManager, rows_to_dict
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
 from flask_limiter import Limiter
@@ -74,11 +74,9 @@ def internal_error(error):
 def news():
 
     # returns an array of tuples, index one out
-    raw_rows = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)
-    
-    column_names = ["id", "title", "pinned", "contents", "author", "creation_date"]
-    news_feed = [dict(zip(column_names, row)) for row in raw_rows]
-    logging.debug(news_feed)
+    raw_rows, column_names = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)
+    news_feed = rows_to_dict(raw_rows, column_names)
+    #logging.debug(news_feed)
 
     return render_template("news.html", news_feed=news_feed or [])
 
@@ -95,8 +93,14 @@ def index():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("125 per minute", methods=["GET"])
+@limiter.limit("70 per minute", methods=["POST"])
 def serve_login():
-    return render_template("login.html")
+
+    if request.method == "GET":
+        return render_template("login.html")
+    elif request.method == "POST":
+        pass
 
 @app.route("/forums", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET"])
@@ -121,20 +125,15 @@ def serve_forum():
             
             logging.debug("we have visited a post and not a page, dynamically load it")
             # we're going to read from one specific post
-            view_single = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, params=(post_num,))
-            column_names = ["id", "title", "views", "contents", "author", "creation_date"]
-            single_post = [dict(zip(column_names, row)) for row in view_single][0]
-            #print(single_post)
+            view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
+            single_post = rows_to_dict(view_single, column_names)[0]
             
             dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
                 params=(post_num,))
 
             # get all the posts replies
-            raw_replies = dbmanager.read(query_str=QUERY_PAGE_REPLIES, params=(post_num,))
-            #logging.debug(replies_list, single_post, post_num)
-            column_names = ["id", "parent_post_id", "contents", "author", "creation_date"]
-            replies_list = [dict(zip(column_names, row)) for row in raw_replies]
-            print(replies_list)
+            replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
+            replies_list = rows_to_dict(replies_rows, column_names)
 
             return render_template("view_post.html", post=single_post, replies=replies_list)
         
@@ -152,11 +151,12 @@ def serve_forum():
         print(page_offset)
 
         # query the response as json, page the query, include nested replies table
-        raw_posts = dbmanager.read(query_str=QUERY_PAGE_POSTS, params=(str(PAGE_LIMIT), page_offset,))
-        column_names = ["id", "title", "views", "contents", "author", "creation_date"]
-        posts = [dict(zip(column_names, row)) for row in raw_posts]
-        print("!!", posts)
-        #logging.debug(posts)
+        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(str(PAGE_LIMIT), page_offset,))
+        posts = rows_to_dict(post_rows, column_names)
+
+        print(posts)
+        # we need to get the associated username from the user id
+        
 
     elif request.method == "POST":
         # for replies we get the data, and save it nothing more
