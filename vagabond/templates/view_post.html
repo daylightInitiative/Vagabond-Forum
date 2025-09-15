@@ -22,7 +22,7 @@
         {% for post in replies %}
             <div class="user-post">
                 <h2><b>Reply</b></h2>
-                <p>author: {{ post.author }} on {{ post.creation_date }}</p>
+                <p>author: {{ post.author_username }} on {{ post.creation_date }}</p>
                 <p>{{ post.contents }}</p>
             </div>
         {% endfor %}
