@@ -5,6 +5,7 @@
         {% if errormsg %}
             <b>Error during login: {{ errormsg }}</b>
         {% endif %}
+        <p>Dont have an account yet? <a href="/signup">Sign Up</a></p>
         <form class="login-form" action="/login" method="POST">
                 <h1>Login</h1>
                 <label for="email">Email</label>

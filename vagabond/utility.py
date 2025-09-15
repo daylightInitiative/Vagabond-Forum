@@ -65,3 +65,13 @@ class DBManager:
             traceback.print_exc()
             raise
         return None
+    
+def get_userid_from_email(db: DBManager, email:str) -> str:
+    get_userid = db.read(query_str="""
+            SELECT id
+            FROM users
+            WHERE email = %s
+        """, fetch=True, params=(email,))
+    if not get_userid:
+        return None
+    return get_userid[0][0] # will fix this soon

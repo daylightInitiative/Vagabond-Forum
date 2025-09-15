@@ -1,22 +1,12 @@
 
 from queries import *
-from utility import DBManager
+from utility import DBManager, get_userid_from_email
 import logging
 import argon2
 
 log = logging.getLogger(__name__)
 ph = argon2.PasswordHasher(hash_len=24) # 16 is enough entrophy but we want to be more secure
 #https://argon2-cffi.readthedocs.io/en/stable/howto.html
-
-def get_userid_from_email(db: DBManager, email:str) -> str:
-    get_userid = db.read(query_str="""
-            SELECT id
-            FROM users
-            WHERE email = %s
-        """, fetch=True, params=(email,))
-    if not get_userid:
-        return None
-    return get_userid[0][0] # will fix this soon
 
 # returns true upon a successful authentication, false upon incorrect credentials
 def is_valid_login(db: DBManager, email: str, password: str) -> tuple[bool, str]:

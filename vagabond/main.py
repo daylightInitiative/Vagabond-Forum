@@ -6,8 +6,9 @@ import json
 
 from queries import *
 from config import Config
-from utility import DBManager, rows_to_dict
-from login import is_valid_login, get_userid_from_email
+from utility import DBManager, rows_to_dict, get_userid_from_email
+from signup import signup
+from login import is_valid_login
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort
 from flask_limiter import Limiter
@@ -72,6 +73,7 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     #db.session.rollback()
+    log.critical("Internal Server Error has occured: %s", error)
     return render_template('error_pages/500.html'), 500
 
 @app.route("/news.html")
@@ -213,15 +215,32 @@ def serve_forum():
 # here we go....
 @app.route('/signup', methods=['GET', 'POST'])
 def signup_page():
-    pass
+    
+    if request.method == "GET":
+        return render_template("signup.html")
+    elif request.method == "POST":
+        
+        email = request.form.get('email', type=str)
+        username = request.form.get('username', type=str)
+        password = request.form.get('password', type=str)
+        
+        if not email or not username or not password:
+            return '', 400
+        
+        userid, errmsg = signup(db=dbmanager, email=email, username=username, password=password)
+
+        if not userid:
+            return render_template("signup.html", errmsg=errmsg)
+        
+        session["logged_in"] = userid # sign the user in
+        return redirect(url_for("index"))
+
 
 # for posting we can just reuse this route
 @app.route('/post', methods=['GET', 'POST'])
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("70 per minute", methods=["POST"])
 def submit_new_post():
-
-
 
     if request.method == "GET":
 
@@ -240,7 +259,7 @@ def submit_new_post():
         author = session['logged_in'] # the stored username
         retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
             fetch=True, 
-            params=(title, description, author)
+            params=(title, description, author,)
         )
 
         new_post_id = retrieved[0]
