@@ -1,11 +1,17 @@
 import psycopg2 as post
 import logging
 import traceback
+import re
 
 log = logging.getLogger(__name__)
 
 def rows_to_dict(rows, columns):
     return [dict(zip(columns, row)) for row in rows]
+
+# once we setup a server, py3-validate-email using this for enhanced protection
+def is_valid_email_address(email: str) -> bool:
+    pattern = r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?"
+    return re.match(pattern, email)
 
 # when you need state, error handling but also functions I find that using a class here works nice
 class DBManager:

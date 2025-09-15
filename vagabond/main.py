@@ -227,7 +227,7 @@ def signup_page():
         if not email or not username or not password:
             return '', 400
         
-        userid, errmsg = signup(db=dbmanager, email=email, username=username, password=password)
+        userid, errmsg = signup(db=dbmanager, email=email, username=username, password=password, ipaddr=request.remote_addr)
 
         if not userid:
             return render_template("signup.html", errmsg=errmsg)

@@ -1,6 +1,6 @@
 
 from queries import *
-from utility import DBManager, get_userid_from_email
+from utility import DBManager, get_userid_from_email, is_valid_email_address
 import logging
 import argon2
 
@@ -12,7 +12,7 @@ ph = argon2.PasswordHasher(hash_len=24) # 16 is enough entrophy but we want to b
 def is_valid_login(db: DBManager, email: str, password: str) -> tuple[bool, str]:
     try:
         email = email.strip()
-        if not email or not '@' in email: #probably will use email regex for future verification
+        if not email or not is_valid_email_address(email=email): #probably will use email regex for future verification
             return False, "Email is invalid"
         # fetch the hashed_password row from the user associated with this username
         
