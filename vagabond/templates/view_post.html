@@ -5,7 +5,7 @@
     {% if post %}
         <div class="user-post">
             <h2><b>{{ post.title }}</b></h2>
-            <p>author: {{ post.author }} on {{ post.creation_date }}</p>
+            <p>author: {{ post.author_username }} on {{ post.creation_date }}</p>
             <p>{{ post.contents }}</p>
             <p>{{ post.views }} views</p>
             <form class="new-post-form" action="{{ request.url }}?reply" method="POST">

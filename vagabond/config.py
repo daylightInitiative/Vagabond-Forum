@@ -12,9 +12,12 @@ class Config():
     log_level = "DEBUG"
     db_config = None
 
-    def __init__(self, data=None):
+    def __init__(self, app=None, data=None):
         self.patch(data)
         self.patch_secrets()
+        # change app configuration
+        if app:
+            app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 
     def patch(self, data):
         if data is not None and type(data) is dict:

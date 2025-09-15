@@ -18,7 +18,7 @@ if not config_path:
 with open(config_path, "r") as f:
     config_data = json.load(f)
 
-app_config = Config(config_data)
+app_config = Config(data=config_data)
 dbmanager = DBManager(app_config)
 
 # this is idiot safe (the tables only create if they IF NOT EXISTS)
@@ -36,4 +36,9 @@ if __name__ == '__main__':
     # (email, username, account_locked, is_online, hashed_password, ipaddr, is_superuser)
     dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
         admin_email, "admin", False, False, admin_password, "127.0.0.1", True,))
+    
+    john_password = os.getenv("JOHN_PASSWORD")
+    # lets create a test user to test out banning/account locking
+    dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
+        "john@example.com", "johnd", True, False, john_password, "127.0.0.1", True,))
     print("Setup all pre registered accounts")

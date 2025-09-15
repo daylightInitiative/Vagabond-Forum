@@ -11,7 +11,14 @@
                 <a href="/forums">Forum</a>
                 <a href="/news.html">Recent News</a>
                 <a href="/reading_list.html">Reading List</a>
-                <a href="/">Profile</a>
+                <!--<a href="/">Profile</a>-->
+                {% if 'logged_in' in session %}
+                    <a href="/">Profile</a>
+                    <a href="/logout">Log out</a>
+                {% else %}
+                    <a href="/login">Login</a>
+                {% endif %}
+                <!-- the way templates work are, even things in the base template can be replaced. -->
             </div>
         </nav>
     </head>

@@ -7,9 +7,9 @@ import json
 from queries import *
 from config import Config
 from utility import DBManager, rows_to_dict
-from login import is_valid_login
+from login import is_valid_login, get_userid_from_email
 
-from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
+from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
@@ -27,7 +27,7 @@ if not config_path:
 with open(config_path, "r") as f:
     config_data = json.load(f)
 
-app_config = Config(config_data)
+app_config = Config(app, config_data)
 app.config["custom_config"] = app_config
 
 # shouldnt have to type out log.debug just to print
@@ -88,6 +88,11 @@ def news():
 def reading_list():
     return render_template("reading.html")
 
+def abort_if_unauthorized():
+    is_authorized = 'logged_in' in session
+    if not is_authorized:
+        abort(401)
+
 @app.route("/")
 def index():
     random_number = randint(1, 99999)
@@ -111,13 +116,25 @@ def serve_login():
         if email is None or password is None:
             return '', 422
         
-        is_authenticated = is_valid_login(db=dbmanager, email=email, password=password)
+        is_authenticated, errmsg = is_valid_login(db=dbmanager, email=email, password=password)
         
-        # set session cookies with same site strict
         if is_authenticated:
-            return render_template("index.html")
+        
+            # lets get the userid
+            userid = get_userid_from_email(db=dbmanager, email=email)
+
+            if not userid:
+                return render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
+
+            session['logged_in'] = userid
+            return redirect(url_for("index"))
         else:
-            return render_template("login.html", errormsg="Invalid email or password.")
+            return render_template("login.html", errormsg=errmsg)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('serve_login'))
 
 @app.route("/forums", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET"])
@@ -171,6 +188,7 @@ def serve_forum():
         posts = rows_to_dict(post_rows, column_names)
 
     elif request.method == "POST":
+        abort_if_unauthorized()
         # for replies we get the data, and save it nothing more
         post_id = request.form.get('post_id') # hacky way of saving the postid
         reply = request.form.get('reply')
@@ -180,8 +198,7 @@ def serve_forum():
         if post_id is None or len(reply) <= 5:
             return '<p>Post is too short or invalid post id</p>', 400
         
-        # no log in yet author is just Anon
-        author = "1"
+        author = session['logged_in'] # the stored userid
 
         printf(post_id)
         printf("creating a reply linked to the parent post")
@@ -204,6 +221,8 @@ def signup_page():
 @limiter.limit("70 per minute", methods=["POST"])
 def submit_new_post():
 
+
+
     if request.method == "GET":
 
         # TODO: pass user info into this template like the username and stuff
@@ -211,13 +230,14 @@ def submit_new_post():
 
     elif request.method == "POST":
 
+        abort_if_unauthorized()
         title = request.form.get('title', type=str)
         description = request.form.get('description', type=str)
         
         if not title or not description:
             return '', 400
 
-        author = "1"
+        author = session['logged_in'] # the stored username
         retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
             fetch=True, 
             params=(title, description, author)

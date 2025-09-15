@@ -15,7 +15,7 @@ if not config_path:
 with open(config_path, "r") as f:
     config_data = json.load(f)
 
-app_config = Config(config_data)
+app_config = Config(data=config_data)
 dbmanager = DBManager(app_config)
 
 # this is idiot safe (the tables only create if they IF NOT EXISTS)
