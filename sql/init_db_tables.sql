@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(20) UNIQUE NOT NULL CHECK (char_length(username) >= 3),
     account_locked BOOLEAN NOT NULL DEFAULT FALSE,
     is_online BOOLEAN NOT NULL DEFAULT FALSE,
-    hashed_password CHAR(255) NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
     ipaddr inet NOT NULL,
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
     join_date TIMESTAMPTZ DEFAULT NOW()

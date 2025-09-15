@@ -1,12 +1,13 @@
 
 import os
-import logging
+import logging as log
 import traceback
 import json
 
 from queries import *
 from config import Config
 from utility import DBManager, rows_to_dict
+from login import is_valid_login
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory
 from flask_limiter import Limiter
@@ -29,14 +30,17 @@ with open(config_path, "r") as f:
 app_config = Config(config_data)
 app.config["custom_config"] = app_config
 
-# setup logging
+# shouldnt have to type out log.debug just to print
+printf = log.debug
+warn = log.warning
 
-logging.basicConfig(
+# setup log
+log.basicConfig(
     level=app_config.log_level,  # or INFO in production
     format="%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'",
     handlers=[
-        logging.StreamHandler(),  # to stdout
-        logging.FileHandler("app.log"),  # optional: log to file
+        log.StreamHandler(),  # to stdout
+        log.FileHandler("app.log"),  # optional: log to file
     ]
 )
 
@@ -56,7 +60,7 @@ limiter = Limiter(
 
 @app.before_request
 def log_request_info():
-    logging.debug(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
+    printf(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1;')
@@ -76,7 +80,7 @@ def news():
     # returns an array of tuples, index one out
     raw_rows, column_names = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)
     news_feed = rows_to_dict(raw_rows, column_names)
-    #logging.debug(news_feed)
+    #printf(news_feed)
 
     return render_template("news.html", news_feed=news_feed or [])
 
@@ -100,7 +104,20 @@ def serve_login():
     if request.method == "GET":
         return render_template("login.html")
     elif request.method == "POST":
-        pass
+
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        if email is None or password is None:
+            return '', 422
+        
+        is_authenticated = is_valid_login(db=dbmanager, email=email, password=password)
+        
+        # set session cookies with same site strict
+        if is_authenticated:
+            return render_template("index.html")
+        else:
+            return render_template("login.html", errormsg="Invalid email or password.")
 
 @app.route("/forums", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET"])
@@ -112,7 +129,6 @@ def serve_forum():
         page_num = request.args.get('page')
         post_num = request.args.get('post')
 
-
         if post_num and not page_num:
 
             try:
@@ -123,7 +139,7 @@ def serve_forum():
                 # redirect to the first page if page_num is invalid (postgres id starts at 1)
                 return redirect(url_for("serve_forum") + "?page=1")
             
-            logging.debug("we have visited a post and not a page, dynamically load it")
+            printf("we have visited a post and not a page, dynamically load it")
             # we're going to read from one specific post
             view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
             single_post = rows_to_dict(view_single, column_names)[0]
@@ -137,7 +153,7 @@ def serve_forum():
 
             return render_template("view_post.html", post=single_post, replies=replies_list)
         
-        logging.debug(f"queried post {page_num}")
+        printf(f"queried post {page_num}")
         try:
             page_num = int(page_num)
             if page_num <= 0:
@@ -147,16 +163,12 @@ def serve_forum():
             return redirect(url_for("serve_forum") + "?page=1")
 
         page_offset = str((page_num - 1) * PAGE_LIMIT)
-        logging.debug("is the page offset")
-        print(page_offset)
+        printf("is the page offset")
+        printf(page_offset)
 
         # query the response as json, page the query, include nested replies table
         post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(str(PAGE_LIMIT), page_offset,))
         posts = rows_to_dict(post_rows, column_names)
-
-        print(posts)
-        # we need to get the associated username from the user id
-        
 
     elif request.method == "POST":
         # for replies we get the data, and save it nothing more
@@ -168,11 +180,11 @@ def serve_forum():
         if post_id is None or len(reply) <= 5:
             return '<p>Post is too short or invalid post id</p>', 400
         
-        # no logging in yet author is just Anon
+        # no log in yet author is just Anon
         author = "1"
 
-        logging.debug(post_id)
-        logging.debug("creating a reply linked to the parent post")
+        printf(post_id)
+        printf("creating a reply linked to the parent post")
         dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
             params=(post_id, reply, author))
 

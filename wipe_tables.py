@@ -3,9 +3,6 @@ import os, json
 from vagabond.utility import DBManager
 from vagabond.config import Config
 from vagabond.queries import *
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # populates the empty database with the needed tables if not exists
 # (not part of the app but uses some components)
@@ -27,13 +24,17 @@ dbmanager = DBManager(app_config)
 if __name__ == '__main__':
     db_version = dbmanager.write(query_str=SHOW_SERVER_VERSION, fetch=True)
     print("Running: ", db_version[0][0])
-    dbmanager.write(query_str=INIT_DB_TABLES)
-    print("Wrote all needed tables")
+    confirm = input("Are you sure you want to wipe all tables in the db (development purposes only): (y/yes)").lower()
 
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
-
-    # (email, username, account_locked, is_online, hashed_password, ipaddr, is_superuser)
-    dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
-        admin_email, "admin", False, False, admin_password, "127.0.0.1", True,))
-    print("Setup all pre registered accounts")
+    if confirm == "y" or confirm == "yes":
+        dbmanager.write(query_str="""
+                DO $$ 
+            DECLARE 
+                r RECORD;
+            BEGIN 
+                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP; 
+            END $$;
+        """)
+        print("Wiped all needed tables")

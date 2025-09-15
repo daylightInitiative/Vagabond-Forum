@@ -30,8 +30,6 @@ class Config():
     
     def patch_secrets(self):
         # (avoiding putting the password in plaintext json files)
-        if self.db_config is None:
-            self.db_config = {}
         password = os.getenv("DB_PASSWORD")
         if password:
             self.db_config["password"] = password
