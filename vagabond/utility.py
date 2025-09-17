@@ -1,9 +1,13 @@
 import psycopg2 as post
-import logging
+import logging as log
 import traceback
 import re
 
-log = logging.getLogger(__name__)
+log = log.getLogger(__name__)
+
+DB_SUCCESS = 0
+DB_FAILURE = 1
+EXECUTED_NO_FETCH = 0
 
 def rows_to_dict(rows, columns):
     return [dict(zip(columns, row)) for row in rows]
@@ -12,6 +16,15 @@ def rows_to_dict(rows, columns):
 def is_valid_email_address(email: str) -> bool:
     pattern = r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?"
     return re.match(pattern, email)
+
+def deep_get(data, *indices):
+    try:
+        for i in indices:
+            data = data[i]
+        return data
+    except (IndexError, KeyError, TypeError) as e:
+        log.debug("Failed to access element at [%s]: %d levels deep: %s", data, i, e)
+        return None
 
 # when you need state, error handling but also functions I find that using a class here works nice
 class DBManager:
@@ -39,12 +52,13 @@ class DBManager:
                     if fetch:
                         results = cur.fetchall()
                         return results
+                return DB_SUCCESS
             except Exception as e:
                 log.critical("Database write query failed")
                 conn.rollback()
                 traceback.print_exc()
                 raise
-        return None
+        return DB_FAILURE
 
 
     def read(self, query_str, fetch=True, get_columns=False, params=None):
@@ -61,18 +75,18 @@ class DBManager:
                     if fetch:
                         results = cur.fetchall()
                         if get_columns and cur.description:
-                            
+
                             column_names = [col.name for col in cur.description]
                             return results, column_names
                         return results
-                    
+                    return EXECUTED_NO_FETCH
         except Exception as e:
             log.exception("Database query failed")
             traceback.print_exc()
             raise
-        return None
+        return DB_FAILURE
     
-def get_userid_from_email(db: DBManager, email:str) -> str:
+def get_userid_from_email(db: DBManager, email: str) -> str:
     get_userid = db.read(query_str="""
             SELECT id
             FROM users
@@ -80,4 +94,4 @@ def get_userid_from_email(db: DBManager, email:str) -> str:
         """, fetch=True, params=(email,))
     if not get_userid:
         return None
-    return get_userid[0][0] # will fix this soon
+    return deep_get(get_userid, 0, 0)

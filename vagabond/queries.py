@@ -24,6 +24,9 @@ QUERY_PAGE_POSTS = read_sql_file("query_page_posts.sql")
 QUERY_PAGE_REPLIES = read_sql_file("query_page_replies.sql")
 VIEW_POST_BY_ID = read_sql_file("view_post_by_id.sql")
 
+# session queries
+CREATE_TEMP_SESSION_DATA = read_sql_file("create_temp_session_data.sql")
+
 # user queries
 QUERY_USERID_BY_EMAIL = read_sql_file("query_userid_by_email.sql")
 

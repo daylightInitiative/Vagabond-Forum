@@ -5,12 +5,14 @@ import traceback
 import json
 
 from queries import *
+from session import create_session, is_valid_session, invalidate_session, get_userid_from_session
 from config import Config
-from utility import DBManager, rows_to_dict, get_userid_from_email
+from utility import DBManager, rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email
+from utility import DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
 from signup import signup
 from login import is_valid_login
 
-from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort
+from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort, make_response
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
@@ -56,6 +58,11 @@ limiter = Limiter(
     storage_uri="memory://localhost:11211",
 )
 
+def abort_if_unauthorized():
+    session_id = request.cookies.get("sessionID")
+    if not session_id or not is_valid_session(db=dbmanager, sessionID=session_id):
+        abort(401)
+
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
 
@@ -90,11 +97,6 @@ def news():
 def reading_list():
     return render_template("reading.html")
 
-def abort_if_unauthorized():
-    is_authorized = 'logged_in' in session
-    if not is_authorized:
-        abort(401)
-
 @app.route("/")
 def index():
     random_number = randint(1, 99999)
@@ -124,20 +126,42 @@ def serve_login():
         
             # lets get the userid
             userid = get_userid_from_email(db=dbmanager, email=email)
+            sid = create_session(db=dbmanager, userid=userid, ipaddr=request.remote_addr)
 
             if not userid:
                 return render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
 
-            session['logged_in'] = userid
-            return redirect(url_for("index"))
+            if not sid:
+                return render_template("login.html", errmsg="Internal server error: Unable to acquire session ID")
+
+            log.debug("Sending session to client")
+            response = make_response(redirect(url_for("index")))
+            response.set_cookie(key="sessionID", value=sid)
+
+            return response
         else:
             return render_template("login.html", errormsg=errmsg)
 
 @app.route('/logout')
 def logout():
-    session.clear()
+    #session.clear()
+
+    sid = request.cookies.get("sessionID")
+    if sid:
+        invalidate_session(db=dbmanager, sessionID=sid)
+
     return redirect(url_for('serve_login'))
 
+def is_superuser(userid) -> bool:
+    get_is_superuser = dbmanager.read(query_str="""
+        SELECT id, is_superuser
+        FROM users
+        WHERE id = %s and is_superuser = TRUE
+    """, fetch=True, params=(userid,))
+    return deep_get(get_is_superuser, 0, 1) or False
+        
+
+# handles displaying the forum and creating replies to posts
 @app.route("/forums", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("80 per minute", methods=["POST"])
@@ -163,14 +187,22 @@ def serve_forum():
             view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
             single_post = rows_to_dict(view_single, column_names)[0]
             
-            dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
+            update_views = dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
                 params=(post_num,))
 
             # get all the posts replies
             replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
             replies_list = rows_to_dict(replies_rows, column_names)
 
-            return render_template("view_post.html", post=single_post, replies=replies_list)
+            # query if the user is a superuser to delete the replies, and entire post
+            is_superuser = False
+            sessionID = request.cookies.get("sessionID")
+
+            if sessionID and is_valid_session(db=dbmanager, sessionID=sessionID):
+                userid = get_userid_from_session(db=dbmanager, sessionID=sessionID)
+                is_superuser = is_superuser(userid)
+
+            return render_template("view_post.html", post=single_post, replies=replies_list, is_superuser=is_superuser)
         
         printf(f"queried post {page_num}")
         try:
@@ -200,7 +232,8 @@ def serve_forum():
         if post_id is None or len(reply) <= 5:
             return '<p>Post is too short or invalid post id</p>', 400
         
-        author = session['logged_in'] # the stored userid
+        sessionID = request.cookies.get("sessionID") #guarenteed because of the abort
+        author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
 
         printf(post_id)
         printf("creating a reply linked to the parent post")
@@ -209,6 +242,14 @@ def serve_forum():
 
         # redirect back to the view_forum to trigger the refresh
         return redirect(url_for("serve_forum") + f"?post={post_id}")
+    
+    elif request.method == "DELETE":
+        post_id = request.form.get('post_id')
+        abort_if_unauthorized()
+
+        if not post_id:
+            return '<p>Invalid Post ID</p>', 422
+        
 
     return render_template("forums.html", posts=posts)
 
@@ -232,7 +273,6 @@ def signup_page():
         if not userid:
             return render_template("signup.html", errmsg=errmsg)
         
-        session["logged_in"] = userid # sign the user in
         return redirect(url_for("index"))
 
 
@@ -256,7 +296,9 @@ def submit_new_post():
         if not title or not description:
             return '', 400
 
-        author = session['logged_in'] # the stored username
+        sessionID = request.cookies.get("sessionID")
+        author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
+        #author = session['logged_in'] # the stored username
         retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
             fetch=True, 
             params=(title, description, author,)

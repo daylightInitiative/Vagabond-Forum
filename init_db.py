@@ -33,12 +33,12 @@ if __name__ == '__main__':
     admin_email = os.getenv("ADMIN_EMAIL")
     admin_password = os.getenv("ADMIN_PASSWORD")
 
-    # (email, username, account_locked, is_online, hashed_password, ipaddr, is_superuser)
+    # email, username, account_locked, loginAttempts, is_online, hashed_password, is_superuser
     dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
-        admin_email, "admin", False, False, admin_password, "127.0.0.1", True,))
+        admin_email, "admin", False, False, admin_password, True,))
     
     john_password = os.getenv("JOHN_PASSWORD")
     # lets create a test user to test out banning/account locking
     dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
-        "john@example.com", "johnd", True, False, john_password, "127.0.0.1", True,))
+        "john@example.com", "johnd", True, False, john_password, True,))
     print("Setup all pre registered accounts")
