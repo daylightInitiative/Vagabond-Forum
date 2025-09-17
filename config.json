@@ -1,5 +1,6 @@
 {
-    "log_level": "DEBUG",
+    "file_log_level": "INFO",
+    "console_log_level": "DEBUG",
     "db_config": {
         "host": "127.0.0.1",
         "database": "forum",

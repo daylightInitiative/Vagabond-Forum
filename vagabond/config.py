@@ -24,7 +24,8 @@ class Config():
             fields = [
                 "export_base_dir",
                 "models_dir",
-                "log_level",
+                "file_log_level",
+                "console_log_level",
                 "db_config"
             ]
             for field in fields:

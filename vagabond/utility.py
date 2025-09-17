@@ -54,7 +54,7 @@ class DBManager:
                         return results
                 return DB_SUCCESS
             except Exception as e:
-                log.critical("Database write query failed")
+                log.critical("Database write query failed: %s", e)
                 conn.rollback()
                 traceback.print_exc()
                 raise
@@ -81,7 +81,7 @@ class DBManager:
                         return results
                     return EXECUTED_NO_FETCH
         except Exception as e:
-            log.exception("Database query failed")
+            log.exception("Database query failed: %s", e)
             traceback.print_exc()
             raise
         return DB_FAILURE

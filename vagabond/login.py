@@ -1,12 +1,10 @@
 
 from queries import *
-from utility import DBManager, get_userid_from_email, is_valid_email_address
+from utility import DBManager, get_userid_from_email, is_valid_email_address, deep_get
 import logging
-import argon2
+import bcrypt
 
 log = logging.getLogger(__name__)
-ph = argon2.PasswordHasher(hash_len=24) # 16 is enough entrophy but we want to be more secure
-#https://argon2-cffi.readthedocs.io/en/stable/howto.html
 
 # returns true upon a successful authentication, false upon incorrect credentials
 def is_valid_login(db: DBManager, email: str, password: str) -> tuple[bool, str]:
@@ -27,7 +25,7 @@ def is_valid_login(db: DBManager, email: str, password: str) -> tuple[bool, str]
             WHERE id = %s and account_locked = TRUE
         """, fetch=True, params=(userid,))
 
-        if is_banned and is_banned[0][0] == True:
+        if is_banned and deep_get(is_banned, 0, 0) == True:
             return False, "Account associated with email has been disabled."
 
         get_hash = db.read(query_str="""
@@ -38,21 +36,16 @@ def is_valid_login(db: DBManager, email: str, password: str) -> tuple[bool, str]
 
         if not get_hash:
             log.warning("Cannot retrieve hash")
-            return False, "Incorrect email or password"
+            return False, "Unable to fetch"
         
-        hash = get_hash[0][0]
+        hash = deep_get(get_hash, 0, 0)
 
-        ph.verify(hash, password)
-        if ph.check_needs_rehash(hash):
-            new_hash = ph.hash(password)
-            log.debug(f"password for userid {userid} needs rehashing, attempting to rehash")
-            db.write(query_str="""
-                UPDATE users
-                SET hashed_password = %s
-                WHERE id = %s
-            """, params=(new_hash, userid,))
-    except argon2.exceptions.VerifyMismatchError: # blatently wrong password
-        return False, "Incorrect email or password"
+        provided_password = password.encode('utf-8')
+        hashed_password = hash.encode('utf-8')
+        result = bcrypt.checkpw(provided_password, hashed_password)
+
+        if result == False:
+            return False, "Incorrect email or password"
     except Exception as e:
         log.error("Unexpected error during login", exc_info=e)
         return False, "Internal Server Error"

@@ -9,7 +9,8 @@ psycopg2-binary = "*"
 psycopg2 = "*"
 python-dotenv = "*"
 flask-limiter = "*"
-argon2-cffi = "*"
+ua-parser = "*"
+bcrypt = "*"
 
 [dev-packages]
 

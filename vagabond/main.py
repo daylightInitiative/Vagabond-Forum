@@ -1,6 +1,6 @@
 
 import os
-import logging as log
+import logging
 import traceback
 import json
 
@@ -11,6 +11,7 @@ from utility import DBManager, rows_to_dict, deep_get, is_valid_email_address, g
 from utility import DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
 from signup import signup
 from login import is_valid_login
+from logFormatter import CustomFormatter # we love colors
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort, make_response
 from flask_limiter import Limiter
@@ -24,7 +25,7 @@ load_dotenv()
 app = Flask(__name__)
 config_path = os.getenv("CONFIG_PATH", "")
 if not config_path:
-    log.critical("USAGE: CONFIG_PATH=/path/to/config.json")
+    logging.critical("USAGE: CONFIG_PATH=/path/to/config.json")
     quit(1)
 
 with open(config_path, "r") as f:
@@ -33,19 +34,23 @@ with open(config_path, "r") as f:
 app_config = Config(app, config_data)
 app.config["custom_config"] = app_config
 
-# shouldnt have to type out log.debug just to print
-printf = log.debug
-warn = log.warning
+# Create a logger
+log = logging.getLogger(__name__)
+log.setLevel(app_config.console_log_level)
 
-# setup log
-log.basicConfig(
-    level=app_config.log_level,  # or INFO in production
-    format="%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'",
-    handlers=[
-        log.StreamHandler(),  # to stdout
-        log.FileHandler("app.log"),  # optional: log to file
-    ]
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+console_handler.setFormatter(CustomFormatter())
+
+file_handler = logging.FileHandler("app.log")
+file_handler.setLevel(app_config.file_log_level)
+file_formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
 )
+file_handler.setFormatter(file_formatter)
+
+log.addHandler(console_handler)
+log.addHandler(file_handler)
 
 # create the our db manager
 dbmanager = DBManager(app_config)
@@ -58,19 +63,27 @@ limiter = Limiter(
     storage_uri="memory://localhost:11211",
 )
 
+def is_user_logged_in():
+    sid = request.cookies.get("sessionID")
+    return sid and is_valid_session(db=dbmanager, sessionID=sid)
+
+# going to add more high level stuff here, like is_superuser()
 def abort_if_unauthorized():
-    session_id = request.cookies.get("sessionID")
-    if not session_id or not is_valid_session(db=dbmanager, sessionID=session_id):
+    if not is_user_logged_in():
         abort(401)
+
+def redirect_if_already_logged_in():
+    if is_user_logged_in():
+        return redirect( url_for("index") )
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
 
 @app.before_request
 def log_request_info():
-    printf(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
+    log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1;')
 
 @app.errorhandler(404)
@@ -89,7 +102,6 @@ def news():
     # returns an array of tuples, index one out
     raw_rows, column_names = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)
     news_feed = rows_to_dict(raw_rows, column_names)
-    #printf(news_feed)
 
     return render_template("news.html", news_feed=news_feed or [])
 
@@ -102,6 +114,11 @@ def index():
     random_number = randint(1, 99999)
     num_hits = dbmanager.read(query_str="SELECT hits FROM webstats;")[0][0]
 
+    log.debug("test debug")
+    log.info("test info")
+    log.warning("test warning")
+    log.error("test error")
+
     return render_template("index.html", number=random_number, num_hits=num_hits)
 
 
@@ -109,6 +126,8 @@ def index():
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("70 per minute", methods=["POST"])
 def serve_login():
+
+    redirect_if_already_logged_in()
 
     if request.method == "GET":
         return render_template("login.html")
@@ -126,7 +145,7 @@ def serve_login():
         
             # lets get the userid
             userid = get_userid_from_email(db=dbmanager, email=email)
-            sid = create_session(db=dbmanager, userid=userid, ipaddr=request.remote_addr)
+            sid = create_session(db=dbmanager, userid=userid, request_obj=request)
 
             if not userid:
                 return render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
@@ -257,7 +276,11 @@ def serve_forum():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup_page():
     
+    redirect_if_already_logged_in()
+
     if request.method == "GET":
+
+        # if the user is already signed in, redirect them away
         return render_template("signup.html")
     elif request.method == "POST":
         
@@ -268,7 +291,7 @@ def signup_page():
         if not email or not username or not password:
             return '', 400
         
-        userid, errmsg = signup(db=dbmanager, email=email, username=username, password=password, ipaddr=request.remote_addr)
+        userid, errmsg = signup(db=dbmanager, email=email, username=username, password=password)
 
         if not userid:
             return render_template("signup.html", errmsg=errmsg)
@@ -298,7 +321,7 @@ def submit_new_post():
 
         sessionID = request.cookies.get("sessionID")
         author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
-        #author = session['logged_in'] # the stored username
+
         retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
             fetch=True, 
             params=(title, description, author,)

@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     account_locked BOOLEAN NOT NULL DEFAULT FALSE,
     loginAttempts int NOT NULL DEFAULT 0,
     is_online BOOLEAN NOT NULL DEFAULT FALSE,
-    hashed_password VARCHAR(255) NOT NULL,
+    hashed_password VARCHAR(60) NOT NULL, -- bcrypt hash length
+    password_salt VARCHAR(30) NOT NULL, -- bcrypt salt length default rounds
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
     lastSeen TIMESTAMPTZ DEFAULT NOW(),
     join_date TIMESTAMPTZ DEFAULT NOW()
@@ -30,6 +31,8 @@ CREATE TABLE IF NOT EXISTS sessions_table (
     sid VARCHAR(32) UNIQUE NOT NULL,
     ipaddr inet NOT NULL,
     user_id INT NOT NULL,
+    display_user_agent VARCHAR(255) NOT NULL DEFAULT 'Unknown, Unknown',
+    raw_user_agent VARCHAR(255) NOT NULL DEFAULT 'Unknown',
     temp_data_sid INT NOT NULL,
     lastLogin TIMESTAMPTZ DEFAULT NOW(),
     active BOOLEAN NOT NULL DEFAULT TRUE,
