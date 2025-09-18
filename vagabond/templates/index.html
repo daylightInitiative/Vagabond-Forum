@@ -12,6 +12,11 @@
         <div>
             <p>Random number of the day: {{number}}</p>
             <p>Total website hits: {{num_hits}}</p>
+            {% if is_superuser == True %}
+                <p>You are an admin!</p>
+            {% else %}
+                <p>Welcome user!</p>
+            {% endif %}
         </div>
     </main>
 {% endblock %}

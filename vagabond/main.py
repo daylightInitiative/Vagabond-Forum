@@ -3,6 +3,7 @@ import os
 import logging
 import traceback
 import json
+import string
 
 from queries import *
 from session import create_session, is_valid_session, invalidate_session, get_userid_from_session
@@ -70,7 +71,7 @@ def get_session_id():
 
 def is_user_logged_in():
     sid = get_session_id()
-    return sid and is_valid_session(db=dbmanager, sessionID=sid)
+    return True if sid and is_valid_session(db=dbmanager, sessionID=sid) else False
 
 def is_admin(userid) -> bool:
     get_is_superuser = dbmanager.read(query_str="""
@@ -83,7 +84,7 @@ def is_admin(userid) -> bool:
 
 
 # going to add more high level stuff here, like is_superuser()
-def abort_if_unauthorized():
+def abort_if_not_signed_in():
     if not is_user_logged_in():
         abort(401)
     
@@ -100,6 +101,7 @@ def redirect_if_already_logged_in():
 @app.context_processor
 def inject_jinja_variables():
     user_id = get_userid_from_session(db=dbmanager, sessionID=get_session_id())
+    log.debug(f"yay!")
     return {
         "is_authenticated": is_user_logged_in(),
         "is_superuser": is_admin(user_id)
@@ -190,7 +192,54 @@ def logout():
         invalidate_session(db=dbmanager, sessionID=sid)
 
     return redirect(url_for('serve_login'))
-        
+
+@app.route('/profile', methods=["GET", "POST"])
+def profile():
+
+    seshid = get_session_id()
+    userid = get_userid_from_session(db=dbmanager, sessionID=seshid)
+    get_info = dbmanager.read(query_str="""
+        SELECT email, username, join_date
+        FROM users
+        WHERE id = %s
+    """, params=(userid,))
+
+    # trunk this into the utility at some point
+    email = deep_get(get_info, 0, 0)
+    length = len(email) - 3
+    hidden_email = email[0:3] + ('*' * length)
+
+    username = deep_get(get_info, 0, 1)
+    joinDate = deep_get(get_info, 0, 2)
+
+    userinfo = dict(
+        userid = userid,
+        username = username,
+        join_date = joinDate,
+        email = hidden_email
+    )
+
+    # get the session profiles to be displayed in the profile file (for right now)
+    get_list = dbmanager.read(query_str="""
+        SELECT active, lastLogin, display_user_agent, ipaddr
+        FROM sessions_table
+        WHERE user_id = %s
+        ORDER BY lastLogin DESC
+    """, params=(userid,))
+
+    sessions = []
+    for i in range(len(get_list)):
+        sessions.append(dict(
+            active = deep_get(get_list, i, 0),
+            lastLogin = deep_get(get_list, i, 1),
+            userAgent = deep_get(get_list, i, 2),
+            ipaddr = deep_get(get_list, i, 3)
+        ))
+
+    print(sessions)
+
+    return render_template("profile.html", userinfo=userinfo, sessions=sessions)
+
 
 # handles displaying the forum and creating replies to posts
 @app.route("/forums", methods=["GET", "POST", "PATCH"])
@@ -247,7 +296,7 @@ def serve_forum():
 
     elif request.method == "POST" and request.form.get("_method") == "DELETE":
         reply_id = request.form.get('post_id')
-        abort_if_unauthorized()
+        abort_if_not_signed_in()
 
         user_id = get_userid_from_session(db=dbmanager, sessionID=get_session_id())
         if not is_admin(user_id):
@@ -269,7 +318,7 @@ def serve_forum():
 
 
     elif request.method == "POST":
-        abort_if_unauthorized()
+        abort_if_not_signed_in()
         # for replies we get the data, and save it nothing more
         post_id = request.form.get('post_id') # hacky way of saving the postid
         reply = request.form.get('reply')
@@ -332,7 +381,7 @@ def submit_new_post():
 
     elif request.method == "POST":
 
-        abort_if_unauthorized()
+        abort_if_not_signed_in()
         title = request.form.get('title', type=str)
         description = request.form.get('description', type=str)
         

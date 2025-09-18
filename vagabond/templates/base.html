@@ -13,7 +13,7 @@
                 <a href="/reading_list.html">Reading List</a>
                 <!--<a href="/">Profile</a>-->
                 {% if is_authenticated == True %}
-                    <a href="/">Profile</a>
+                    <a href="/profile">Profile</a>
                     <a href="/logout">Log out</a>
                 {% else %}
                     <a href="/login">Login</a>
@@ -23,6 +23,7 @@
         </nav>
     </head>
     <body>
+        is_authenticated = {{ is_authenticated }}, is_superuser = {{ is_superuser }}
         {% block content %}{% endblock %}
     </body>
 </html>

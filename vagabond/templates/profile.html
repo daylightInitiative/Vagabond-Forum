@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% if userinfo %}
+        <p>Hello, <b>{{ userinfo.username }}</b>! You are user number: {{ userinfo.userid }}<br>Welcome! We appreciate your patronage since {{ userinfo.join_date }}</p>
+        {% if is_superuser %}
+            <p>As an <b>admin</b>! be sure to use your power to make everyone happy! <b>or else..</b></p>
+        {% endif %}
+    {% endif %}
+
+    {% if sessions %}
+        <h2>Login Sessions</h2>
+        {% for sesh in sessions %}
+            <b>Status: {{ 'ACTIVE' if sesh.active else 'INACTIVE' }}</b>
+            <p>Session from: {{ sesh.userAgent }} by IP address {{ sesh.ipaddr }} on {{ sesh.lastLogin }}</p>
+        {% endfor %}
+
+    {% endif %}
+
+{% endblock %}
