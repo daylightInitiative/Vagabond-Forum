@@ -63,14 +63,30 @@ limiter = Limiter(
     storage_uri="memory://localhost:11211",
 )
 
+# I use this a lot per route, making it a function so there are no typos
+# and I can easily change this key to something else, hopefully more DRY
+def get_session_id():
+    return request.cookies.get("sessionID")
+
 def is_user_logged_in():
-    sid = request.cookies.get("sessionID")
+    sid = get_session_id()
     return sid and is_valid_session(db=dbmanager, sessionID=sid)
+
+def is_admin(userid) -> bool:
+    get_is_superuser = dbmanager.read(query_str="""
+        SELECT id, is_superuser
+        FROM users
+        WHERE id = %s
+    """, fetch=True, params=(userid,))
+    return deep_get(get_is_superuser, 0, 1) or False
+
+
 
 # going to add more high level stuff here, like is_superuser()
 def abort_if_unauthorized():
     if not is_user_logged_in():
         abort(401)
+    
 
 def redirect_if_already_logged_in():
     if is_user_logged_in():
@@ -78,6 +94,16 @@ def redirect_if_already_logged_in():
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
+
+# learned that context processors exist ! no more spaghetti arg passing to render template
+# I will eventually switch over to blueprints as the site gains complexity
+@app.context_processor
+def inject_jinja_variables():
+    user_id = get_userid_from_session(db=dbmanager, sessionID=get_session_id())
+    return {
+        "is_authenticated": is_user_logged_in(),
+        "is_superuser": is_admin(user_id)
+    }
 
 @app.before_request
 def log_request_info():
@@ -92,7 +118,6 @@ def not_found_error(error):
 
 @app.errorhandler(500)
 def internal_error(error):
-    #db.session.rollback()
     log.critical("Internal Server Error has occured: %s", error)
     return render_template('error_pages/500.html'), 500
 
@@ -112,12 +137,9 @@ def reading_list():
 @app.route("/")
 def index():
     random_number = randint(1, 99999)
-    num_hits = dbmanager.read(query_str="SELECT hits FROM webstats;")[0][0]
+    get_hits = dbmanager.read(query_str="SELECT hits FROM webstats;")
 
-    log.debug("test debug")
-    log.info("test info")
-    log.warning("test warning")
-    log.error("test error")
+    num_hits = deep_get(get_hits, 0, 0)
 
     return render_template("index.html", number=random_number, num_hits=num_hits)
 
@@ -136,7 +158,7 @@ def serve_login():
         email = request.form.get('email')
         password = request.form.get('password')
 
-        if email is None or password is None:
+        if not email or not password:
             return '', 422
         
         is_authenticated, errmsg = is_valid_login(db=dbmanager, email=email, password=password)
@@ -163,21 +185,11 @@ def serve_login():
 
 @app.route('/logout')
 def logout():
-    #session.clear()
-
-    sid = request.cookies.get("sessionID")
+    sid = get_session_id()
     if sid:
         invalidate_session(db=dbmanager, sessionID=sid)
 
     return redirect(url_for('serve_login'))
-
-def is_superuser(userid) -> bool:
-    get_is_superuser = dbmanager.read(query_str="""
-        SELECT id, is_superuser
-        FROM users
-        WHERE id = %s and is_superuser = TRUE
-    """, fetch=True, params=(userid,))
-    return deep_get(get_is_superuser, 0, 1) or False
         
 
 # handles displaying the forum and creating replies to posts
@@ -191,7 +203,7 @@ def serve_forum():
         page_num = request.args.get('page')
         post_num = request.args.get('post')
 
-        if post_num and not page_num:
+        if not page_num and post_num:
 
             try:
                 post_num = int(post_num)
@@ -201,10 +213,11 @@ def serve_forum():
                 # redirect to the first page if page_num is invalid (postgres id starts at 1)
                 return redirect(url_for("serve_forum") + "?page=1")
             
-            printf("we have visited a post and not a page, dynamically load it")
+            log.debug("we have visited a post and not a page, dynamically load it")
             # we're going to read from one specific post
             view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
-            single_post = rows_to_dict(view_single, column_names)[0]
+            get_post = rows_to_dict(view_single, column_names)
+            single_post = deep_get(get_post, 0)
             
             update_views = dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
                 params=(post_num,))
@@ -213,17 +226,9 @@ def serve_forum():
             replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
             replies_list = rows_to_dict(replies_rows, column_names)
 
-            # query if the user is a superuser to delete the replies, and entire post
-            is_superuser = False
-            sessionID = request.cookies.get("sessionID")
-
-            if sessionID and is_valid_session(db=dbmanager, sessionID=sessionID):
-                userid = get_userid_from_session(db=dbmanager, sessionID=sessionID)
-                is_superuser = is_superuser(userid)
-
-            return render_template("view_post.html", post=single_post, replies=replies_list, is_superuser=is_superuser)
+            return render_template("view_post.html", post=single_post, replies=replies_list)
         
-        printf(f"queried post {page_num}")
+        log.debug(f"queried post {page_num}")
         try:
             page_num = int(page_num)
             if page_num <= 0:
@@ -233,8 +238,7 @@ def serve_forum():
             return redirect(url_for("serve_forum") + "?page=1")
 
         page_offset = str((page_num - 1) * PAGE_LIMIT)
-        printf("is the page offset")
-        printf(page_offset)
+        log.debug("is the page offset")
 
         # query the response as json, page the query, include nested replies table
         post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(str(PAGE_LIMIT), page_offset,))
@@ -248,14 +252,13 @@ def serve_forum():
 
         # minimum of 20 characters in a reply
         # (we can detect spamming later)
-        if post_id is None or len(reply) <= 5:
+        if not post_id or len(reply) <= 5:
             return '<p>Post is too short or invalid post id</p>', 400
         
-        sessionID = request.cookies.get("sessionID") #guarenteed because of the abort
+        sessionID = get_session_id() #guarenteed because of the abort
         author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
 
-        printf(post_id)
-        printf("creating a reply linked to the parent post")
+        log.debug("creating a reply linked to the parent post")
         dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
             params=(post_id, reply, author))
 
@@ -266,9 +269,21 @@ def serve_forum():
         post_id = request.form.get('post_id')
         abort_if_unauthorized()
 
+        # if not is_superuser():
+        #     return '<p>Unauthorized</p>', 401
+
         if not post_id:
             return '<p>Invalid Post ID</p>', 422
         
+        dbmanager.write(query_str="""
+            UPDATE TABLE replies
+            SET deleted_at = NOW()
+            WHERE id = %s
+        """, params=(post_id))
+
+        log.info("marked reply for deletion")
+        return redirect(url_for("serve_forum") + f"?post={post_id}")
+
 
     return render_template("forums.html", posts=posts)
 
@@ -319,7 +334,7 @@ def submit_new_post():
         if not title or not description:
             return '', 400
 
-        sessionID = request.cookies.get("sessionID")
+        sessionID = get_session_id()
         author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
 
         retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
@@ -327,7 +342,7 @@ def submit_new_post():
             params=(title, description, author,)
         )
 
-        new_post_id = retrieved[0]
+        new_post_id = deep_get(retrieved, 0)
         if new_post_id:
             return redirect(f'/forums?post={new_post_id}')
 

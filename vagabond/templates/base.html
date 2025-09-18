@@ -12,7 +12,7 @@
                 <a href="/news.html">Recent News</a>
                 <a href="/reading_list.html">Reading List</a>
                 <!--<a href="/">Profile</a>-->
-                {% if 'logged_in' in session %}
+                {% if is_authenticated == True %}
                     <a href="/">Profile</a>
                     <a href="/logout">Log out</a>
                 {% else %}

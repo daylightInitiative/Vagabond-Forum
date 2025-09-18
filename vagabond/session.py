@@ -20,10 +20,8 @@ def create_session(db: DBManager, userid: str, request_obj) -> str | None:
     
     # create the supplementory temporary data sid
     temp_session_data_id = db.write(query_str=CREATE_TEMP_SESSION_DATA, fetch=True)[0][0]
-    print("tsid: ", temp_session_data_id)
 
     sid = generate_sid()
-    print(sid, len(sid))
 
     while True:
         try:
@@ -36,7 +34,6 @@ def create_session(db: DBManager, userid: str, request_obj) -> str | None:
             log.critical("Failed checking unique sid: %s", e)
             return None
         sid_is_taken = deep_get(response, 0, 0)
-        print("sid taken: ",sid_is_taken)
         if not sid_is_taken:
             break
         sid = generate_sid()

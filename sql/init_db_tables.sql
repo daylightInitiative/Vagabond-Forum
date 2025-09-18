@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS replies (
     parent_post_id INTEGER NOT NULL,
     contents VARCHAR(500) NOT NULL,
     author BIGINT NOT NULL REFERENCES users (id),
+    deleted_at TIMESTAMPTZ, -- soft deletion
     creation_date TIMESTAMPTZ DEFAULT NOW(),
     FOREIGN KEY (parent_post_id) REFERENCES posts(id) ON DELETE CASCADE
 );

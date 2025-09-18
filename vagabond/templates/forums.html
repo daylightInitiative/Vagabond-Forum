@@ -3,19 +3,16 @@
 {% block content %}
     <p>This is the forums page.</p>
     <!-- simple new post link -->
-    <a href="/post"><b>New Post</b></a>
+    {% if is_superuser == True %}
+        <p>As an admin you must try to be kind, considerate and always fair toward our users.</p>
+    {% endif %}
+    {% if is_authenticated %}
+        <!-- once again this route is protected, dont even think about it. -->
+        <a href="/post"><b>New Post</b></a>
+    {% else %}
+        <b>You must log in to make a new post.</b>
+    {% endif %}
     <div>
-
-        
-        <!-- <form class="input-box" action="/post" method="POST">
-            <label for="title">Post Title:</label>
-            <input type="text" id="title" name="title" required>
-            <br><br>
-            <label id="description" for="description">Post Description:</label>
-            <textarea id="description" name="description" rows="5" cols="50" required></textarea>
-            <br><br>
-            <button class="new-post-btn">Submit Post</button>
-        </form> -->
 
         {% if posts %}
             <table>
@@ -25,23 +22,6 @@
                     <th>Views</th>
                     <th>Last Post</th>
                 </tr>
-                <!-- <tr>
-                    <td>
-                        <div>
-                            <a href="/">Example post title</a>
-                            <span>by User</span>
-                        </div>
-                    </td>
-                    <td>7</td>
-                    <td>432</td>
-                    <td>
-                        <div>
-                            NI
-                            <span>by User</span>
-                        </div>
-                    </td>
-                </tr> -->
-
                 {% for post in posts %}
                     <tr>
                         <td><a href="/forums?post={{ post.id }}">{{ post.title }}</a> by <i>{{ post.author_username }}</i></td>
