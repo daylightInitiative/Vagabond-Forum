@@ -193,7 +193,7 @@ def logout():
         
 
 # handles displaying the forum and creating replies to posts
-@app.route("/forums", methods=["GET", "POST"])
+@app.route("/forums", methods=["GET", "POST", "PATCH"])
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("80 per minute", methods=["POST"])
 def serve_forum():
@@ -244,6 +244,30 @@ def serve_forum():
         post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(str(PAGE_LIMIT), page_offset,))
         posts = rows_to_dict(post_rows, column_names)
 
+
+    elif request.method == "POST" and request.form.get("_method") == "DELETE":
+        reply_id = request.form.get('post_id')
+        abort_if_unauthorized()
+
+        user_id = get_userid_from_session(db=dbmanager, sessionID=get_session_id())
+        if not is_admin(user_id):
+            return '<p>Unauthorized</p>', 401
+
+        if not reply_id:
+            return '<p>Invalid Post ID</p>', 422
+        
+        get_parent_post_id = dbmanager.write(query_str="""
+            UPDATE replies
+            SET deleted_at = NOW()
+            WHERE id = %s
+            RETURNING parent_post_id
+        """, fetch=True, params=(reply_id))
+        parent_post_id = deep_get(get_parent_post_id, 0, 0)
+
+        log.info("marked reply for deletion")
+        return redirect(url_for("serve_forum") + f"?post={parent_post_id}")
+
+
     elif request.method == "POST":
         abort_if_unauthorized()
         # for replies we get the data, and save it nothing more
@@ -263,25 +287,6 @@ def serve_forum():
             params=(post_id, reply, author))
 
         # redirect back to the view_forum to trigger the refresh
-        return redirect(url_for("serve_forum") + f"?post={post_id}")
-    
-    elif request.method == "DELETE":
-        post_id = request.form.get('post_id')
-        abort_if_unauthorized()
-
-        # if not is_superuser():
-        #     return '<p>Unauthorized</p>', 401
-
-        if not post_id:
-            return '<p>Invalid Post ID</p>', 422
-        
-        dbmanager.write(query_str="""
-            UPDATE TABLE replies
-            SET deleted_at = NOW()
-            WHERE id = %s
-        """, params=(post_id))
-
-        log.info("marked reply for deletion")
         return redirect(url_for("serve_forum") + f"?post={post_id}")
 
 

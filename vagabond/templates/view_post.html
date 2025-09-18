@@ -28,11 +28,12 @@
                 <h2><b>Reply</b></h2>
                 <p>author: {{ post.author_username }} on {{ post.creation_date }}</p>
                 <p>{{ post.contents }}</p>
-                {% if is_superuser == true %}
+                {% if is_superuser == True %}
                     <!-- display the delete button (a form hack is to have the post_id hidden here) -->
                     <!-- the route is protected -->
-                    <form class="delete-post-button" action="{{ request.url }}?reply" method="DELETE">
+                    <form class="delete-post-button" action="{{ request.url }}?reply" method="POST">
                         <input type="hidden" name="post_id" value="{{ post.id }}">
+                        <input type="hidden" name="_method" value="DELETE">
                         <button type="submit">Delete Post</button>
                     </form>
                 {% endif %}
