@@ -9,13 +9,17 @@
             <p>{{ post.contents }}</p>
             <p>{{ post.views }} views</p>
             {% if is_authenticated %}
-                <form class="new-post-form" action="{{ request.url }}?reply" method="POST">
-                    <input type="hidden" name="post_id" value="{{ post.id }}">
-                    <h4>Reply to this post</h4>
-                    <textarea id="reply" name="reply" placeholder="Write your reply here" rows="5" cols="50" required></textarea>
-                    <br><br>
-                    <input type="submit" value="Submit">
-                </form>
+                {% if is_post_locked %}
+                    <b>This post has been locked, it is no longer accepting replies.</b>
+                {% else %}
+                    <form class="new-post-form" action="{{ request.url }}?reply" method="POST">
+                        <input type="hidden" name="post_id" value="{{ post.id }}">
+                        <h4>Reply to this post</h4>
+                        <textarea id="reply" name="reply" placeholder="Write your reply here" rows="5" cols="50" required></textarea>
+                        <br><br>
+                        <input type="submit" value="Submit">
+                    </form>
+                {% endif %}
             {% else %}
                 <p>You must log in to leave a reply.</p>
             {% endif %}

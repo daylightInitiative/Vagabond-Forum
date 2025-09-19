@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS posts (
     views INT DEFAULT 0,
     contents VARCHAR(2000) NOT NULL,
     author BIGINT NOT NULL REFERENCES users (id),
+    post_locked BOOLEAN NOT NULL DEFAULT FALSE,
     creation_date TIMESTAMPTZ DEFAULT NOW()
 );
 

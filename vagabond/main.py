@@ -314,6 +314,16 @@ def profile():
 
     return render_template("profile.html", userinfo=userinfo, sessions=sessions)
 
+def get_is_post_locked(postnum):
+    get_locked = dbmanager.read(query_str="""
+        SELECT post_locked
+        FROM posts
+        WHERE id = %s
+    """, params=(postnum,))
+
+    is_post_locked = deep_get(get_locked, 0, 0)
+
+    return is_post_locked
 
 # handles displaying the forum and creating replies to posts
 @app.route("/forums", methods=["GET", "POST", "PATCH"])
@@ -349,7 +359,10 @@ def serve_forum():
             replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
             replies_list = rows_to_dict(replies_rows, column_names)
 
-            return render_template("view_post.html", post=single_post, replies=replies_list)
+            # get if the post is locked or not
+            is_post_locked = get_is_post_locked(postnum=post_num)
+
+            return render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
         
         log.debug(f"queried post {page_num}")
         try:
@@ -393,6 +406,11 @@ def serve_forum():
 
     elif request.method == "POST":
         abort_if_not_signed_in()
+
+        is_post_locked = get_is_post_locked()
+        if is_post_locked:
+            return abort(401)
+
         # for replies we get the data, and save it nothing more
         post_id = request.form.get('post_id') # hacky way of saving the postid
         reply = request.form.get('reply')
@@ -470,7 +488,8 @@ def submit_new_post():
             params=(title, description, author,)
         )
 
-        new_post_id = deep_get(retrieved, 0)
+        new_post_id = deep_get(retrieved, 0, 0)
+        log.debug(new_post_id)
         if new_post_id:
             return redirect(f'/forums?post={new_post_id}')
 
