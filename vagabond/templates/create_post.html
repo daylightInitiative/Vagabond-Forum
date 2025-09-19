@@ -2,15 +2,17 @@
 
 {% block content %}
     <div>
-        <form class="new-post-form" action="/post" method="POST">
-                <h4>New Post</h4>
+            <form class="new-post-form" action="/post" method="POST">
+                <h2>New Post</h2>
                 <label for="title">Post Title:</label>
                 <input type="text" id="title" name="title" required>
                 <br><br>
-                <label id="description" for="description">Post Description:</label>
+                <label for="description">Post Description:</label>
                 <textarea id="description" name="description" rows="5" cols="50" required></textarea>
                 <br><br>
                 <input type="submit" value="Submit">
             </form>
     </div>
+    <!-- order matters here, because we are using jinja we have to put this AFTER the elements are created. -->
+    <script src="{{ url_for('static', filename='js/save_draft.js') }}"></script>
 {% endblock %}

@@ -7,6 +7,7 @@
 - [x] create a BASIC sign up system
 - [ ] secure the login system from csrf and xss
 - [x] add user banning
+- [x] add deletion of replies
 - [ ] website facelift (rework css)
 - [ ] Add email verification as a required account setup step, (send the email a code)
 - [ ] Add internal messaging to the forum

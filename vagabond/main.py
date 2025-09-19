@@ -145,6 +145,22 @@ def index():
 
     return render_template("index.html", number=random_number, num_hits=num_hits)
 
+@app.route("/save_draft", methods=["POST"])
+@limiter.limit("50 per minute", methods=["POST"])
+def save_draft():
+    
+    if not is_user_logged_in():
+        abort(401)
+
+    data = request.get_json()
+    log.debug(data)
+
+    # get the current session
+    sid = get_session_id()
+
+    return '', 200
+
+    
 
 @app.route("/login", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET"])
@@ -193,8 +209,14 @@ def logout():
 
     return redirect(url_for('serve_login'))
 
+
+
 @app.route('/profile', methods=["GET", "POST"])
 def profile():
+
+    log.debug(is_user_logged_in())
+    if not is_user_logged_in():
+        abort(401)
 
     seshid = get_session_id()
     userid = get_userid_from_session(db=dbmanager, sessionID=seshid)
@@ -235,8 +257,6 @@ def profile():
             userAgent = deep_get(get_list, i, 2),
             ipaddr = deep_get(get_list, i, 3)
         ))
-
-    print(sessions)
 
     return render_template("profile.html", userinfo=userinfo, sessions=sessions)
 

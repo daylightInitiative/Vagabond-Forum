@@ -2,6 +2,15 @@
 
 {% block content %}
 
+    <!-- <div class="pagebar">
+        <p>This is an example post</p>
+    </div>
+    <div class="bgsquare">
+        <div class="square">
+
+        </div>
+    </div> -->
+
     {% if userinfo %}
         <p>Hello, <b>{{ userinfo.username }}</b>! You are user number: {{ userinfo.userid }}<br>Welcome! We appreciate your patronage since {{ userinfo.join_date }}</p>
         {% if is_superuser %}

@@ -102,6 +102,33 @@ textarea {
     margin-left: 5%;
 }
 
+.bgsquare {
+  width: 95%;
+  height: 300px;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 0 auto;
+  background-color: #1E1E1E;
+}
+
+.pagebar {
+  width: 95%;
+  height: 15px;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 0 auto;
+  text-align: center;
+  color: rgb(228, 228, 228);
+  background-color: #2b67ce;
+}
+
+.square {
+  width: 150px;
+  height: 250px;
+  padding: 25px;
+  background-color: #252628;
+}
+
 .header {
   background-color: var(--header-bg);
   color: var(--text-color);
