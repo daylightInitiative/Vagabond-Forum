@@ -5,12 +5,13 @@
             <form class="new-post-form" action="/post" method="POST">
                 <h2>New Post</h2>
                 <label for="title">Post Title:</label>
-                <input type="text" id="title" name="title" required>
+                <input type="text" id="title" maxlength="250" name="title" required>
                 <br><br>
-                <label for="description">Post Description:</label>
-                <textarea id="description" name="description" rows="5" cols="50" required></textarea>
+                <label>Post Description:</label>
                 <br><br>
-                <input type="submit" value="Submit">
+                <textarea id="description" name="description" maxlength="2000" rows="5" cols="50" required></textarea>
+                <br><br>
+                <input id="submit" type="submit" value="Submit">
             </form>
     </div>
     <!-- order matters here, because we are using jinja we have to put this AFTER the elements are created. -->

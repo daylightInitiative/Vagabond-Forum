@@ -191,16 +191,23 @@ textarea {
 }
 
 .input-box input,
-.input-box textarea {
-  width: 86%;
+#description {
+  width: 55%;
+  height: 25vh;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 5px;
   font-size: 1rem;
+  resize: vertical;
+  white-space: pre-wrap;
   font-family: inherit;
   background-color: var(--card-bg);
   color: var(--text-color);
-  resize: vertical;
+  line-height: 1.5;
+}
+
+#submit {
+  width: 75px;
 }
 
 .input-box textarea {
@@ -209,6 +216,12 @@ textarea {
 
 .user-post {
     color: var(--text-color);
+}
+
+footer {
+  font-size: x-small;
+  color: #888888;
+  padding-top: 12%;
 }
 
 a {

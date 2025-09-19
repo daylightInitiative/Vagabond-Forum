@@ -145,18 +145,72 @@ def index():
 
     return render_template("index.html", number=random_number, num_hits=num_hits)
 
-@app.route("/save_draft", methods=["POST"])
+# returns temporary data id linked to a session.
+def get_tdid(sessionID: str) -> str|None:
+    get_tdid = dbmanager.read(query_str="""
+        SELECT temp_data_sid
+        FROM sessions_table
+        WHERE sid = %s
+    """, params=(sessionID,))
+
+    if get_tdid == DB_FAILURE:
+        log.critical("Failure to fetch TDID")
+        return '', 500
+
+    tdid = deep_get(get_tdid, 0, 0)
+    return tdid if tdid else None
+
+@app.route("/save_draft", methods=["POST", "GET"])
 @limiter.limit("50 per minute", methods=["POST"])
+@limiter.limit("50 per minute", methods=["GET"])
 def save_draft():
     
     if not is_user_logged_in():
         abort(401)
 
-    data = request.get_json()
-    log.debug(data)
+    if request.method == "GET":
+        # get saved draft logic here
+        sid = get_session_id()
+        temp_session_id = get_tdid(sessionID=sid)
+        
+        get_draft = dbmanager.read(query_str="""
+            SELECT draft_text
+            FROM temp_session_data
+            WHERE tempid = %s and LENGTH(draft_text) > 0
+        """, params=(temp_session_id,))
 
-    # get the current session
-    sid = get_session_id()
+        saved_draft_text = deep_get(get_draft, 0, 0)
+
+        if not saved_draft_text:
+            return '', 204 # no content
+        
+        draft = {
+            "contents": saved_draft_text
+        }
+
+        return jsonify(draft), 200
+
+
+
+    elif request.method == "POST":
+        data = request.get_json()
+        log.debug(data)
+
+        # get the current session
+        sid = get_session_id()
+        # get the temporary data id
+        tdid = get_tdid(sessionID=sid)
+
+        text_to_save = data.get("contents")
+        save_draft = dbmanager.write(query_str="""
+            UPDATE temp_session_data
+            SET draft_text = %s
+            WHERE tempid = %s
+        """, params=(text_to_save, tdid,))
+
+        if save_draft == DB_FAILURE:
+            log.critcal("Failed to save draft data for tdid: %s", tdid)
+            return '', 500
 
     return '', 200
 
@@ -393,15 +447,15 @@ def signup_page():
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("70 per minute", methods=["POST"])
 def submit_new_post():
+    abort_if_not_signed_in()
 
     if request.method == "GET":
+        
 
-        # TODO: pass user info into this template like the username and stuff
         return render_template("create_post.html")
 
     elif request.method == "POST":
 
-        abort_if_not_signed_in()
         title = request.form.get('title', type=str)
         description = request.form.get('description', type=str)
         

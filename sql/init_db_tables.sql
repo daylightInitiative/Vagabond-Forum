@@ -6,7 +6,7 @@ INSERT INTO webstats (hits) VALUES (0);
 
 CREATE TABLE IF NOT EXISTS profiles (
     id SERIAL PRIMARY KEY,
-    description VARCHAR(300) NOT NULL DEFAULT '',
+    description VARCHAR(300) NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS users (
