@@ -143,7 +143,14 @@ def index():
 
     num_hits = deep_get(get_hits, 0, 0)
 
-    return render_template("index.html", number=random_number, num_hits=num_hits)
+    forum_cat_rows, forum_cat_cols = dbmanager.read(query_str=QUERY_FORUM_CATEGORIES, get_columns=True)
+    categories_list = rows_to_dict(forum_cat_rows, forum_cat_cols)
+
+    log.debug(categories_list)
+
+    #return render_template("forums.html", forum_categories=categories_list or [])
+
+    return render_template("index.html", number=random_number, num_hits=num_hits, forum_categories=categories_list or {})
 
 # returns temporary data id linked to a session.
 def get_tdid(sessionID: str) -> str|None:
@@ -365,6 +372,10 @@ def serve_forum():
     if request.method == "GET":
 
         page_num = request.args.get('page')
+        category_id = request.args.get('category')
+
+        if not page_num or not category_id:
+            return '', 422
         
         log.debug(f"queried post {page_num}")
         try:
@@ -373,13 +384,13 @@ def serve_forum():
                 raise ValueError("Invalid page number")
         except (TypeError, ValueError):
             # redirect to the first page if page_num is invalid (postgres id starts at 1)
-            return redirect(url_for("serve_forum") + "?page=1")
+            return redirect(url_for("forums.html") + "?page=1")
 
         page_offset = str((page_num - 1) * PAGE_LIMIT)
         log.debug("is the page offset")
 
         # query the response as json, page the query, include nested replies table
-        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(str(PAGE_LIMIT), page_offset,))
+        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(category_id, str(PAGE_LIMIT), page_offset,))
         posts = rows_to_dict(post_rows, column_names)
 
 

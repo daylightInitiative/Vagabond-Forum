@@ -55,9 +55,10 @@ CREATE TABLE IF NOT EXISTS news_feed (
 
 CREATE TABLE IF NOT EXISTS categories (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(30) NOT NULL,
+    name VARCHAR(30) NOT NULL
 );
 
+-- category_id, title, contents, author, url_title
 CREATE TABLE IF NOT EXISTS posts (
     id SERIAL PRIMARY KEY,
     category_id BIGINT NOT NULL,

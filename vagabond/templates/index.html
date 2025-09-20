@@ -17,6 +17,23 @@
             {% else %}
                 <p>Welcome user!</p>
             {% endif %}
+
+            <table>
+                <tr>
+                    <th>Forum Category</th>
+                    <th>Posts</th>
+                    <th>Replies</th>
+                    <th>Activity</th>
+                </tr>
+                {% for cat in forum_categories %}
+                    <tr>
+                        <td><a href="/forums?page=1&category={{ cat.id }}">{{ cat.name }}</a></td>
+                        <td>{{ cat.post_count }}</td>
+                        <td>{{ cat.reply_count }}</td>
+                        <td>Never</td>
+                    </tr>
+                {% endfor %}
+            </table>
         </div>
     </main>
 {% endblock %}

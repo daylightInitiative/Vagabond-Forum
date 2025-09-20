@@ -45,3 +45,31 @@ if __name__ == '__main__':
     dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
         "john@example.com", "johnd", True, False, john_password, john_salt, False,))
     print("Setup all pre registered accounts")
+
+    # create some starter categories
+    dbmanager.write(query_str="""
+        INSERT INTO categories (name)
+            VALUES (%s)
+    """, params=("Announcements",))
+
+    dbmanager.write(query_str="""
+        INSERT INTO categories (name)
+            VALUES (%s)
+    """, params=("Bushcraft Tips",))
+
+    dbmanager.write(query_str="""
+        INSERT INTO categories (name)
+            VALUES (%s)
+    """, params=("Help & Support",))
+
+    # create some dummy posts
+    dbmanager.write(query_str="""
+        INSERT INTO posts (category_id, title, contents, author, url_title)
+            VALUES (%s, %s, %s, %s, %s)
+    """, params=(1, "Welcome to the forum!", "This forum is about survival, backpacking and hunting!", 1, "welcome-to-the-forum"))
+
+    dbmanager.write(query_str="""
+        INSERT INTO posts (category_id, title, contents, author, url_title)
+            VALUES (%s, %s, %s, %s, %s)
+    """, params=(2, "Basic Pack Setup", "A good pack is small, and purpose driven make sure to always carry water filtering equipment", 1, "basic-pack-setup"))
+    

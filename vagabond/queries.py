@@ -18,6 +18,9 @@ def read_sql_file(filename):
 # init db
 INIT_DB_TABLES = read_sql_file("init_db_tables.sql")
 
+# v2 forum queries
+QUERY_FORUM_CATEGORIES = read_sql_file("query_forum_categories.sql")
+
 # page queries
 QUERY_NEWS_POSTS = read_sql_file("query_news_posts.sql")
 QUERY_PAGE_POSTS = read_sql_file("query_page_posts.sql")

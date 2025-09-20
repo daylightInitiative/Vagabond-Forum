@@ -5,6 +5,7 @@ SELECT
 FROM (
     SELECT *
     FROM posts
+    WHERE posts.category_id = %s
     ORDER BY creation_date DESC
     LIMIT %s OFFSET %s
 ) AS p
