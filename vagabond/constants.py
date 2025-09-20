@@ -1,0 +1,4 @@
+
+MAX_URL_TITLE = 40
+
+

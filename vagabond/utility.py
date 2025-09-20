@@ -2,6 +2,7 @@ import psycopg2 as post
 import logging as log
 import traceback
 import re
+from vagabond.constants import MAX_URL_TITLE
 
 log = log.getLogger(__name__)
 
@@ -11,6 +12,12 @@ EXECUTED_NO_FETCH = 0
 
 def rows_to_dict(rows, columns):
     return [dict(zip(columns, row)) for row in rows]
+
+def title_to_content_hint(title: str) -> str:
+    # we only want to get normal characters and normal numbers, and then seperate them with a "-"
+    # adding _ explicitly because its designated as a word character in the \W internally
+    text = title.lower()[:MAX_URL_TITLE]
+    return re.sub(r'[\W_]+', '-', text).strip('-')
 
 # once we setup a server, py3-validate-email using this for enhanced protection
 def is_valid_email_address(email: str) -> bool:

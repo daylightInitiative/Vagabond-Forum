@@ -5,14 +5,14 @@ import traceback
 import json
 import string
 
-from queries import *
-from session import create_session, is_valid_session, invalidate_session, get_userid_from_session
-from config import Config
-from utility import DBManager, rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email
-from utility import DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
-from signup import signup
-from login import is_valid_login
-from logFormatter import CustomFormatter # we love colors
+from vagabond.queries import *
+from vagabond.session import create_session, is_valid_session, invalidate_session, get_userid_from_session
+from vagabond.config import Config
+from vagabond.utility import DBManager, rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email, title_to_content_hint
+from vagabond.utility import DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
+from vagabond.signup import signup
+from vagabond.login import is_valid_login
+from vagabond.logFormatter import CustomFormatter # we love colors
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort, make_response
 from flask_limiter import Limiter
@@ -209,7 +209,7 @@ def save_draft():
         """, params=(text_to_save, tdid,))
 
         if save_draft == DB_FAILURE:
-            log.critcal("Failed to save draft data for tdid: %s", tdid)
+            log.critical("Failed to save draft data for tdid: %s", tdid)
             return '', 500
 
     return '', 200
@@ -314,18 +314,49 @@ def profile():
 
     return render_template("profile.html", userinfo=userinfo, sessions=sessions)
 
-def get_is_post_locked(postnum):
+def get_is_post_locked(post_num):
     get_locked = dbmanager.read(query_str="""
         SELECT post_locked
         FROM posts
         WHERE id = %s
-    """, params=(postnum,))
+    """, params=(post_num,))
 
     is_post_locked = deep_get(get_locked, 0, 0)
 
     return is_post_locked
 
-# handles displaying the forum and creating replies to posts
+@app.route("/forums/<int:post_num>/<content_hint>", methods=["GET"])
+@limiter.limit("125 per minute", methods=["GET"])
+def serve_post_by_id(post_num, content_hint):
+    log.debug("We are viewing a singular post from /forums/%s/%s", post_num, content_hint)
+
+    # get the content hint, if the content hint doesnt match, redirect early.
+    view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
+    get_post = rows_to_dict(view_single, column_names)
+    single_post = deep_get(get_post, 0)
+
+    saved_content_hint = single_post.get("url_title")
+
+    if content_hint != saved_content_hint:
+        print("Theres no content hint, redirect")
+        return redirect( url_for("serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
+    
+    dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
+        params=(post_num,))
+
+    # get all the posts replies
+    replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
+    replies_list = rows_to_dict(replies_rows, column_names)
+
+    # get if the post is locked or not
+    is_post_locked = get_is_post_locked(post_num=post_num)
+
+    return render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
+
+
+# categories are used for seperating mountains of posts by their categoryid
+# posts follow no pattern besides externally its postid, and if present its extracted url safe preview
+# so, in essence we need a "/forums" but also we need to keep this different from our /postid/hintname
 @app.route("/forums", methods=["GET", "POST", "PATCH"])
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("80 per minute", methods=["POST"])
@@ -334,35 +365,6 @@ def serve_forum():
     if request.method == "GET":
 
         page_num = request.args.get('page')
-        post_num = request.args.get('post')
-
-        if not page_num and post_num:
-
-            try:
-                post_num = int(post_num)
-                if post_num <= 0:
-                    raise ValueError("Invalid post number")
-            except (TypeError, ValueError):
-                # redirect to the first page if page_num is invalid (postgres id starts at 1)
-                return redirect(url_for("serve_forum") + "?page=1")
-            
-            log.debug("we have visited a post and not a page, dynamically load it")
-            # we're going to read from one specific post
-            view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
-            get_post = rows_to_dict(view_single, column_names)
-            single_post = deep_get(get_post, 0)
-            
-            update_views = dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
-                params=(post_num,))
-
-            # get all the posts replies
-            replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
-            replies_list = rows_to_dict(replies_rows, column_names)
-
-            # get if the post is locked or not
-            is_post_locked = get_is_post_locked(postnum=post_num)
-
-            return render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
         
         log.debug(f"queried post {page_num}")
         try:
@@ -401,7 +403,7 @@ def serve_forum():
         parent_post_id = deep_get(get_parent_post_id, 0, 0)
 
         log.info("marked reply for deletion")
-        return redirect(url_for("serve_forum") + f"?post={parent_post_id}")
+        return redirect(url_for("serve_post_by_id", post_id=parent_post_id))
 
 
     elif request.method == "POST":
@@ -428,7 +430,7 @@ def serve_forum():
             params=(post_id, reply, author))
 
         # redirect back to the view_forum to trigger the refresh
-        return redirect(url_for("serve_forum") + f"?post={post_id}")
+        return redirect(url_for("serve_post_by_id", post_id=post_id))
 
 
     return render_template("forums.html", posts=posts)
@@ -483,15 +485,18 @@ def submit_new_post():
         sessionID = get_session_id()
         author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
 
-        retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author) VALUES (%s, %s, %s) RETURNING id",
-            fetch=True, 
-            params=(title, description, author,)
+        # now, instead of having to create this every time, lets save it to the db (auto truncates)
+        url_safe_title = title_to_content_hint(title)
+
+        retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author, url_title) VALUES (%s, %s, %s, %s) RETURNING id",
+            fetch=True,
+            params=(title, description, author, url_safe_title,)
         )
 
         new_post_id = deep_get(retrieved, 0, 0)
         log.debug(new_post_id)
         if new_post_id:
-            return redirect(f'/forums?post={new_post_id}')
+            return redirect(url_for("serve_post_by_id", post_num=new_post_id, content_hint=url_safe_title))
 
     return '<p>Internal Server Error</p>', 500
 

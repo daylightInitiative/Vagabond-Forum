@@ -1,6 +1,6 @@
 
-from queries import *
-from utility import DBManager, is_valid_email_address, deep_get, get_userid_from_email, DB_FAILURE, DB_SUCCESS
+from vagabond.queries import *
+from vagabond.utility import DBManager, is_valid_email_address, deep_get, get_userid_from_email, DB_FAILURE, DB_SUCCESS
 import logging
 import bcrypt
 

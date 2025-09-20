@@ -53,14 +53,22 @@ CREATE TABLE IF NOT EXISTS news_feed (
     creation_date TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(30) NOT NULL,
+);
+
 CREATE TABLE IF NOT EXISTS posts (
     id SERIAL PRIMARY KEY,
+    category_id BIGINT NOT NULL,
     title VARCHAR(250) NOT NULL,
     views INT DEFAULT 0,
     contents VARCHAR(2000) NOT NULL,
     author BIGINT NOT NULL REFERENCES users (id),
+    url_title VARCHAR(40) NOT NULL DEFAULT '',
     post_locked BOOLEAN NOT NULL DEFAULT FALSE,
-    creation_date TIMESTAMPTZ DEFAULT NOW()
+    creation_date TIMESTAMPTZ DEFAULT NOW(),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
 CREATE TABLE IF NOT EXISTS replies (

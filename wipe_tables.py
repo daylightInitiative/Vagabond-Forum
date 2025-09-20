@@ -1,8 +1,11 @@
 
-import os, json
+import os, json, sys
 from vagabond.utility import DBManager
 from vagabond.config import Config
 from vagabond.queries import *
+
+project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'vagabond'))
+sys.path.insert(0, project_path)
 
 # populates the empty database with the needed tables if not exists
 # (not part of the app but uses some components)

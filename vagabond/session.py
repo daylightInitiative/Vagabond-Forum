@@ -1,6 +1,6 @@
-from utility import DBManager, rows_to_dict, deep_get
-from utility import DB_SUCCESS, DB_FAILURE
-from queries import *
+from vagabond.utility import DBManager, rows_to_dict, deep_get
+from vagabond.utility import DB_SUCCESS, DB_FAILURE
+from vagabond.queries import *
 from flask import request
 from ua_parser import parse_os, parse_user_agent, parse_device
 import logging
