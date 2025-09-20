@@ -332,34 +332,60 @@ def get_is_post_locked(post_num):
 
     return is_post_locked
 
-@app.route("/forums/<int:post_num>/<content_hint>", methods=["GET"])
-@limiter.limit("125 per minute", methods=["GET"])
+@app.route("/forums/<int:post_num>/<content_hint>", methods=["GET", "POST"])
+@limiter.limit("125 per minute", methods=["GET", "POST"])
 def serve_post_by_id(post_num, content_hint):
-    log.debug("We are viewing a singular post from /forums/%s/%s", post_num, content_hint)
+    if request.method == "GET":
+        log.debug("We are viewing a singular post from /forums/%s/%s", post_num, content_hint)
 
-    # get the content hint, if the content hint doesnt match, redirect early.
-    view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
-    get_post = rows_to_dict(view_single, column_names)
-    single_post = deep_get(get_post, 0)
+        # get the content hint, if the content hint doesnt match, redirect early.
+        view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
+        get_post = rows_to_dict(view_single, column_names)
+        single_post = deep_get(get_post, 0)
 
-    saved_content_hint = single_post.get("url_title")
+        saved_content_hint = single_post.get("url_title")
 
-    if content_hint != saved_content_hint:
-        print("Theres no content hint, redirect")
-        return redirect( url_for("serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
-    
-    dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
-        params=(post_num,))
+        if content_hint != saved_content_hint:
+            print("Theres no content hint, redirect")
+            return redirect( url_for("serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
 
-    # get all the posts replies
-    replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
-    replies_list = rows_to_dict(replies_rows, column_names)
+        dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
+            params=(post_num,))
 
-    # get if the post is locked or not
-    is_post_locked = get_is_post_locked(post_num=post_num)
+        # get all the posts replies
+        replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
+        replies_list = rows_to_dict(replies_rows, column_names)
 
-    return render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
+        # get if the post is locked or not
+        is_post_locked = get_is_post_locked(post_num=post_num)
 
+        return render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
+
+    elif request.method == "POST":
+        abort_if_not_signed_in()
+
+        is_post_locked = get_is_post_locked(post_num)
+        if is_post_locked:
+            return abort(401)
+
+        # for replies we get the data, and save it nothing more
+        post_id = request.form.get('post_id') # hacky way of saving the postid
+        reply = request.form.get('reply')
+
+        # minimum of 20 characters in a reply
+        # (we can detect spamming later)
+        if not post_id or len(reply) <= 5:
+            return '<p>Post is too short or invalid post id</p>', 400
+        
+        sessionID = get_session_id() #guarenteed because of the abort
+        author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
+
+        log.debug("creating a reply linked to the parent post")
+        dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
+            params=(post_id, reply, author))
+
+        # redirect back to the view_forum to trigger the refresh
+        return redirect(url_for("serve_post_by_id", post_num=post_id, content_hint=content_hint))
 
 # categories are used for seperating mountains of posts by their categoryid
 # posts follow no pattern besides externally its postid, and if present its extracted url safe preview
@@ -416,35 +442,7 @@ def serve_forum():
         log.info("marked reply for deletion")
         return redirect(url_for("serve_post_by_id", post_id=parent_post_id))
 
-
-    elif request.method == "POST":
-        abort_if_not_signed_in()
-
-        is_post_locked = get_is_post_locked()
-        if is_post_locked:
-            return abort(401)
-
-        # for replies we get the data, and save it nothing more
-        post_id = request.form.get('post_id') # hacky way of saving the postid
-        reply = request.form.get('reply')
-
-        # minimum of 20 characters in a reply
-        # (we can detect spamming later)
-        if not post_id or len(reply) <= 5:
-            return '<p>Post is too short or invalid post id</p>', 400
-        
-        sessionID = get_session_id() #guarenteed because of the abort
-        author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
-
-        log.debug("creating a reply linked to the parent post")
-        dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
-            params=(post_id, reply, author))
-
-        # redirect back to the view_forum to trigger the refresh
-        return redirect(url_for("serve_post_by_id", post_id=post_id))
-
-
-    return render_template("forums.html", posts=posts)
+    return render_template("forums.html", posts=posts, forum_category_id=category_id)
 
 # here we go....
 @app.route('/signup', methods=['GET', 'POST'])
@@ -481,9 +479,11 @@ def submit_new_post():
     abort_if_not_signed_in()
 
     if request.method == "GET":
-        
+        category_id = request.args.get('category')
+        if not category_id:
+            return '', 422
 
-        return render_template("create_post.html")
+        return render_template("create_post.html", post_category=category_id)
 
     elif request.method == "POST":
 
@@ -492,6 +492,14 @@ def submit_new_post():
         
         if not title or not description:
             return '', 400
+        
+        category_id = request.args.get('category')
+        if not category_id:
+            return '', 422
+        # get the category_id to post to (permission check permissions NIY)
+        # can_post_to_forum(category_id)
+
+
 
         sessionID = get_session_id()
         author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
@@ -499,9 +507,9 @@ def submit_new_post():
         # now, instead of having to create this every time, lets save it to the db (auto truncates)
         url_safe_title = title_to_content_hint(title)
 
-        retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author, url_title) VALUES (%s, %s, %s, %s) RETURNING id",
+        retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author, url_title, category_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",
             fetch=True,
-            params=(title, description, author, url_safe_title,)
+            params=(title, description, author, url_safe_title, category_id,)
         )
 
         new_post_id = deep_get(retrieved, 0, 0)

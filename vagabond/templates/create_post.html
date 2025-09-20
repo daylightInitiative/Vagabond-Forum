@@ -2,7 +2,7 @@
 
 {% block content %}
     <div>
-            <form class="new-post-form" action="/post" method="POST">
+            <form class="new-post-form" action="/post?category={{ post_category }}" method="POST">
                 <h2>New Post</h2>
                 <label for="title">Post Title:</label>
                 <input type="text" id="title" maxlength="250" name="title" required>
