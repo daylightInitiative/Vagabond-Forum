@@ -1,4 +1,4 @@
 
 MAX_URL_TITLE = 40
-
+PAGE_LIMIT = 10
 

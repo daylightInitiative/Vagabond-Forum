@@ -40,7 +40,11 @@ class DBManager:
 
     # i'm pretty sure _ hints you arent supposed to call it
     def _get_connection(self):
-        return post.connect(**self.db_config)
+        try:
+            return post.connect(**self.db_config)
+        except Exception as e:
+            log.critical("Failure upon establishing a connection to the database: %s", e)
+            return None
 
     # avoids redundant calls to .commit() and fetch
     # TODO: add bit flagging for fetch and commit to unionize this function

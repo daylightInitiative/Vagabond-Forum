@@ -6,6 +6,7 @@ import json
 import string
 
 from vagabond.queries import *
+from vagabond.constants import *
 from vagabond.session import create_session, is_valid_session, invalidate_session, get_userid_from_session
 from vagabond.config import Config
 from vagabond.utility import DBManager, rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email, title_to_content_hint
@@ -19,11 +20,14 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from random import randint
+from flask_moment import Moment
 
-PAGE_LIMIT = 10
+
+
 load_dotenv()
 
 app = Flask(__name__)
+moment = Moment(app) # flask_moment does the fluff of handling local timezones.
 config_path = os.getenv("CONFIG_PATH", "")
 if not config_path:
     logging.critical("USAGE: CONFIG_PATH=/path/to/config.json")
@@ -135,6 +139,30 @@ def news():
 @app.route("/reading_list.html")
 def reading_list():
     return render_template("reading.html")
+
+@app.route("/invalidate_other_sessions", methods=["POST"])
+def sign_out_other_sessions():
+    abort_if_not_signed_in()
+
+    current_sid = get_session_id()
+
+    if not current_sid:
+        log.critical("Failed to grab sid while trying to invalidate all other sessions")
+        return '', 500
+    
+    user_id = get_userid_from_session(db=dbmanager, sessionID=current_sid)
+
+    # get all other sessions
+    # since invalidation is just setting the active to false, we can just omit any already disabled sessions
+    dbmanager.write(query_str="""
+        UPDATE sessions_table
+        SET active = FALSE
+        WHERE user_id = %s AND sid != %s AND active = TRUE
+    """, params=(user_id, current_sid,))
+
+    log.debug("signed out of sessions")
+
+    return '', 200
 
 @app.route("/")
 def index():
@@ -342,6 +370,8 @@ def serve_post_by_id(post_num, content_hint):
         view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
         get_post = rows_to_dict(view_single, column_names)
         single_post = deep_get(get_post, 0)
+
+        log.debug(single_post)
 
         saved_content_hint = single_post.get("url_title")
 

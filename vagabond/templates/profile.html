@@ -19,12 +19,42 @@
     {% endif %}
 
     {% if sessions %}
+        <button id="sign-out-sessions">Sign out of all other sessions</button>
+
         <h2>Login Sessions</h2>
         {% for sesh in sessions %}
             <b>Status: {{ 'ACTIVE' if sesh.active else 'INACTIVE' }}</b>
             <p>Session from: {{ sesh.userAgent }} by IP address {{ sesh.ipaddr }} on {{ sesh.lastLogin }}</p>
         {% endfor %}
 
+        <script>
+            const signout = document.getElementById("sign-out-sessions");
+            
+            async function sign_out_of_all_other_sessions() {
+                try {
+
+                    const response = await fetch('/invalidate_other_sessions', {
+                        method: "POST",
+                        body: JSON.stringify({
+                        }),
+                        headers: {
+                            "Content-type": "application/json; charset=UTF-8"
+                        }
+                    })
+
+                    if (!response.ok) {
+                        throw new Error(`Reponse status: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.log(error);
+                }
+            }
+
+            signout.onclick = function() {
+                console.log("signing out of all other sessions...");
+                sign_out_of_all_other_sessions();
+            };
+        </script>
     {% endif %}
 
 {% endblock %}

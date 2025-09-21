@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "ad9b99ec3c12adbca03e1f0afab9bf70d9ca07f07efb9956dcc08522df763096"
+            "sha256": "9415347bad405c2d3835070f59a56097d6b1eca2025b1cc191af990b878775c1"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -85,11 +85,11 @@
         },
         "click": {
             "hashes": [
-                "sha256:27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202",
-                "sha256:61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b"
+                "sha256:9b9f285302c6e3064f4330c05f05b81945b2a39544279343e6e7c5f27a9baddc",
+                "sha256:e7b8232224eba16f4ebe410c25ced9f7875cb5f3263ffc93cc3e8da705e229c4"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==8.2.1"
+            "version": "==8.3.0"
         },
         "colorama": {
             "hashes": [
@@ -124,6 +124,15 @@
             "index": "pypi",
             "markers": "python_version >= '3.10'",
             "version": "==3.12"
+        },
+        "flask-moment": {
+            "hashes": [
+                "sha256:2f8969907cbacde4a88319792e8f920ba5c9dd9d99ced2346cad563795302b88",
+                "sha256:3ae8baea20a41e99f457b9710ecd1368911dd5133f09a27583eb0dcb3491e31d"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.6'",
+            "version": "==1.0.6"
         },
         "itsdangerous": {
             "hashes": [

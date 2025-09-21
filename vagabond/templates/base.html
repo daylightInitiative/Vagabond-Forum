@@ -25,6 +25,7 @@
     <body>
         is_authenticated = {{ is_authenticated }}, is_superuser = {{ is_superuser }}
         {% block content %}{% endblock %}
+        {{ moment.include_moment() }}
     </body>
     <footer>
         <span>&copy; Vagabond Forum 2025</span>
