@@ -20,6 +20,7 @@
 
     {% if sessions %}
         <button id="sign-out-sessions">Sign out of all other sessions</button>
+        <p style="display:none;" id="status-text"></p>
 
         <h2>Login Sessions</h2>
         {% for sesh in sessions %}
@@ -29,7 +30,20 @@
 
         <script>
             const signout = document.getElementById("sign-out-sessions");
+            const status = document.getElementById("status-text");
             
+            function delay(time) {
+                return new Promise(resolve => setTimeout(resolve, time));
+            }
+
+            async function display_status_msg(element, text) {
+                element.style.display = 'block';
+                element.innerHTML = text;
+                await delay(3000);
+                element.style.display = 'none';
+                element.innerHTML = "";
+            }
+
             async function sign_out_of_all_other_sessions() {
                 try {
 
@@ -43,8 +57,12 @@
                     })
 
                     if (!response.ok) {
+                        display_status_msg(status, "Error: There was an error signing out other sessions");
                         throw new Error(`Reponse status: ${response.status}`);
                     }
+
+                    // create our new interval
+                    display_status_msg(status, "Successfully signed out other sessions");
                 } catch (error) {
                     console.log(error);
                 }

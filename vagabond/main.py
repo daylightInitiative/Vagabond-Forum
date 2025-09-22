@@ -131,7 +131,7 @@ def internal_error(error):
 def news():
 
     # returns an array of tuples, index one out
-    raw_rows, column_names = dbmanager.read(query_str=QUERY_NEWS_POSTS, fetch=True)
+    raw_rows, column_names = dbmanager.read(query_str=QUERY_NEWS_POSTS, get_columns=True, fetch=True)
     news_feed = rows_to_dict(raw_rows, column_names)
 
     return render_template("news.html", news_feed=news_feed or [])
@@ -446,8 +446,10 @@ def serve_forum():
         log.debug("is the page offset")
 
         # query the response as json, page the query, include nested replies table
-        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(category_id, str(PAGE_LIMIT), page_offset,))
+        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(category_id, str(PAGE_LIMIT), page_offset, category_id,))
         posts = rows_to_dict(post_rows, column_names)
+
+        log.debug(posts)
 
 
     elif request.method == "POST" and request.form.get("_method") == "DELETE":

@@ -73,3 +73,8 @@ if __name__ == '__main__':
             VALUES (%s, %s, %s, %s, %s)
     """, params=(2, "Basic Pack Setup", "A good pack is small, and purpose driven make sure to always carry water filtering equipment", 1, "basic-pack-setup"))
     
+    dbmanager.write(query_str="""
+        INSERT INTO posts (category_id, title, contents, author, url_title)
+            VALUES (%s, %s, %s, %s, %s)
+    """, params=(2, "Reach out to us", "We are super friendly", 1, "reach-out-to-us"))
+    

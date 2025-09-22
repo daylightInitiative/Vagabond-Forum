@@ -44,7 +44,7 @@ class DBManager:
             return post.connect(**self.db_config)
         except Exception as e:
             log.critical("Failure upon establishing a connection to the database: %s", e)
-            return None
+            raise RuntimeError("Database connection failed") # its better to error here
 
     # avoids redundant calls to .commit() and fetch
     # TODO: add bit flagging for fetch and commit to unionize this function

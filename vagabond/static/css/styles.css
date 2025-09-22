@@ -64,6 +64,37 @@ div {
     unicode-bidi: isolate;
 }
 
+.footer-veil {
+  flex-shrink: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  margin: auto;
+  margin-top: 9%;
+  padding: 1rem;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.page-wrapper {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
@@ -204,6 +235,13 @@ textarea {
   background-color: var(--card-bg);
   color: var(--text-color);
   line-height: 1.5;
+}
+
+#sign-out-sessions {
+  height: 35px;
+  justify-content: center;
+  margin: 0 auto;
+  width: 15%;
 }
 
 #submit {

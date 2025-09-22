@@ -1,15 +1,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <p>Example content that was added.</p>
-    <main class="forum-container">
-        <div class="box">
-            <h2>A forum for nomads, explorers and travellers</h2>
-            <p>This forum is dedicated to sharing and storing information for bushcraft, urban exploration, rock climbing and general advice for a nomadic lifestyle.</p>
-            <p>Take a look at our reading list for FM's, Guides and cookbooks.</p>
-        </div>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <div class="page-wrapper">
+        <main class="forum-container">
+            <!-- <img src="/static/img/moraine-lake-panorama-public-domain.jpg"> -->
+            <div class="landscape-image"></div>
+            <div class="box">
+                <h2>A forum for nomads, explorers and travellers</h2>
+                <p>This forum is dedicated to sharing and storing information for bushcraft, urban exploration, rock climbing and general advice for a nomadic lifestyle.</p>
+                <p>Take a look at our reading list for FM's, Guides and cookbooks.</p>
+            </div>
 
-        <div>
+            
+        </main>
+        <div class="footer-veil">
             <p>Random number of the day: {{number}}</p>
             <p>Total website hits: {{num_hits}}</p>
             {% if is_superuser == True %}
@@ -30,10 +35,10 @@
                         <td><a href="/forums?page=1&category={{ cat.id }}">{{ cat.name }}</a></td>
                         <td>{{ cat.post_count }}</td>
                         <td>{{ cat.reply_count }}</td>
-                        <td>Never</td>
+                        <td>{{ cat.newest_post_date }}</td>
                     </tr>
                 {% endfor %}
             </table>
         </div>
-    </main>
+    </div>
 {% endblock %}

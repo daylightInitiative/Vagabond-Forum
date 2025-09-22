@@ -13,12 +13,6 @@
         <b>You must log in to make a new post.</b>
     {% endif %}
     <div>
-        <label for="categories">Choose your category:</label>
-        <select id="categories" multiple>
-            <option value="Example"></option>
-            <option value="aaaaaaaaaarrrrrrr"></option>
-            <option value="ereeeeeeeeeeeee"></option>
-        </select>
         {% if posts %}
             
             <table>
@@ -33,7 +27,7 @@
                         <td><a href="/forums/{{ post.id }}/{{ post.url_title }}">{{ post.title }}</a> by <i>{{ post.author_username }}</i></td>
                         <td>{{ post.reply_count }}</td>
                         <td>{{ post.views }}</td>
-                        <td>Never</td>
+                        <td>{{ post.newest_post_date or "Never" }}</td>
                     </tr>
                 {% endfor %}
             </table>
