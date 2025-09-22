@@ -13,7 +13,8 @@ from vagabond.utility import DBManager, rows_to_dict, deep_get, is_valid_email_a
 from vagabond.utility import included_reload_files, DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
 from vagabond.signup import signup
 from vagabond.login import is_valid_login
-from vagabond.logFormatter import CustomFormatter # we love colors
+from vagabond.logFormat import CustomFormatter # we love colors
+from vagabond.avatar import create_user_avatar, update_user_avatar
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort, make_response
 from flask_limiter import Limiter
@@ -310,7 +311,7 @@ def profile():
     seshid = get_session_id()
     userid = get_userid_from_session(db=dbmanager, sessionID=seshid)
     get_info = dbmanager.read(query_str="""
-        SELECT email, username, join_date
+        SELECT email, username, join_date, avatar_hash
         FROM users
         WHERE id = %s
     """, params=(userid,))
@@ -322,11 +323,13 @@ def profile():
 
     username = deep_get(get_info, 0, 1)
     joinDate = deep_get(get_info, 0, 2)
+    avatar_hash = deep_get(get_info, 0, 3)
 
     userinfo = dict(
         userid = userid,
         username = username,
         join_date = joinDate,
+        avatar_hash = avatar_hash,
         email = hidden_email
     )
 
@@ -499,8 +502,24 @@ def signup_page():
 
         if not userid:
             return render_template("signup.html", errmsg=errmsg)
+
+        sid = create_session(db=dbmanager, userid=userid, request_obj=request)
+
+        if not sid:
+            return render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
+
+        # lets create the users randomly generated avatar (we dont have a cdn yet so... just in static)
+        # this returns the md5 hash of the image
+        avatar_url = create_user_avatar(userid)
+
+        # update the avatar
+        update_user_avatar(db=dbmanager, userID=userid, avatar_hash=avatar_url)
+
+        log.debug("Sending session to client from signup")
+        response = make_response(redirect(url_for("index")))
+        response.set_cookie(key="sessionID", value=sid)
         
-        return redirect(url_for("index"))
+        return response
 
 
 # for posting we can just reuse this route
@@ -508,6 +527,7 @@ def signup_page():
 @limiter.limit("125 per minute", methods=["GET"])
 @limiter.limit("70 per minute", methods=["POST"])
 def submit_new_post():
+
     abort_if_not_signed_in()
 
     if request.method == "GET":

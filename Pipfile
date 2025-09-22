@@ -12,6 +12,7 @@ flask-limiter = "*"
 ua-parser = "*"
 bcrypt = "*"
 flask-moment = "*"
+pillow = "*"
 
 [dev-packages]
 

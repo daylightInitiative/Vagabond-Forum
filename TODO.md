@@ -3,9 +3,9 @@
 - [x] basic routes and cleanup sql requests
 - [ ] add sending emails externally
 - [ ] add muting foreign key to users table
-- [ ] Add thread categories above forums
+- [x] Add thread categories above forums
 - [ ] add user/creator/admin permissions (modify, delete, create new post in certain thread)
-- [ ] Decide on a scheme for forum structure categories, posts, etc
+- [x] Decide on a scheme for forum structure categories, posts, etc
 - [ ] Add shadow banning (request from my shadow-ey superiors)
 - [ ] Add top level admin panel to set visibility of threads, manage users moderation actions
 - [ ] user profile page /profile?userid=ID_HERE with avatars, information, join date

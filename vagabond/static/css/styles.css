@@ -237,6 +237,13 @@ textarea {
   line-height: 1.5;
 }
 
+.center-image {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+
 #sign-out-sessions {
   height: 35px;
   justify-content: center;
