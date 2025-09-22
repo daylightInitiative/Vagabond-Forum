@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS sessions_table (
     FOREIGN KEY (temp_data_sid) REFERENCES temp_session_data(tempid)
 );
 
+-- title, contents, pinned, author
 CREATE TABLE IF NOT EXISTS news_feed (
     id SERIAL PRIMARY KEY,
     title VARCHAR(250) NOT NULL,

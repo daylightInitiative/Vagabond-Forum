@@ -1,19 +1,5 @@
 from pathlib import Path
-
-APP_FOLDER = Path(__name__).parent
-ROOT_FOLDER = APP_FOLDER.parent
-SQL_FOLDER = ROOT_FOLDER / "sql"
-
-def read_sql_file(filename):
-    try:
-        found_sql_file = SQL_FOLDER / filename
-        if found_sql_file.exists():
-            with open(found_sql_file, mode='r') as f:
-                filetext = f.read()
-                return filetext
-    except FileNotFoundError:
-        raise Exception(f"{filename} sql query was not found")
-
+from vagabond.utility import read_sql_file
 
 # init db
 INIT_DB_TABLES = read_sql_file("init_db_tables.sql")

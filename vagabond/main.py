@@ -10,7 +10,7 @@ from vagabond.constants import *
 from vagabond.session import create_session, is_valid_session, invalidate_session, get_userid_from_session
 from vagabond.config import Config
 from vagabond.utility import DBManager, rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email, title_to_content_hint
-from vagabond.utility import DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
+from vagabond.utility import included_reload_files, DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
 from vagabond.signup import signup
 from vagabond.login import is_valid_login
 from vagabond.logFormatter import CustomFormatter # we love colors
@@ -556,4 +556,5 @@ def submit_new_post():
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-    
+if __name__ == '__main__':
+    app.run(debug=True, extra_files=included_reload_files)

@@ -77,4 +77,10 @@ if __name__ == '__main__':
         INSERT INTO posts (category_id, title, contents, author, url_title)
             VALUES (%s, %s, %s, %s, %s)
     """, params=(2, "Reach out to us", "We are super friendly", 1, "reach-out-to-us"))
+
+    # create some bs news stuff
+    dbmanager.write(query_str="""
+        INSERT INTO news_feed (title, contents, pinned, author)
+            VALUES (%s, %s, %s, %s)
+    """, params=("Welcome surviors", "This is where we will be posting new updates and news about current news and site news to report the news about", False, 1))
     

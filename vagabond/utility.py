@@ -1,5 +1,6 @@
 import psycopg2 as post
 import logging as log
+from pathlib import Path
 import traceback
 import re
 from vagabond.constants import MAX_URL_TITLE
@@ -9,6 +10,32 @@ log = log.getLogger(__name__)
 DB_SUCCESS = 0
 DB_FAILURE = 1
 EXECUTED_NO_FETCH = 0
+
+APP_FOLDER = Path(__file__).parent
+ROOT_FOLDER = APP_FOLDER.parent
+SQL_FOLDER = ROOT_FOLDER / "sql"
+
+included_reload_files = []
+main_config_file = ROOT_FOLDER / "config.json"
+
+included_reload_files.append(main_config_file)
+
+# append the rest (our sql files)
+for file in SQL_FOLDER.iterdir():
+    if 'sql' in file.suffix:
+        included_reload_files.append(file.absolute())
+
+
+# having to manually stop and start the flask application again everytime you change a sql or .json file can be quite troublesome
+def read_sql_file(filename):
+    try:
+        found_sql_file = SQL_FOLDER / filename
+        if found_sql_file.exists():
+            with open(found_sql_file, mode='r') as f:
+                filetext = f.read()
+                return filetext
+    except FileNotFoundError:
+        raise Exception(f"{filename} sql query was not found")
 
 def rows_to_dict(rows, columns):
     return [dict(zip(columns, row)) for row in rows]

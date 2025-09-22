@@ -7,7 +7,7 @@
         <div class="box">
             <h2>{{ news.title }}</h2>
             <p>{{ news.contents }}</p>
-            <p>-{{ news.author }} <sub>on {{ news.creation_date }}</sub></p>
+            <p><sub>{{ news.author_username }} on {{ news.creation_date }}</sub></p>
         </div>
         {% endfor %}
     {% endif %}
