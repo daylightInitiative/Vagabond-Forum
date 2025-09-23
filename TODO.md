@@ -1,8 +1,10 @@
 ## Todo List
 
+- [ ] convert app to run in a docker instance for repro
 - [x] basic routes and cleanup sql requests
 - [ ] add sending emails externally
 - [ ] add muting foreign key to users table
+- [x] Add randomly generated user profiles like github has
 - [x] Add thread categories above forums
 - [ ] add user/creator/admin permissions (modify, delete, create new post in certain thread)
 - [x] Decide on a scheme for forum structure categories, posts, etc

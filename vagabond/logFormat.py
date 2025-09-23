@@ -1,5 +1,25 @@
+from vagabond.config import app_config
+
 import logging
-import traceback
+
+def setup_logger(log):
+    log.setLevel(app_config.console_log_level)
+
+    # because of the nature of flask and how it auto reloads, it could be adding duplicate handlers
+    if not log.hasHandlers():
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_handler.setFormatter(CustomFormatter())
+
+        file_handler = logging.FileHandler("app.log")
+        file_handler.setLevel(app_config.file_log_level)
+        file_formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+        )
+        file_handler.setFormatter(file_formatter)
+
+        log.addHandler(console_handler)
+        log.addHandler(file_handler)
 
 class CustomFormatter(logging.Formatter):
     grey = "\x1b[38;20m"

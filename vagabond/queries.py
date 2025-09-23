@@ -1,4 +1,3 @@
-from pathlib import Path
 from vagabond.utility import read_sql_file
 
 # init db

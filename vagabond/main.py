@@ -9,11 +9,11 @@ from vagabond.queries import *
 from vagabond.constants import *
 from vagabond.session import create_session, is_valid_session, invalidate_session, get_userid_from_session
 from vagabond.config import Config
-from vagabond.utility import DBManager, rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email, title_to_content_hint
-from vagabond.utility import included_reload_files, DB_SUCCESS, DB_FAILURE, EXECUTED_NO_FETCH
+from vagabond.utility import rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email, title_to_content_hint
+from vagabond.utility import included_reload_files
 from vagabond.signup import signup
 from vagabond.login import is_valid_login
-from vagabond.logFormat import CustomFormatter # we love colors
+from vagabond.logFormat import setup_logger # we love colors
 from vagabond.avatar import create_user_avatar, update_user_avatar
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort, make_response
@@ -23,43 +23,18 @@ from dotenv import load_dotenv
 from random import randint
 from flask_moment import Moment
 
+from vagabond.dbmanager import DBManager, DBStatus
+from vagabond.services import dbmanager, app_config
 
 
 load_dotenv()
 
 app = Flask(__name__)
 moment = Moment(app) # flask_moment does the fluff of handling local timezones.
-config_path = os.getenv("CONFIG_PATH", "")
-if not config_path:
-    logging.critical("USAGE: CONFIG_PATH=/path/to/config.json")
-    quit(1)
 
-with open(config_path, "r") as f:
-    config_data = json.load(f)
-
-app_config = Config(app, config_data)
 app.config["custom_config"] = app_config
-
-# Create a logger
-log = logging.getLogger(__name__)
-log.setLevel(app_config.console_log_level)
-
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(CustomFormatter())
-
-file_handler = logging.FileHandler("app.log")
-file_handler.setLevel(app_config.file_log_level)
-file_formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-)
-file_handler.setFormatter(file_formatter)
-
-log.addHandler(console_handler)
-log.addHandler(file_handler)
-
-# create the our db manager
-dbmanager = DBManager(app_config)
+log = logging.getLogger() # root logger doesnt need an identifier
+setup_logger(log)
 
 limiter = Limiter(
     get_remote_address,
@@ -189,7 +164,7 @@ def get_tdid(sessionID: str) -> str|None:
         WHERE sid = %s
     """, params=(sessionID,))
 
-    if get_tdid == DB_FAILURE:
+    if get_tdid == DBStatus.FAILURE:
         log.critical("Failure to fetch TDID")
         return '', 500
 
@@ -218,7 +193,7 @@ def save_draft():
         saved_draft_text = deep_get(get_draft, 0, 0)
 
         if not saved_draft_text:
-            return '', 204 # no content
+            return jsonify({"error": "Fetched draft was empty"}), 204 # no content
         
         draft = {
             "contents": saved_draft_text
@@ -244,9 +219,9 @@ def save_draft():
             WHERE tempid = %s
         """, params=(text_to_save, tdid,))
 
-        if save_draft == DB_FAILURE:
+        if save_draft == DBStatus.FAILURE:
             log.critical("Failed to save draft data for tdid: %s", tdid)
-            return '', 500
+            return jsonify({"error": "Internal server error"}), 500
 
     return '', 200
 
@@ -434,7 +409,7 @@ def serve_forum():
         category_id = request.args.get('category')
 
         if not page_num or not category_id:
-            return '', 422
+            return jsonify({"error": "Must supply category and page as URL parameters"}), 422
         
         log.debug(f"queried post {page_num}")
         try:
@@ -461,10 +436,10 @@ def serve_forum():
 
         user_id = get_userid_from_session(db=dbmanager, sessionID=get_session_id())
         if not is_admin(user_id):
-            return '<p>Unauthorized</p>', 401
+            return jsonify({"error": "Unauthorized"}), 401
 
         if not reply_id:
-            return '<p>Invalid Post ID</p>', 422
+            return jsonify({"error": "Invalid post ID"}), 422
         
         get_parent_post_id = dbmanager.write(query_str="""
             UPDATE replies
@@ -496,7 +471,7 @@ def signup_page():
         password = request.form.get('password', type=str)
         
         if not email or not username or not password:
-            return '', 400
+            return jsonify({"error": "Invalid form data"}), 400
         
         userid, errmsg = signup(db=dbmanager, email=email, username=username, password=password)
 
@@ -533,7 +508,7 @@ def submit_new_post():
     if request.method == "GET":
         category_id = request.args.get('category')
         if not category_id:
-            return '', 422
+            return jsonify({"error": "Invalid category id"}), 422
 
         return render_template("create_post.html", post_category=category_id)
 
@@ -543,11 +518,11 @@ def submit_new_post():
         description = request.form.get('description', type=str)
         
         if not title or not description:
-            return '', 400
+            return jsonify({"error": "Invalid form data"}), 400
         
         category_id = request.args.get('category')
         if not category_id:
-            return '', 422
+            return jsonify({"error": "Invalid category id"}), 422
         # get the category_id to post to (permission check permissions NIY)
         # can_post_to_forum(category_id)
 
@@ -569,7 +544,7 @@ def submit_new_post():
         if new_post_id:
             return redirect(url_for("serve_post_by_id", post_num=new_post_id, content_hint=url_safe_title))
 
-    return '<p>Internal Server Error</p>', 500
+    return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/static/<path:filename>')
 @limiter.exempt

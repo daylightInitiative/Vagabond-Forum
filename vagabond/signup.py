@@ -1,6 +1,7 @@
 
 from vagabond.queries import *
-from vagabond.utility import DBManager, is_valid_email_address, deep_get, get_userid_from_email, DB_FAILURE, DB_SUCCESS
+from vagabond.utility import is_valid_email_address, deep_get, get_userid_from_email
+from vagabond.dbmanager import DBManager, DBStatus
 import logging
 import bcrypt
 
@@ -34,7 +35,7 @@ def signup(db: DBManager, email: str, username: str, password: str) -> tuple[boo
         new_user_id = db.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
             email, username, False, False, safe_password, safe_salt, False,))
         
-        if new_user_id == DB_FAILURE:
+        if new_user_id == DBStatus.FAILURE:
             return False, "Unable to fetch"
         
         user_id = deep_get(new_user_id, 0, 0)

@@ -1,5 +1,5 @@
-from vagabond.utility import DBManager, rows_to_dict, deep_get
-from vagabond.utility import DB_SUCCESS, DB_FAILURE
+from vagabond.utility import rows_to_dict, deep_get
+from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.queries import *
 from flask import request
 from ua_parser import parse_os, parse_user_agent, parse_device
@@ -54,7 +54,7 @@ def create_session(db: DBManager, userid: str, request_obj) -> str | None:
             VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, params=(sid, ipaddr, userid, combined_ua, raw_user_agent, temp_session_data_id, True))
 
-    if success == DB_FAILURE:
+    if success == DBStatus.FAILURE:
         log.critical("Failure to create a new session for userID: %s", userid)
         return None
     
@@ -89,7 +89,7 @@ def invalidate_session(db: DBManager, sessionID: str) -> None:
     n_retries = 0
 
     # retry until success
-    while invalidate_session != DB_SUCCESS and n_retries < 3:
+    while invalidate_session != DBStatus.SUCCESS and n_retries < 3:
         invalidate_session = db.write(query_str="""
             UPDATE sessions_table
             SET active = FALSE
@@ -98,7 +98,7 @@ def invalidate_session(db: DBManager, sessionID: str) -> None:
         n_retries += 1
 
     # the best we can do is put it in an easily parsable format for a db admin to fix when the db is back up
-    if invalidate_session != DB_SUCCESS:
+    if invalidate_session != DBStatus.SUCCESS:
         log.critical("Failed to invalidate session [%s]", sessionID)
 
     return None

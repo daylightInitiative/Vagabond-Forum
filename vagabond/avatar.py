@@ -10,8 +10,9 @@ APP_FOLDER = Path(__file__).parent
 STATIC_FOLDER = APP_FOLDER / "static"
 AVATARS_FOLDER = STATIC_FOLDER / "avatars"
 
+# update the users.avatar_hash with a hash that is the name of their individual avatar found in /static/avatars/
 def update_user_avatar(db: DBManager, userID: int, avatar_hash: str) -> None:
-    update_avatar = db.write(query_str="""
+    db.write(query_str="""
         UPDATE users
         SET avatar_hash = %s
         WHERE id = %s
@@ -47,14 +48,17 @@ def create_block(img, mapDict, row, col, color):
 def get_available_row_col(mapDict) -> tuple[int, int]:
     grid_cols = size[0] // block_size[0]
     grid_rows = size[1] // block_size[1]
+
     row, col = randint(0, grid_cols - 1), randint(0, grid_rows - 1)
     while mapDict.get((row, col)):
         row, col = randint(0, grid_cols - 1), randint(0, grid_rows - 1)
     return row, col
 
+# simplified merge, synopsis: copies an image and pastes it to the right by (img1.size[0]) pixels
 def merge(im1: Image.Image, im2: Image.Image) -> Image.Image:
-    w = (im1.size[0] - 210) + (im2.size[0] + 210)
+    w = im1.size[0] + im1.size[0]
     h = max(im1.size[1], im2.size[1])
+
     im = Image.new("RGB", (w, h))
 
     im.paste(im1)
@@ -73,10 +77,13 @@ def create_user_avatar(userid: int) -> str:
 
     second_base = avatar_base.transpose(Image.FLIP_LEFT_RIGHT)
     third_base = merge(second_base, avatar_base)
+
+    #(removing the hardcoded sizes if we want to upscale later)
+    crop_width = avatar_base.size[0]
     width, height = third_base.size
-    left = (width - 420) // 2
-    right = left + 420
-    cropped = third_base.crop((left, 0, right, 420))
+    left = (width - crop_width) // 2
+    right = left + crop_width
+    cropped = third_base.crop((left, 0, right, crop_width)) # crop from 210 -> 630(210+420) = 210 1 1/2 of the image
 
     # based on the userid lets generate a unique md5 hash
     hash_object = md5()
