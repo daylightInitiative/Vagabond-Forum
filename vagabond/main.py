@@ -24,6 +24,7 @@ from random import randint
 from vagabond.sessions import session_bp
 from vagabond.login import login_bp
 from vagabond.forum import forum_bp
+from vagabond.signup import signup_bp
 
 #services
 from vagabond.dbmanager import DBManager, DBStatus
@@ -45,6 +46,7 @@ init_extensions(app)
 app.register_blueprint(session_bp)
 app.register_blueprint(login_bp)
 app.register_blueprint(forum_bp)
+app.register_blueprint(signup_bp)
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -158,46 +160,7 @@ def profile():
 
 
 # here we go....
-@app.route('/signup', methods=['GET', 'POST'])
-def signup_page():
-    
-    redirect_if_already_logged_in()
 
-    if request.method == "GET":
-
-        # if the user is already signed in, redirect them away
-        return render_template("signup.html")
-    elif request.method == "POST":
-        
-        email = request.form.get('email', type=str)
-        username = request.form.get('username', type=str)
-        password = request.form.get('password', type=str)
-        
-        if not email or not username or not password:
-            return jsonify({"error": "Invalid form data"}), 400
-        
-        userid, errmsg = signup(db=dbmanager, email=email, username=username, password=password)
-
-        if not userid:
-            return render_template("signup.html", errmsg=errmsg)
-
-        sid = create_session(userid=userid, request_obj=request)
-
-        if not sid:
-            return render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
-
-        # lets create the users randomly generated avatar (we dont have a cdn yet so... just in static)
-        # this returns the md5 hash of the image
-        avatar_url = create_user_avatar(userid)
-
-        # update the avatar
-        update_user_avatar(db=dbmanager, userID=userid, avatar_hash=avatar_url)
-
-        log.debug("Sending session to client from signup")
-        response = make_response(redirect(url_for("index")))
-        response.set_cookie(key="sessionID", value=sid)
-        
-        return response
 
 
 
