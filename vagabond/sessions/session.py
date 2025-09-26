@@ -1,31 +1,63 @@
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.queries import *
-from flask import request
+from flask import request, Blueprint, abort, redirect, url_for
+from vagabond.services import dbmanager
 from ua_parser import parse_os, parse_user_agent, parse_device
 import logging
 import secrets
 import string
 
 log = logging.getLogger(__name__)
+
 # generate a new token and detect collisions
 # query the session token to see if it is valid
 # invalidate and delete the session token
+
+def abort_if_not_signed_in():
+    if not is_user_logged_in():
+        abort(401)
+
+def redirect_if_already_logged_in():
+    if is_user_logged_in():
+        return redirect( url_for("index") )
+
+def get_session_id():
+    return request.cookies.get("sessionID")
+
+def get_tdid(sessionID: str) -> str|None:
+    get_tdid = dbmanager.read(query_str="""
+        SELECT temp_data_sid
+        FROM sessions_table
+        WHERE sid = %s
+    """, params=(sessionID,))
+
+    if get_tdid == DBStatus.FAILURE:
+        log.critical("Failure to fetch TDID")
+        return '', 500
+
+    tdid = deep_get(get_tdid, 0, 0)
+    return tdid if tdid else None
+
+def is_user_logged_in() -> bool:
+    sid = get_session_id()
+    return True if sid and is_valid_session(sessionID=sid) else False
+
 
 def generate_sid() -> str:
     return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
 
 # returns the sessionID or None on error, intended to be called at login and signup
-def create_session(db: DBManager, userid: str, request_obj) -> str | None:
+def create_session(userid: str, request_obj) -> str | None:
     
     # create the supplementory temporary data sid
-    temp_session_data_id = db.write(query_str=CREATE_TEMP_SESSION_DATA, fetch=True)[0][0]
+    temp_session_data_id = dbmanager.write(query_str=CREATE_TEMP_SESSION_DATA, fetch=True)[0][0]
 
     sid = generate_sid()
 
     while True:
         try:
-            response = db.read(query_str="""
+            response = dbmanager.read(query_str="""
             SELECT EXISTS (
                 SELECT * FROM sessions_table WHERE sid = %s
             );
@@ -49,7 +81,7 @@ def create_session(db: DBManager, userid: str, request_obj) -> str | None:
     # [insert geolocation service tracking here]
 
     # lets create a new session in the sessions_table
-    success = db.write(query_str="""
+    success = dbmanager.write(query_str="""
         INSERT INTO sessions_table (sid, ipaddr, user_id, display_user_agent, raw_user_agent, temp_data_sid, active)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, params=(sid, ipaddr, userid, combined_ua, raw_user_agent, temp_session_data_id, True))
@@ -63,9 +95,9 @@ def create_session(db: DBManager, userid: str, request_obj) -> str | None:
     
     return sid
 
-def is_valid_session(db: DBManager, sessionID: str) -> bool:
+def is_valid_session(sessionID: str) -> bool:
     # check if the session is valid (just checking the active variable and this userid)
-    is_session_valid = db.read(query_str="""
+    is_session_valid = dbmanager.read(query_str="""
         SELECT *
         FROM sessions_table
         WHERE sid = %s and active = TRUE
@@ -73,8 +105,8 @@ def is_valid_session(db: DBManager, sessionID: str) -> bool:
 
     return is_session_valid or False # it wasnt found or something wrong is going on
 
-def get_userid_from_session(db: DBManager, sessionID: str) -> str:
-    get_userid = db.read(query_str="""
+def get_userid_from_session(sessionID: str) -> str:
+    get_userid = dbmanager.read(query_str="""
             SELECT user_id
             FROM sessions_table
             WHERE sid = %s
@@ -84,13 +116,13 @@ def get_userid_from_session(db: DBManager, sessionID: str) -> str:
     return deep_get(get_userid, 0, 0)
 
 # invalidation of a session is important
-def invalidate_session(db: DBManager, sessionID: str) -> None:
+def invalidate_session(sessionID: str) -> None:
     invalidate_session = None
     n_retries = 0
 
     # retry until success
     while invalidate_session != DBStatus.SUCCESS and n_retries < 3:
-        invalidate_session = db.write(query_str="""
+        invalidate_session = dbmanager.write(query_str="""
             UPDATE sessions_table
             SET active = FALSE
             WHERE sid = %s

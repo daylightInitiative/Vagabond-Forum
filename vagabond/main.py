@@ -1,15 +1,15 @@
 
-import os
 import logging
-import traceback
-import json
-import string
 
 from vagabond.queries import *
 from vagabond.constants import *
-from vagabond.session import create_session, is_valid_session, invalidate_session, get_userid_from_session
-from vagabond.config import Config
-from vagabond.utility import rows_to_dict, deep_get, is_valid_email_address, get_userid_from_email, title_to_content_hint
+from vagabond.sessions.session import (
+    create_session, invalidate_session,
+    get_userid_from_session, is_user_logged_in,
+    get_session_id, redirect_if_already_logged_in,
+    abort_if_not_signed_in, get_tdid
+)
+from vagabond.utility import rows_to_dict, deep_get, get_userid_from_email, title_to_content_hint
 from vagabond.utility import included_reload_files
 from vagabond.signup import signup
 from vagabond.login import is_valid_login
@@ -17,41 +17,34 @@ from vagabond.logFormat import setup_logger # we love colors
 from vagabond.avatar import create_user_avatar, update_user_avatar
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort, make_response
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 from random import randint
-from flask_moment import Moment
 
+#blueprints
+from vagabond.sessions import session_bp
+
+#services
 from vagabond.dbmanager import DBManager, DBStatus
-from vagabond.services import dbmanager, app_config
+from vagabond.services import init_extensions, dbmanager, app_config, moment, limiter
 
 
 load_dotenv()
 
 app = Flask(__name__)
-moment = Moment(app) # flask_moment does the fluff of handling local timezones.
 
 app.config["custom_config"] = app_config
 log = logging.getLogger() # root logger doesnt need an identifier
 setup_logger(log)
 
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["400 per hour"],
-    storage_options={"socket_timeout": 5},
-    storage_uri="memory://localhost:11211",
-)
+# init all extensions
+init_extensions(app)
+
+# register all blueprints
+app.register_blueprint(session_bp)
 
 # I use this a lot per route, making it a function so there are no typos
 # and I can easily change this key to something else, hopefully more DRY
-def get_session_id():
-    return request.cookies.get("sessionID")
 
-def is_user_logged_in():
-    sid = get_session_id()
-    return True if sid and is_valid_session(db=dbmanager, sessionID=sid) else False
 
 def is_user_post_owner(userid, postid) -> bool:
     get_is_owner = dbmanager.read(query_str="""
@@ -59,6 +52,7 @@ def is_user_post_owner(userid, postid) -> bool:
         FROM posts
         WHERE 
     """, fetch=True, params=(userid, postid,))
+    return deep_get(get_is_owner, 0, 1) or False
 
 
 def is_admin(userid) -> bool:
@@ -72,14 +66,8 @@ def is_admin(userid) -> bool:
 
 
 # going to add more high level stuff here, like is_superuser()
-def abort_if_not_signed_in():
-    if not is_user_logged_in():
-        abort(401)
-    
 
-def redirect_if_already_logged_in():
-    if is_user_logged_in():
-        return redirect( url_for("index") )
+
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -88,7 +76,8 @@ def redirect_if_already_logged_in():
 # I will eventually switch over to blueprints as the site gains complexity
 @app.context_processor
 def inject_jinja_variables():
-    user_id = get_userid_from_session(db=dbmanager, sessionID=get_session_id())
+    sid = get_session_id()
+    user_id = get_userid_from_session(sessionID=sid)
     log.debug(f"yay!")
     return {
         "is_authenticated": is_user_logged_in(),
@@ -124,29 +113,7 @@ def news():
 def reading_list():
     return render_template("reading.html")
 
-@app.route("/invalidate_other_sessions", methods=["POST"])
-def sign_out_other_sessions():
-    abort_if_not_signed_in()
 
-    current_sid = get_session_id()
-
-    if not current_sid:
-        log.critical("Failed to grab sid while trying to invalidate all other sessions")
-        return '', 500
-    
-    user_id = get_userid_from_session(db=dbmanager, sessionID=current_sid)
-
-    # get all other sessions
-    # since invalidation is just setting the active to false, we can just omit any already disabled sessions
-    dbmanager.write(query_str="""
-        UPDATE sessions_table
-        SET active = FALSE
-        WHERE user_id = %s AND sid != %s AND active = TRUE
-    """, params=(user_id, current_sid,))
-
-    log.debug("signed out of sessions")
-
-    return '', 200
 
 @app.route("/")
 def index():
@@ -165,31 +132,20 @@ def index():
     return render_template("index.html", number=random_number, num_hits=num_hits, forum_categories=categories_list or {})
 
 # returns temporary data id linked to a session.
-def get_tdid(sessionID: str) -> str|None:
-    get_tdid = dbmanager.read(query_str="""
-        SELECT temp_data_sid
-        FROM sessions_table
-        WHERE sid = %s
-    """, params=(sessionID,))
 
-    if get_tdid == DBStatus.FAILURE:
-        log.critical("Failure to fetch TDID")
-        return '', 500
-
-    tdid = deep_get(get_tdid, 0, 0)
-    return tdid if tdid else None
 
 @app.route("/save_draft", methods=["POST", "GET"])
 @limiter.limit("50 per minute", methods=["POST"])
 @limiter.limit("50 per minute", methods=["GET"])
 def save_draft():
     
+    sid = get_session_id()
     if not is_user_logged_in():
         abort(401)
 
     if request.method == "GET":
         # get saved draft logic here
-        sid = get_session_id()
+        
         temp_session_id = get_tdid(sessionID=sid)
         
         get_draft = dbmanager.read(query_str="""
@@ -215,8 +171,6 @@ def save_draft():
         data = request.get_json()
         log.debug(data)
 
-        # get the current session
-        sid = get_session_id()
         # get the temporary data id
         tdid = get_tdid(sessionID=sid)
 
@@ -258,7 +212,7 @@ def serve_login():
         
             # lets get the userid
             userid = get_userid_from_email(db=dbmanager, email=email)
-            sid = create_session(db=dbmanager, userid=userid, request_obj=request)
+            sid = create_session(userid=userid, request_obj=request)
 
             if not userid:
                 return render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
@@ -278,7 +232,7 @@ def serve_login():
 def logout():
     sid = get_session_id()
     if sid:
-        invalidate_session(db=dbmanager, sessionID=sid)
+        invalidate_session(sessionID=sid)
 
     return redirect(url_for('serve_login'))
 
@@ -287,12 +241,13 @@ def logout():
 @app.route('/profile', methods=["GET", "POST"])
 def profile():
 
+    seshid = get_session_id()
     log.debug(is_user_logged_in())
     if not is_user_logged_in():
         abort(401)
 
-    seshid = get_session_id()
-    userid = get_userid_from_session(db=dbmanager, sessionID=seshid)
+    
+    userid = get_userid_from_session(sessionID=seshid)
     get_info = dbmanager.read(query_str="""
         SELECT email, username, join_date, avatar_hash
         FROM users
@@ -394,7 +349,7 @@ def serve_post_by_id(post_num, content_hint):
             return '<p>Post is too short or invalid post id</p>', 400
         
         sessionID = get_session_id() #guarenteed because of the abort
-        author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
+        author = get_userid_from_session(sessionID=sessionID)
 
         log.debug("creating a reply linked to the parent post")
         dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
@@ -442,7 +397,7 @@ def serve_forum():
         reply_id = request.form.get('post_id')
         abort_if_not_signed_in()
 
-        user_id = get_userid_from_session(db=dbmanager, sessionID=get_session_id())
+        user_id = get_userid_from_session(sessionID=get_session_id())
         if not is_admin(user_id):
             return jsonify({"error": "Unauthorized"}), 401
 
@@ -486,7 +441,7 @@ def signup_page():
         if not userid:
             return render_template("signup.html", errmsg=errmsg)
 
-        sid = create_session(db=dbmanager, userid=userid, request_obj=request)
+        sid = create_session(userid=userid, request_obj=request)
 
         if not sid:
             return render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
@@ -537,7 +492,7 @@ def submit_new_post():
 
 
         sessionID = get_session_id()
-        author = get_userid_from_session(db=dbmanager, sessionID=sessionID)
+        author = get_userid_from_session(sessionID=sessionID)
 
         # now, instead of having to create this every time, lets save it to the db (auto truncates)
         url_safe_title = title_to_content_hint(title)
