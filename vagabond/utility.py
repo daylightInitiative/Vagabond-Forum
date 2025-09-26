@@ -22,6 +22,13 @@ for file in SQL_FOLDER.iterdir():
         included_reload_files.append(file.absolute())
 
 
+"""
+Provides a display version of someones email used for codes and profile info
+    get_censored_email("john@example.com") -> joh**********
+"""
+def get_censored_email(email: str):
+    return email[0:3] + ('*' * (len(email) - 3))
+
 # having to manually stop and start the flask application again everytime you change a sql or .json file can be quite troublesome
 def read_sql_file(filename):
     try:

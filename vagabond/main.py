@@ -9,19 +9,21 @@ from vagabond.sessions.module import (
     get_session_id, redirect_if_already_logged_in,
     abort_if_not_signed_in, get_tdid
 )
-from vagabond.utility import rows_to_dict, deep_get, get_userid_from_email, title_to_content_hint
+from vagabond.utility import rows_to_dict, deep_get, get_censored_email
 from vagabond.utility import included_reload_files
+from vagabond.forum.module import is_admin
 from vagabond.signup import signup
 from vagabond.logFormat import setup_logger # we love colors
 from vagabond.avatar import create_user_avatar, update_user_avatar
 
-from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, session, abort, make_response
+from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, abort, make_response
 from dotenv import load_dotenv
 from random import randint
 
 #blueprints
 from vagabond.sessions import session_bp
 from vagabond.login import login_bp
+from vagabond.forum import forum_bp
 
 #services
 from vagabond.dbmanager import DBManager, DBStatus
@@ -42,33 +44,7 @@ init_extensions(app)
 # register all blueprints
 app.register_blueprint(session_bp)
 app.register_blueprint(login_bp)
-
-# I use this a lot per route, making it a function so there are no typos
-# and I can easily change this key to something else, hopefully more DRY
-
-
-def is_user_post_owner(userid, postid) -> bool:
-    get_is_owner = dbmanager.read(query_str="""
-        SELECT id, author
-        FROM posts
-        WHERE 
-    """, fetch=True, params=(userid, postid,))
-    return deep_get(get_is_owner, 0, 1) or False
-
-
-def is_admin(userid) -> bool:
-    get_is_superuser = dbmanager.read(query_str="""
-        SELECT id, is_superuser
-        FROM users
-        WHERE id = %s
-    """, fetch=True, params=(userid,))
-    return deep_get(get_is_superuser, 0, 1) or False
-
-
-
-# going to add more high level stuff here, like is_superuser()
-
-
+app.register_blueprint(forum_bp)
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -128,69 +104,7 @@ def index():
 
     log.debug(categories_list)
 
-    #return render_template("forums.html", forum_categories=categories_list or [])
-
     return render_template("index.html", number=random_number, num_hits=num_hits, forum_categories=categories_list or {})
-
-# returns temporary data id linked to a session.
-
-
-@app.route("/save_draft", methods=["POST", "GET"])
-@limiter.limit("50 per minute", methods=["POST"])
-@limiter.limit("50 per minute", methods=["GET"])
-def save_draft():
-    
-    sid = get_session_id()
-    if not is_user_logged_in():
-        abort(401)
-
-    if request.method == "GET":
-        # get saved draft logic here
-        
-        temp_session_id = get_tdid(sessionID=sid)
-        
-        get_draft = dbmanager.read(query_str="""
-            SELECT draft_text
-            FROM temp_session_data
-            WHERE tempid = %s and LENGTH(draft_text) > 0
-        """, params=(temp_session_id,))
-
-        saved_draft_text = deep_get(get_draft, 0, 0)
-
-        if not saved_draft_text:
-            return jsonify({"error": "Fetched draft was empty"}), 204 # no content
-        
-        draft = {
-            "contents": saved_draft_text
-        }
-
-        return jsonify(draft), 200
-
-
-
-    elif request.method == "POST":
-        data = request.get_json()
-        log.debug(data)
-
-        # get the temporary data id
-        tdid = get_tdid(sessionID=sid)
-
-        text_to_save = data.get("contents")
-        save_draft = dbmanager.write(query_str="""
-            UPDATE temp_session_data
-            SET draft_text = %s
-            WHERE tempid = %s
-        """, params=(text_to_save, tdid,))
-
-        if save_draft == DBStatus.FAILURE:
-            log.critical("Failed to save draft data for tdid: %s", tdid)
-            return jsonify({"error": "Internal server error"}), 500
-
-    return '', 200
-
-    
-
-
 
 
 @app.route('/profile', methods=["GET", "POST"])
@@ -201,7 +115,6 @@ def profile():
     if not is_user_logged_in():
         abort(401)
 
-    
     userid = get_userid_from_session(sessionID=seshid)
     get_info = dbmanager.read(query_str="""
         SELECT email, username, join_date, avatar_hash
@@ -209,10 +122,8 @@ def profile():
         WHERE id = %s
     """, params=(userid,))
 
-    # trunk this into the utility at some point
     email = deep_get(get_info, 0, 0)
-    length = len(email) - 3
-    hidden_email = email[0:3] + ('*' * length)
+    hidden_email = get_censored_email(email)
 
     username = deep_get(get_info, 0, 1)
     joinDate = deep_get(get_info, 0, 2)
@@ -245,132 +156,6 @@ def profile():
 
     return render_template("profile.html", userinfo=userinfo, sessions=sessions)
 
-def get_is_post_locked(post_num):
-    get_locked = dbmanager.read(query_str="""
-        SELECT post_locked
-        FROM posts
-        WHERE id = %s
-    """, params=(post_num,))
-
-    is_post_locked = deep_get(get_locked, 0, 0)
-
-    return is_post_locked
-
-@app.route("/forums/<int:post_num>/<content_hint>", methods=["GET", "POST"])
-@limiter.limit("125 per minute", methods=["GET", "POST"])
-def serve_post_by_id(post_num, content_hint):
-    if request.method == "GET":
-        log.debug("We are viewing a singular post from /forums/%s/%s", post_num, content_hint)
-
-        # get the content hint, if the content hint doesnt match, redirect early.
-        view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
-        get_post = rows_to_dict(view_single, column_names)
-        single_post = deep_get(get_post, 0)
-
-        log.debug(single_post)
-
-        saved_content_hint = single_post.get("url_title")
-
-        if content_hint != saved_content_hint:
-            print("Theres no content hint, redirect")
-            return redirect( url_for("serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
-
-        dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
-            params=(post_num,))
-
-        # get all the posts replies
-        replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
-        replies_list = rows_to_dict(replies_rows, column_names)
-
-        # get if the post is locked or not
-        is_post_locked = get_is_post_locked(post_num=post_num)
-
-        return render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
-
-    elif request.method == "POST":
-        abort_if_not_signed_in()
-
-        is_post_locked = get_is_post_locked(post_num)
-        if is_post_locked:
-            return abort(401)
-
-        # for replies we get the data, and save it nothing more
-        post_id = request.form.get('post_id') # hacky way of saving the postid
-        reply = request.form.get('reply')
-
-        # minimum of 20 characters in a reply
-        # (we can detect spamming later)
-        if not post_id or len(reply) <= 5:
-            return '<p>Post is too short or invalid post id</p>', 400
-        
-        sessionID = get_session_id() #guarenteed because of the abort
-        author = get_userid_from_session(sessionID=sessionID)
-
-        log.debug("creating a reply linked to the parent post")
-        dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
-            params=(post_id, reply, author))
-
-        # redirect back to the view_forum to trigger the refresh
-        return redirect(url_for("serve_post_by_id", post_num=post_id, content_hint=content_hint))
-
-# categories are used for seperating mountains of posts by their categoryid
-# posts follow no pattern besides externally its postid, and if present its extracted url safe preview
-# so, in essence we need a "/forums" but also we need to keep this different from our /postid/hintname
-@app.route("/forums", methods=["GET", "POST", "PATCH"])
-@limiter.limit("125 per minute", methods=["GET"])
-@limiter.limit("80 per minute", methods=["POST"])
-def serve_forum():
-
-    if request.method == "GET":
-
-        page_num = request.args.get('page')
-        category_id = request.args.get('category')
-
-        if not page_num or not category_id:
-            return jsonify({"error": "Must supply category and page as URL parameters"}), 422
-        
-        log.debug(f"queried post {page_num}")
-        try:
-            page_num = int(page_num)
-            if page_num <= 0:
-                raise ValueError("Invalid page number")
-        except (TypeError, ValueError):
-            # redirect to the first page if page_num is invalid (postgres id starts at 1)
-            return redirect(url_for("forums.html") + "?page=1")
-
-        page_offset = str((page_num - 1) * PAGE_LIMIT)
-        log.debug("is the page offset")
-
-        # query the response as json, page the query, include nested replies table
-        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(category_id, str(PAGE_LIMIT), page_offset, category_id,))
-        posts = rows_to_dict(post_rows, column_names)
-
-        log.debug(posts)
-
-
-    elif request.method == "POST" and request.form.get("_method") == "DELETE":
-        reply_id = request.form.get('post_id')
-        abort_if_not_signed_in()
-
-        user_id = get_userid_from_session(sessionID=get_session_id())
-        if not is_admin(user_id):
-            return jsonify({"error": "Unauthorized"}), 401
-
-        if not reply_id:
-            return jsonify({"error": "Invalid post ID"}), 422
-        
-        get_parent_post_id = dbmanager.write(query_str="""
-            UPDATE replies
-            SET deleted_at = NOW()
-            WHERE id = %s
-            RETURNING parent_post_id
-        """, fetch=True, params=(reply_id))
-        parent_post_id = deep_get(get_parent_post_id, 0, 0)
-
-        log.info("marked reply for deletion")
-        return redirect(url_for("serve_post_by_id", post_id=parent_post_id))
-
-    return render_template("forums.html", posts=posts, forum_category_id=category_id)
 
 # here we go....
 @app.route('/signup', methods=['GET', 'POST'])
@@ -415,54 +200,7 @@ def signup_page():
         return response
 
 
-# for posting we can just reuse this route
-@app.route('/post', methods=['GET', 'POST'])
-@limiter.limit("125 per minute", methods=["GET"])
-@limiter.limit("70 per minute", methods=["POST"])
-def submit_new_post():
 
-    abort_if_not_signed_in()
-
-    if request.method == "GET":
-        category_id = request.args.get('category')
-        if not category_id:
-            return jsonify({"error": "Invalid category id"}), 422
-
-        return render_template("create_post.html", post_category=category_id)
-
-    elif request.method == "POST":
-
-        title = request.form.get('title', type=str)
-        description = request.form.get('description', type=str)
-        
-        if not title or not description:
-            return jsonify({"error": "Invalid form data"}), 400
-        
-        category_id = request.args.get('category')
-        if not category_id:
-            return jsonify({"error": "Invalid category id"}), 422
-        # get the category_id to post to (permission check permissions NIY)
-        # can_post_to_forum(category_id)
-
-
-
-        sessionID = get_session_id()
-        author = get_userid_from_session(sessionID=sessionID)
-
-        # now, instead of having to create this every time, lets save it to the db (auto truncates)
-        url_safe_title = title_to_content_hint(title)
-
-        retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author, url_title, category_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-            fetch=True,
-            params=(title, description, author, url_safe_title, category_id,)
-        )
-
-        new_post_id = deep_get(retrieved, 0, 0)
-        log.debug(new_post_id)
-        if new_post_id:
-            return redirect(url_for("serve_post_by_id", post_num=new_post_id, content_hint=url_safe_title))
-
-    return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/static/<path:filename>')
 @limiter.exempt
