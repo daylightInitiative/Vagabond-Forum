@@ -1,5 +1,5 @@
 from flask import current_app as app
-from vagabond.sessions.session import abort_if_not_signed_in, get_session_id, get_userid_from_session
+from vagabond.sessions.module import abort_if_not_signed_in, get_session_id, get_userid_from_session
 from vagabond.sessions import session_bp
 from vagabond.services import dbmanager
 import logging

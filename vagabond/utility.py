@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 from vagabond.constants import MAX_URL_TITLE
 from vagabond.dbmanager import DBManager, DBStatus
+from vagabond.services import dbmanager
 
 log = log.getLogger(__name__)
 
@@ -57,8 +58,8 @@ def deep_get(data, *indices):
 
 # when you need state, error handling but also functions I find that using a class here works nice
     
-def get_userid_from_email(db: DBManager, email: str) -> str:
-    get_userid = db.read(query_str="""
+def get_userid_from_email(email: str) -> str:
+    get_userid = dbmanager.read(query_str="""
             SELECT id
             FROM users
             WHERE email = %s

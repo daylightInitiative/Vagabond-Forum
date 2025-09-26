@@ -1,7 +1,7 @@
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.queries import *
-from flask import request, Blueprint, abort, redirect, url_for
+from flask import request, abort, redirect, url_for
 from vagabond.services import dbmanager
 from ua_parser import parse_os, parse_user_agent, parse_device
 import logging
@@ -18,9 +18,9 @@ def abort_if_not_signed_in():
     if not is_user_logged_in():
         abort(401)
 
-def redirect_if_already_logged_in():
+def redirect_if_already_logged_in(page="index"):
     if is_user_logged_in():
-        return redirect( url_for("index") )
+        return redirect( url_for(page) )
 
 def get_session_id():
     return request.cookies.get("sessionID")

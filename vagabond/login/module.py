@@ -2,25 +2,28 @@
 from vagabond.queries import *
 from vagabond.utility import get_userid_from_email, is_valid_email_address, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
+from vagabond.services import dbmanager
 import logging
 import bcrypt
 
 log = logging.getLogger(__name__)
 
+# TODO: Add send email on new ip address login here,
+
 # returns true upon a successful authentication, false upon incorrect credentials
-def is_valid_login(db: DBManager, email: str, password: str) -> tuple[bool, str]:
+def is_valid_login(email: str, password: str) -> tuple[bool, str]:
     try:
         email = email.strip()
         if not email or not is_valid_email_address(email=email): #probably will use email regex for future verification
             return False, "Email is invalid"
         # fetch the hashed_password row from the user associated with this username
         
-        userid = get_userid_from_email(db=db, email=email)
+        userid = get_userid_from_email(email=email)
         
         if not userid:
             return False, "Incorrect email or password"
         
-        is_banned = db.read(query_str="""
+        is_banned = dbmanager.read(query_str="""
             SELECT id, account_locked
             FROM users
             WHERE id = %s and account_locked = TRUE
@@ -29,7 +32,7 @@ def is_valid_login(db: DBManager, email: str, password: str) -> tuple[bool, str]
         if is_banned and deep_get(is_banned, 0, 0) == True:
             return False, "Account associated with email has been disabled."
 
-        get_hash = db.read(query_str="""
+        get_hash = dbmanager.read(query_str="""
             SELECT hashed_password
             FROM users
             WHERE id = %s

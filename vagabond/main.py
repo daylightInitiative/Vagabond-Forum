@@ -3,7 +3,7 @@ import logging
 
 from vagabond.queries import *
 from vagabond.constants import *
-from vagabond.sessions.session import (
+from vagabond.sessions.module import (
     create_session, invalidate_session,
     get_userid_from_session, is_user_logged_in,
     get_session_id, redirect_if_already_logged_in,
@@ -12,7 +12,6 @@ from vagabond.sessions.session import (
 from vagabond.utility import rows_to_dict, deep_get, get_userid_from_email, title_to_content_hint
 from vagabond.utility import included_reload_files
 from vagabond.signup import signup
-from vagabond.login import is_valid_login
 from vagabond.logFormat import setup_logger # we love colors
 from vagabond.avatar import create_user_avatar, update_user_avatar
 
@@ -22,6 +21,7 @@ from random import randint
 
 #blueprints
 from vagabond.sessions import session_bp
+from vagabond.login import login_bp
 
 #services
 from vagabond.dbmanager import DBManager, DBStatus
@@ -41,6 +41,7 @@ init_extensions(app)
 
 # register all blueprints
 app.register_blueprint(session_bp)
+app.register_blueprint(login_bp)
 
 # I use this a lot per route, making it a function so there are no typos
 # and I can easily change this key to something else, hopefully more DRY
@@ -189,52 +190,6 @@ def save_draft():
 
     
 
-@app.route("/login", methods=["GET", "POST"])
-@limiter.limit("125 per minute", methods=["GET"])
-@limiter.limit("70 per minute", methods=["POST"])
-def serve_login():
-
-    redirect_if_already_logged_in()
-
-    if request.method == "GET":
-        return render_template("login.html")
-    elif request.method == "POST":
-
-        email = request.form.get('email')
-        password = request.form.get('password')
-
-        if not email or not password:
-            return '', 422
-        
-        is_authenticated, errmsg = is_valid_login(db=dbmanager, email=email, password=password)
-        
-        if is_authenticated:
-        
-            # lets get the userid
-            userid = get_userid_from_email(db=dbmanager, email=email)
-            sid = create_session(userid=userid, request_obj=request)
-
-            if not userid:
-                return render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
-
-            if not sid:
-                return render_template("login.html", errmsg="Internal server error: Unable to acquire session ID")
-
-            log.debug("Sending session to client")
-            response = make_response(redirect(url_for("index")))
-            response.set_cookie(key="sessionID", value=sid)
-
-            return response
-        else:
-            return render_template("login.html", errormsg=errmsg)
-
-@app.route('/logout')
-def logout():
-    sid = get_session_id()
-    if sid:
-        invalidate_session(sessionID=sid)
-
-    return redirect(url_for('serve_login'))
 
 
 
