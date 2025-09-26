@@ -1,0 +1,20 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem auto;
+  max-width: 1000px;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  border: 1px solid #b6b6b6;
+}
+
+th,
+td {
+  border: 1px solid #b6b6b6; /* inner column and row borders */
+  padding: 0.5rem;
+  text-align: left;
+}
+
+body {
+  text-align: center;
+}

@@ -53,6 +53,14 @@ def is_user_logged_in():
     sid = get_session_id()
     return True if sid and is_valid_session(db=dbmanager, sessionID=sid) else False
 
+def is_user_post_owner(userid, postid) -> bool:
+    get_is_owner = dbmanager.read(query_str="""
+        SELECT id, author
+        FROM posts
+        WHERE 
+    """, fetch=True, params=(userid, postid,))
+
+
 def is_admin(userid) -> bool:
     get_is_superuser = dbmanager.read(query_str="""
         SELECT id, is_superuser

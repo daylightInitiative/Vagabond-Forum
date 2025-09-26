@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <link rel="stylesheet" href="/static/css/index.css">
     <div class="page-wrapper">
         <main class="forum-container">
             <!-- <img src="/static/img/moraine-lake-panorama-public-domain.jpg"> -->
@@ -38,4 +37,7 @@
             </table>
         </div>
     </div>
+    <!-- if you have dynamic content in jinja like table data, css must be placed at the bottom to render correctly -->
+    <link rel="stylesheet" href="/static/css/page_style.css">
+    <link rel="stylesheet" href="/static/css/index.css">
 {% endblock %}

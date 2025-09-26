@@ -5,3 +5,21 @@ body {
   background-position: center;
   background-attachment: fixed;
 }
+
+footer {
+  font-size: x-small;
+  color: #888888;
+  padding-top: 12%;
+}
+
+.footer-veil {
+  flex-shrink: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  margin: auto;
+  margin-top: 9%;
+  padding: 1rem;
+}

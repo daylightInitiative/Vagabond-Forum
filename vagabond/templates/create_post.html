@@ -15,5 +15,7 @@
             </form>
     </div>
     <!-- order matters here, because we are using jinja we have to put this AFTER the elements are created. -->
+     <!-- we also should ALWAYS load css first -->
+    <link rel="stylesheet" href="/static/css/page_style.css">
     <script src="{{ url_for('static', filename='js/save_draft.js') }}"></script>
 {% endblock %}

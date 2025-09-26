@@ -82,5 +82,5 @@ if __name__ == '__main__':
     dbmanager.write(query_str="""
         INSERT INTO news_feed (title, contents, pinned, author)
             VALUES (%s, %s, %s, %s)
-    """, params=("Welcome surviors", "This is where we will be posting new updates and news about current news and site news to report the news about", False, 1))
+    """, params=("Welcome survivors", "Current news, updates and announcements from our wonderful staff or developers will appear here, stop by to see important information about the current state of the forum.", False, 1))
     
