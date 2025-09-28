@@ -4,10 +4,7 @@ CREATE TABLE IF NOT EXISTS webstats (
 );
 INSERT INTO webstats (hits) VALUES (0);
 
-CREATE TABLE IF NOT EXISTS profiles (
-    id SERIAL PRIMARY KEY,
-    description VARCHAR(300) NOT NULL DEFAULT ''
-);
+
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
@@ -25,6 +22,13 @@ CREATE TABLE IF NOT EXISTS users (
 );
 -- using TIMESTAMPZ to account for different timezones
 
+CREATE TABLE IF NOT EXISTS profiles (
+    id SERIAL PRIMARY KEY,
+    profile_id BIGINT NOT NULL,
+    FOREIGN KEY (profile_id) REFERENCES users(id),
+    description VARCHAR(500) NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS temp_session_data (
     tempid SERIAL PRIMARY KEY,
     draft_text VARCHAR(2000) DEFAULT '' NOT NULL,
@@ -37,7 +41,7 @@ CREATE TABLE IF NOT EXISTS sessions_table (
     ipaddr inet NOT NULL,
     user_id INT NOT NULL,
     display_user_agent VARCHAR(255) NOT NULL DEFAULT 'Unknown, Unknown',
-    raw_user_agent VARCHAR(255) NOT NULL DEFAULT 'Unknown',
+    raw_user_agent VARCHAR(2048) NOT NULL DEFAULT 'Unknown', -- increasing the raw ua size so we get all of it
     temp_data_sid INT NOT NULL,
     lastLogin TIMESTAMPTZ DEFAULT NOW(),
     active BOOLEAN NOT NULL DEFAULT TRUE,

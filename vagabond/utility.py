@@ -1,6 +1,8 @@
 import logging as log
 from pathlib import Path
 import re
+import traceback
+import inspect
 from vagabond.constants import MAX_URL_TITLE
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.services import dbmanager
@@ -60,7 +62,11 @@ def deep_get(data, *indices):
             data = data[i]
         return data
     except (IndexError, KeyError, TypeError) as e:
-        log.debug("Failed to access element at [%s]: %d levels deep: %s", data, i, e)
+        # frame = inspect.stack()[1]
+
+        # # since we use deep_get here in try except for safety, it swallows the error (until i figure out the api we're just gonna disable)
+        # caller_info = f"{frame.filename}:{frame.lineno} in {frame.function}()"
+        # log.warning("Failed to access element at [%s]: %d levels deep.\nerror: %s\nmethod call from: %s", data, i, e, caller_info)
         return None
 
 # when you need state, error handling but also functions I find that using a class here works nice

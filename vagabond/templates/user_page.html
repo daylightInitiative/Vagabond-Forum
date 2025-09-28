@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <img style="width: 200px; height: 200px;" class="center-image" src="/static/avatars/{{ userinfo.avatar_hash or '/static/img/not_found.png' }}.jpg">
+    <p>Username: <b>{{ userinfo.username }}</b></p>
+    <p>Is Online: {{ userinfo.is_online }}</p>
+    <p>Last Online: {{ userinfo.lastseen }}</p>
+    <p>Joined: {{ userinfo.join_date }}</p>
+    <p>About Me: {{ userinfo.description or '' }}</p>
+
+{% endblock %}

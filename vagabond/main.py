@@ -21,6 +21,7 @@ from vagabond.login import login_bp
 from vagabond.forum import forum_bp
 from vagabond.signup import signup_bp
 from vagabond.profile import profile_bp
+from vagabond.users import users_bp
 
 #services
 from vagabond.dbmanager import DBManager, DBStatus
@@ -44,6 +45,7 @@ app.register_blueprint(login_bp)
 app.register_blueprint(forum_bp)
 app.register_blueprint(signup_bp)
 app.register_blueprint(profile_bp)
+app.register_blueprint(users_bp)
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -87,8 +89,6 @@ def news():
 @app.route("/reading_list.html")
 def reading_list():
     return render_template("reading.html")
-
-
 
 @app.route("/")
 def index():

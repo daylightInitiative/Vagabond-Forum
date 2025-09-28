@@ -22,8 +22,8 @@ def redirect_if_already_logged_in(page="index"):
     if is_user_logged_in():
         return redirect( url_for(page) )
 
-def get_session_id():
-    return request.cookies.get("sessionID")
+def get_session_id() -> str | None:
+    return request.cookies.get("sessionID") or None
 
 def get_tdid(sessionID: str) -> str|None:
     get_tdid = dbmanager.read(query_str="""
@@ -59,9 +59,9 @@ def create_session(userid: str, request_obj) -> str | None:
         try:
             response = dbmanager.read(query_str="""
             SELECT EXISTS (
-                SELECT * FROM sessions_table WHERE sid = %s
+                SELECT 1 FROM sessions_table WHERE sid = %s
             );
-            """, fetch=True, params=(sid,))
+            """, fetch=True, params=(sid,)) # since we are only checking if it exists no need to get all columns using SELECT *
         except Exception as e:
             log.critical("Failed checking unique sid: %s", e)
             return None
@@ -98,9 +98,9 @@ def create_session(userid: str, request_obj) -> str | None:
 def is_valid_session(sessionID: str) -> bool:
     # check if the session is valid (just checking the active variable and this userid)
     is_session_valid = dbmanager.read(query_str="""
-        SELECT *
+        SELECT 1
         FROM sessions_table
-        WHERE sid = %s and active = TRUE
+        WHERE sid = %s AND active = TRUE
     """, fetch=True, params=(sessionID,))
 
     return is_session_valid or False # it wasnt found or something wrong is going on
