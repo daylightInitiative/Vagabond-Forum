@@ -37,7 +37,11 @@ async function sign_out_of_all_other_sessions() {
     }
 }
 
-signout.onclick = function() {
-    console.log("signing out of all other sessions...");
-    sign_out_of_all_other_sessions();
-};
+// its more reliable to hook this after the dom is loaded
+document.addEventListener("DOMContentLoaded", (event) => {
+    signout.onclick = function() {
+        console.log("signing out of all other sessions...");
+        sign_out_of_all_other_sessions();
+    };
+});
+

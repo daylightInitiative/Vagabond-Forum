@@ -6,7 +6,7 @@ from vagabond.sessions.module import (
 from vagabond.utility import get_userid_from_email
 from vagabond.login import login_bp
 from vagabond.login.module import is_valid_login
-from vagabond.services import limiter
+from vagabond.services import limiter, dbmanager
 from flask import request, render_template, make_response, redirect, url_for, jsonify
 import logging
 
@@ -45,7 +45,7 @@ def serve_login():
 
             log.debug("Sending session to client")
             response = make_response(redirect(url_for("index")))
-            response.set_cookie(key="sessionID", value=sid)
+            response.set_cookie(key="sessionID", value=sid, max_age=7200)
 
             return response
         else:
@@ -57,4 +57,8 @@ def logout():
     if sid:
         invalidate_session(sessionID=sid)
 
-    return redirect(url_for('login.serve_login'))
+    response = make_response(redirect(url_for('login.serve_login')))
+    response.delete_cookie('sessionID')
+    # i found that i had never deleted the cookie even after signout
+
+    return response

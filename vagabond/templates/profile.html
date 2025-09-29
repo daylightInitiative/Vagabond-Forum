@@ -10,11 +10,18 @@
         {% endif %}
     {% endif %}
 
+    <h2>About Me:</h2>
+    <form class="new-post-form" action="/profile" method="POST">
+        <textarea id="description" name="description" maxlength="2000" rows="5" cols="50" required></textarea>
+        <br><br>
+        <button id="save-description" class="btn btn-primary" type="submit">Save</button>
+        <br><br>
+    </form>
+
     {% if sessions %}
+        <h2>Login Sessions</h2>
         <button id="sign-out-sessions" class="btn btn-primary" type="button">Sign out all other sessions</button>
         <p style="display:none;" id="status-text"></p>
-
-        <h2>Login Sessions</h2>
         {% for sesh in sessions %}
             <b>Status: {{ 'ACTIVE' if sesh.active else 'INACTIVE' }}</b>
             <p>Session from: {{ sesh.userAgent }} by IP address {{ sesh.ipaddr }} on {{ sesh.lastLogin }}</p>

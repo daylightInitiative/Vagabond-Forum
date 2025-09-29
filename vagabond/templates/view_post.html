@@ -5,7 +5,7 @@
     {% if post %}
         <div class="user-post">
             <h2><b>{{ post.title }}</b></h2>
-            <p>author: {{ post.author_username }} on {{ post.creation_date }}</p>
+            <p>author: <a href="/users/{{ post.author }}/">{{ post.author_username }}</a> on {{ post.creation_date }}</p>
             <p>{{ post.contents }}</p>
             <p>{{ post.views }} views</p>
             {% if is_authenticated %}
@@ -30,7 +30,7 @@
         {% for post in replies %}
             <div class="user-post">
                 <h2><b>Reply</b></h2>
-                <p>author: {{ post.author_username }} {{ moment(post.creation_date).fromNow() }} said:</p>
+                <p>author: <a href="/users/{{post.author}}/">{{ post.author_username }}</a> {{ moment(post.creation_date).fromNow() }} said:</p>
                 <p>{{ post.contents }}</p>
                 {% if is_superuser == True %}
                     <!-- display the delete button (a form hack is to have the post_id hidden here) -->

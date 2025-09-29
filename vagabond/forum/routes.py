@@ -44,6 +44,8 @@ def serve_post_by_id(post_num, content_hint):
         replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
         replies_list = rows_to_dict(replies_rows, column_names)
 
+        log.debug(replies_list)
+
         # get if the post is locked or not
         is_post_locked = get_is_post_locked(post_num=post_num)
 

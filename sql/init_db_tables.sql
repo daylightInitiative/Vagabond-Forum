@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS profiles (
     id SERIAL PRIMARY KEY,
-    profile_id BIGINT NOT NULL,
+    profile_id INT NOT NULL,
     FOREIGN KEY (profile_id) REFERENCES users(id),
     description VARCHAR(500) NOT NULL DEFAULT ''
 );

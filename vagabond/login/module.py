@@ -10,6 +10,9 @@ log = logging.getLogger(__name__)
 
 # TODO: Add send email on new ip address login here,
 
+def increment_wrong_login_attempts():
+    pass
+
 # returns true upon a successful authentication, false upon incorrect credentials
 def is_valid_login(email: str, password: str) -> tuple[bool, str]:
     try:

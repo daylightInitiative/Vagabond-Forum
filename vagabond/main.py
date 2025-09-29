@@ -22,6 +22,7 @@ from vagabond.forum import forum_bp
 from vagabond.signup import signup_bp
 from vagabond.profile import profile_bp
 from vagabond.users import users_bp
+from vagabond.analytics import analytics_bp
 
 #services
 from vagabond.dbmanager import DBManager, DBStatus
@@ -46,6 +47,7 @@ app.register_blueprint(forum_bp)
 app.register_blueprint(signup_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(users_bp)
+app.register_blueprint(analytics_bp)
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -67,6 +69,15 @@ def log_request_info():
         return
     log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1;')
+    
+    sid = get_session_id()
+    user_id = get_userid_from_session(sessionID=sid)
+    if user_id:
+        dbmanager.write(query_str="""
+            UPDATE users
+            SET lastSeen = NOW(), is_online = TRUE
+            WHERE id = %s
+        """, params=(user_id,))
 
 @app.errorhandler(404)
 def not_found_error(error):
