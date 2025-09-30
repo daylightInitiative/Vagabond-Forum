@@ -4,7 +4,7 @@ from vagabond.sessions.module import (
 from vagabond.services import limiter, dbmanager
 from vagabond.profile import profile_bp
 from vagabond.utility import deep_get, get_censored_email
-from flask import render_template
+from vagabond.flask_wrapper import custom_render_template
 import logging
 
 log = logging.getLogger(__name__)
@@ -56,4 +56,4 @@ def serve_profile():
             ipaddr = deep_get(get_list, i, 3)
         ))
 
-    return render_template("profile.html", userinfo=userinfo, sessions=sessions)
+    return custom_render_template("profile.html", userinfo=userinfo, sessions=sessions)

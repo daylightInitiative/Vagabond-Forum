@@ -13,7 +13,7 @@ from vagabond.forum.module import get_is_post_locked
 from vagabond.permissions import is_admin
 from vagabond.forum import forum_bp
 from vagabond.constants import *
-from flask import request, redirect, abort, url_for, render_template, jsonify
+from flask import request, redirect, abort, url_for, jsonify
 import logging
 
 log = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def serve_post_by_id(post_num, content_hint):
         # get if the post is locked or not
         is_post_locked = get_is_post_locked(post_num=post_num)
 
-        return render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
+        return custom_render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
 
     elif request.method == "POST":
         abort_if_not_signed_in()
@@ -134,5 +134,5 @@ def serve_forum():
         log.info("marked reply for deletion")
         return redirect(url_for("forum.serve_post_by_id", post_id=parent_post_id))
 
-    return render_template("forums.html", posts=posts, forum_category_id=category_id)
+    return custom_render_template("forums.html", posts=posts, forum_category_id=category_id)
 

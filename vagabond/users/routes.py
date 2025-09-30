@@ -2,7 +2,8 @@ from vagabond.users import users_bp
 from vagabond.services import dbmanager, limiter
 
 from vagabond.utility import deep_get, rows_to_dict
-from flask import render_template, url_for
+from flask import url_for
+from vagabond.flask_wrapper import custom_render_template
 import logging
 
 # the idea is that each user has their own profile
@@ -28,4 +29,4 @@ def serve_userpage(userid):
 
     log.debug(user_info)
 
-    return render_template("user_page.html", userinfo=user_info)
+    return custom_render_template("user_page.html", userinfo=user_info)

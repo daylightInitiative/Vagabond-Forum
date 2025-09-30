@@ -1,6 +1,6 @@
 
 import os, json, sys
-from vagabond.utility import DBManager
+from vagabond.dbmanager import DBManager
 from vagabond.config import Config
 from vagabond.queries import *
 

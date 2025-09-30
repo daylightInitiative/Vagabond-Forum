@@ -3,8 +3,11 @@ from vagabond.services import dbmanager, limiter
 from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session
 from vagabond.permissions import is_admin
 from vagabond.utility import rows_to_dict, deep_get
-from flask import abort, redirect, jsonify, request, render_template
+from flask import abort, redirect, jsonify, request
+from vagabond.flask_wrapper import custom_render_template
 import logging
+
+from vagabond.analytics.module import create_fingerprint
 
 log = logging.getLogger(__name__)
 
@@ -49,7 +52,7 @@ def acquiesce_exitpage():
         if can_view == False:
             abort(401)
 
-        return render_template("analytics.html")
+        return custom_render_template("analytics.html")
     elif request.method == "POST":
         # for right now before we get more "advanced" analytics
         # we're just going to track if the user is_online or not.
@@ -65,6 +68,21 @@ def acquiesce_exitpage():
             ON CONFLICT (pagePath)
             DO UPDATE SET hits = exitPages.hits + 1
         """, params=(exit_page_path,)) # in this case hits is ambigious so we reference the value explicitly when reading
+
+        # update the duration for a session end
+        user_fingerprint = create_fingerprint()
+        log.debug(user_fingerprint)
+        dbmanager.write(query_str="""
+            UPDATE impression_durations
+            SET impression_end = NOW()
+            WHERE id = (
+                SELECT id
+                FROM impression_durations
+                WHERE impression_hash = %s
+                AND impression_end IS NULL
+                ORDER BY impression_start DESC LIMIT 1
+            );
+        """, params=(user_fingerprint,)) # before updating get the latest start and limit it by 1 for performance
 
         #log.debug(get_session_id())
         # if a session is present, update is_online to false

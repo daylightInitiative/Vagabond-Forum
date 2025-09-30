@@ -11,7 +11,8 @@ from vagabond.sessions.module import (
 )
 from vagabond.forum import forum_bp
 from vagabond.constants import *
-from flask import request, redirect, abort, url_for, render_template, jsonify
+from flask import request, redirect, abort, url_for, jsonify
+from vagabond.flask_wrapper import custom_render_template
 import logging
 
 log = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ def submit_new_post():
         if not category_id:
             return jsonify({"error": "Invalid category id"}), 422
 
-        return render_template("create_post.html", post_category=category_id)
+        return custom_render_template("create_post.html", post_category=category_id)
 
     elif request.method == "POST":
 

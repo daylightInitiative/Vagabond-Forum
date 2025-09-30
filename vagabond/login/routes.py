@@ -7,7 +7,8 @@ from vagabond.utility import get_userid_from_email
 from vagabond.login import login_bp
 from vagabond.login.module import is_valid_login
 from vagabond.services import limiter, dbmanager
-from flask import request, render_template, make_response, redirect, url_for, jsonify
+from flask import request, make_response, redirect, url_for, jsonify
+from vagabond.flask_wrapper import custom_render_template
 import logging
 
 log = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ def serve_login():
     redirect_if_already_logged_in()
 
     if request.method == "GET":
-        return render_template("login.html")
+        return custom_render_template("login.html")
     elif request.method == "POST":
 
         email = request.form.get('email')
@@ -38,10 +39,10 @@ def serve_login():
             sid = create_session(userid=userid, request_obj=request)
 
             if not userid:
-                return render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
+                return custom_render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
 
             if not sid:
-                return render_template("login.html", errmsg="Internal server error: Unable to acquire session ID")
+                return custom_render_template("login.html", errmsg="Internal server error: Unable to acquire session ID")
 
             log.debug("Sending session to client")
             response = make_response(redirect(url_for("index")))
@@ -49,7 +50,7 @@ def serve_login():
 
             return response
         else:
-            return render_template("login.html", errormsg=errmsg)
+            return custom_render_template("login.html", errormsg=errmsg)
 
 @login_bp.route('/logout')
 def logout():

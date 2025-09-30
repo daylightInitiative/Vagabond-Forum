@@ -10,10 +10,12 @@ from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
 from vagabond.permissions import is_admin
 from vagabond.logFormat import setup_logger # we love colors
+from vagabond.analytics.module import create_fingerprint
 
-from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, abort, make_response
+from flask import Flask, jsonify, request, redirect, url_for, send_from_directory, abort, make_response
 from dotenv import load_dotenv
 from random import randint
+from vagabond.flask_wrapper import custom_render_template
 
 #blueprints
 from vagabond.sessions import session_bp
@@ -27,7 +29,7 @@ from vagabond.analytics import analytics_bp
 #services
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.services import init_extensions, dbmanager, app_config, moment, limiter
-
+from vagabond.flask_wrapper import custom_render_template
 
 load_dotenv()
 
@@ -63,13 +65,33 @@ def inject_jinja_variables():
         "is_superuser": is_admin(userid=user_id)
     }
 
+
+
 @app.before_request
 def log_request_info():
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
     log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
-    dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1;')
-    
+    dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1, visited_timestamp = NOW()')
+
+    site_referral = request.headers.get("Referer")
+    if site_referral:
+        log.debug("refered from %s", site_referral)
+
+        dbmanager.write(query_str="""
+            INSERT INTO referrer_links (link_origin, hits)
+            VALUES (%s, 1)
+            ON CONFLICT (link_origin)
+            DO UPDATE SET hits = referrer_links.hits + 1
+        """, params=(site_referral,))
+
+    # create the fingerprint hash
+    user_fingerprint = create_fingerprint()
+    log.debug(user_fingerprint)
+
+    # add the fingerprint to the database if it hasnt already
+    # record the fingerprint, the number of times they've visited and the first time they visited (first seen the in wild)
+
     sid = get_session_id()
     user_id = get_userid_from_session(sessionID=sid)
     if user_id:
@@ -81,12 +103,12 @@ def log_request_info():
 
 @app.errorhandler(404)
 def not_found_error(error):
-    return render_template('error_pages/404.html'), 404
+    return custom_render_template('error_pages/404.html'), 404
 
 @app.errorhandler(500)
 def internal_error(error):
     log.critical("Internal Server Error has occured: %s", error)
-    return render_template('error_pages/500.html'), 500
+    return custom_render_template('error_pages/500.html'), 500
 
 @app.route("/news.html")
 def news():
@@ -95,11 +117,11 @@ def news():
     raw_rows, column_names = dbmanager.read(query_str=QUERY_NEWS_POSTS, get_columns=True, fetch=True)
     news_feed = rows_to_dict(raw_rows, column_names)
 
-    return render_template("news.html", news_feed=news_feed or [])
+    return custom_render_template("news.html", news_feed=news_feed or [])
 
 @app.route("/reading_list.html")
 def reading_list():
-    return render_template("reading.html")
+    return custom_render_template("reading.html")
 
 @app.route("/")
 def index():
@@ -113,7 +135,7 @@ def index():
 
     log.debug(categories_list)
 
-    return render_template("index.html", number=random_number, num_hits=num_hits, forum_categories=categories_list or {})
+    return custom_render_template("index.html", number=random_number, num_hits=num_hits, forum_categories=categories_list or {})
 
 
 @app.route('/static/<path:filename>')

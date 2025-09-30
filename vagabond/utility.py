@@ -1,10 +1,7 @@
 import logging as log
 from pathlib import Path
 import re
-import traceback
-import inspect
 from vagabond.constants import MAX_URL_TITLE
-from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.services import dbmanager
 
 log = log.getLogger(__name__)
@@ -22,6 +19,7 @@ included_reload_files.append(main_config_file)
 for file in SQL_FOLDER.iterdir():
     if 'sql' in file.suffix:
         included_reload_files.append(file.absolute())
+
 
 
 """

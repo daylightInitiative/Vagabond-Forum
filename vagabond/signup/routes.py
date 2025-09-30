@@ -1,11 +1,12 @@
 from vagabond.signup import signup_bp
-from flask import request, render_template, jsonify, redirect, abort, make_response, url_for
+from flask import request, jsonify, redirect, abort, make_response, url_for
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
     create_session
 )
 from vagabond.signup.module import signup
 from vagabond.avatar import update_user_avatar, create_user_avatar
+from vagabond.flask_wrapper import custom_render_template
 import logging
 
 log = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ def signup_page():
     if request.method == "GET":
 
         # if the user is already signed in, redirect them away
-        return render_template("signup.html")
+        return custom_render_template("signup.html")
     elif request.method == "POST":
         
         email = request.form.get('email', type=str)
@@ -31,12 +32,12 @@ def signup_page():
         userid, errmsg = signup(email=email, username=username, password=password)
 
         if not userid:
-            return render_template("signup.html", errmsg=errmsg)
+            return custom_render_template("signup.html", errmsg=errmsg)
 
         sid = create_session(userid=userid, request_obj=request)
 
         if not sid:
-            return render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
+            return custom_render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
 
         # lets create the users randomly generated avatar (we dont have a cdn yet so... just in static)
         # this returns the md5 hash of the image
