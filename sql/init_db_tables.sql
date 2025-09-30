@@ -1,10 +1,14 @@
 
 CREATE TABLE IF NOT EXISTS webstats (
-    hits INT NOT NULL DEFAULT 0
+    hits INT NOT NULL DEFAULT 0,
+    visted_timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 INSERT INTO webstats (hits) VALUES (0);
 
-
+CREATE TABLE IF NOT EXISTS exitPages (
+    pagePath VARCHAR(255) PRIMARY KEY, -- you can use other types as primary keys in tables
+    hits BIGINT NOT NULL DEFAULT 0
+);
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,

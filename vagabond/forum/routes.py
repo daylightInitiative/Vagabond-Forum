@@ -9,7 +9,8 @@ from vagabond.sessions.module import (
     is_user_logged_in,
     get_tdid
 )
-from vagabond.forum.module import get_is_post_locked, is_admin
+from vagabond.forum.module import get_is_post_locked
+from vagabond.permissions import is_admin
 from vagabond.forum import forum_bp
 from vagabond.constants import *
 from flask import request, redirect, abort, url_for, render_template, jsonify

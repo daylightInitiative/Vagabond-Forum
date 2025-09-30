@@ -8,7 +8,7 @@ from vagabond.sessions.module import (
 )
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
-from vagabond.forum.module import is_admin
+from vagabond.permissions import is_admin
 from vagabond.logFormat import setup_logger # we love colors
 
 from flask import Flask, jsonify, request, render_template, redirect, url_for, send_from_directory, abort, make_response
@@ -60,7 +60,7 @@ def inject_jinja_variables():
     user_id = get_userid_from_session(sessionID=sid)
     return {
         "is_authenticated": is_user_logged_in(),
-        "is_superuser": is_admin(user_id)
+        "is_superuser": is_admin(userid=user_id)
     }
 
 @app.before_request
