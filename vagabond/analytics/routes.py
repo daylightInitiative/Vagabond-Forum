@@ -8,6 +8,32 @@ import logging
 
 log = logging.getLogger(__name__)
 
+@analytics_bp.route('/get_analytics_data', methods=['GET'])
+def send_analytics_data():
+    if request.method == "GET":
+        abort_if_not_signed_in()
+
+        # admin check
+        sid = get_session_id()
+        userid = get_userid_from_session(sessionID=sid)
+        can_view = is_admin(userid)
+        if can_view == False:
+            abort(401)
+
+        data_rows, data_cols = dbmanager.read(query_str="""
+            SELECT pagePath, hits
+            FROM exitPages
+            WHERE TRUE
+        """, get_columns=True)
+
+        data_dict = rows_to_dict(data_rows, data_cols)
+
+        log.debug(data_dict)
+
+        return jsonify(data_dict), 200
+    elif request.method == "POST":
+        return '', 401
+
 # since we're google.... we need to use funny terminology lol
 @analytics_bp.route('/analytics', methods=['GET', 'POST'])
 def acquiesce_exitpage():
@@ -23,17 +49,7 @@ def acquiesce_exitpage():
         if can_view == False:
             abort(401)
 
-        # get analytics info
-        data_rows, data_cols = dbmanager.read(query_str="""
-            SELECT *
-            FROM exitPages
-            WHERE TRUE
-        """, get_columns=True)
-
-        data_dict = rows_to_dict(data_rows, data_cols)
-
-        log.debug(data_dict)
-        return render_template("analytics.html", analytics=data_dict)
+        return render_template("analytics.html")
     elif request.method == "POST":
         # for right now before we get more "advanced" analytics
         # we're just going to track if the user is_online or not.

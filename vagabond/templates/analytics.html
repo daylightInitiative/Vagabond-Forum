@@ -8,15 +8,15 @@
         var xValues = ["Italy", "France", "Spain", "USA", "Argentina"];
         var yValues = [55, 49, 44, 24, 15];
 
-        async function get_saved_draft() {
+        async function get_analytics_data() {
             try {
 
-                const response = await fetch("/analytics");
+                const response = await fetch("/get_analytics_data");
                 if(!response.ok) {
                     throw new Error(`Reponse status: ${response.status}`);
                 }
                 const data = await response.json();
-                return data.contents;
+                return data;
                 
             } catch (error) {
                 console.log(error);
@@ -25,31 +25,45 @@
             return null;
         }
 
-        const data = get_saved_draft();
-        console.log(data);
-        var xValues = ["Italy", "France", "Spain", "USA", "Argentina"];
-        var yValues = [55, 49, 44, 24, 15];
-        // get the "contents" from the returned json
-        var barColors = ["red", "green","blue","orange","brown"];
+        async function display_analytics() {
+            const draftData = await get_analytics_data();
+            console.log(draftData);
+            if (draftData) {
+                var xValues = [];
+                var yValues = [];
 
-        new Chart("myChart", {
-        type: "bar",
-        data: {
-            labels: xValues,
-            datasets: [{
-            backgroundColor: barColors,
-            data: yValues
-            }]
-        },
-        options: {
-            legend: {display: false},
-            title: {
-            display: true,
-            text: "Exit page hits as per page"
+                draftData.forEach(function(key, value) {
+                    console.log(`Element at index ${key}: ${value}`);
+                    xValues.push(key.pagepath);
+                    yValues.push(key.hits);
+                });
+
+                // var xValues = ["Italy", "France", "Spain", "USA", "Argentina"];
+                // var yValues = [55, 49, 44, 24, 15];
+                // get the "contents" from the returned json
+                var barColors = ["red", "green","blue","orange","brown"];
+
+                new Chart("myChart", {
+                type: "bar",
+                data: {
+                    labels: xValues,
+                    datasets: [{
+                    backgroundColor: barColors,
+                    data: yValues
+                    }]
+                },
+                options: {
+                    legend: {display: false},
+                    title: {
+                    display: true,
+                    text: "Exit page hits as per page"
+                    }
+                }
+                });
             }
         }
-        });
-        
+
+        display_analytics();
     </script>
 
     <link rel="stylesheet" href="/static/css/page_style.css">
