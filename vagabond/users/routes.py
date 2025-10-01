@@ -27,6 +27,16 @@ def serve_userpage(userid):
     user_dict = rows_to_dict(user_rows, user_cols)
     user_info = deep_get(user_dict, 0)
 
+    post_rows, post_cols = dbmanager.read(query_str="""
+        SELECT id, category_id, title, views
+        FROM posts
+        WHERE author = %s
+        ORDER BY creation_date DESC
+        LIMIT 6 OFFSET 1
+    """, get_columns=True, params=(userid,))
+
+    get_user_posts = rows_to_dict(post_rows, post_cols)
+
     log.debug(user_info)
 
-    return custom_render_template("user_page.html", userinfo=user_info)
+    return custom_render_template("user_page.html", userinfo=user_info, posts=get_user_posts)

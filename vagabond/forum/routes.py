@@ -20,6 +20,17 @@ from vagabond.flask_wrapper import custom_render_template
 
 log = logging.getLogger(__name__)
 
+@forum_bp.route("/forums/<int:post_num>/", methods=["GET"])
+def redirect_to_post(post_num):
+    view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
+    get_post = rows_to_dict(view_single, column_names)
+    single_post = deep_get(get_post, 0)
+
+    log.debug(single_post)
+
+    saved_content_hint = single_post.get("url_title")
+    return redirect( url_for("forum.serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
+
 # view post route
 @forum_bp.route("/forums/<int:post_num>/<content_hint>", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET", "POST"])
@@ -36,7 +47,7 @@ def serve_post_by_id(post_num, content_hint):
 
         saved_content_hint = single_post.get("url_title")
 
-        if content_hint != saved_content_hint:
+        if not content_hint or content_hint != saved_content_hint:
             print("Theres no content hint, redirect")
             return redirect( url_for("forum.serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
 

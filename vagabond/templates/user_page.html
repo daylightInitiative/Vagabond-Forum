@@ -12,13 +12,40 @@
             <p>Last Online: {{ userinfo.lastseen }}</p>
             <p>Joined: {{ userinfo.join_date }}</p>
             <p>About Me: {{ userinfo.description or '' }}</p>
-
         </div>
-        <div style="display: flex; align-items: center; justify-content: center; text-align: center;" class="posts-view">
-            <h3>User Posts</h3>
-            
+        <div class="posts-container">
+            <div class="posts-bar">
+                <h3>Recent user posts</h3>
+            </div>
+            <div class="posts-view">
+                <div class="grid-container">
+                    {% for post in posts %}
+                        <div class="grid-item">
+                            <a href="/forums/{{ post.id }}/">{{ post.title }}</a>
+                            <span>views: {{ post.views }}</span>
+                        </div>
+                    {% endfor %}
+                    <!-- <div class="grid-item">
+                        <p>How to skin a fish</p>
+                    </div>
+                    <div class="grid-item">
+                        <p>How to make a boat out of scrap</p>
+                    </div>
+                    <div class="grid-item">
+                        <p>hello</p>
+                    </div>
+                    <div class="grid-item">
+                        <p>hello</p>
+                    </div>
+                    <div class="grid-item">
+                        <p>hello</p>
+                    </div>
+                    <div class="grid-item">
+                        <p>hello</p>
+                    </div> -->
+                </div>
+            </div>
         </div>
-    
     </div>
 
     <link rel="stylesheet" href="/static/css/new_style.css">

@@ -5,13 +5,43 @@
     justify-content: center;
 }
 
-.posts-view {
+.posts-container {
+    width: 650px;
+    height: 350px;
+    margin-left: 150px;
+}
+
+/* when you have one or more items that need to be grouped, put those two divs in another div */
+
+.posts-bar {
     text-align: center;
     background-color: #ffffff;
     border: 1px solid #ccc;
-    width: 50%;
-    height: 50px;
-    margin-left: 80px;
+}
+
+.posts-view {
+    flex: block;
+    background-color: white;
+    padding: 20px;
+    height: 100%;
+    min-height: 300px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 550px;
+    height: 300px;
+    margin: 0 auto;
+}
+
+.grid-item {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 20px;
+    height: 125px;
+    text-align: center;
 }
 
 .profile-view {

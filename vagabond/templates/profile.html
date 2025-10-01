@@ -4,7 +4,7 @@
 
     {% if userinfo %}
         <img style="width: 200px; height: 200px;" class="center-image" src="/static/avatars/{{ userinfo.avatar_hash or '/static/img/not_found.png' }}.jpg">
-        <p>Hello, <b>{{ userinfo.username }}</b>! You are user number: {{ userinfo.userid }}<br>Welcome! We appreciate your patronage since {{ userinfo.join_date }}</p>
+        <p>Hello, <a href="/users/{{ userinfo.userid }}/">{{ userinfo.username }}</a>! You are user number: {{ userinfo.userid }}<br>Welcome! We appreciate your patronage since {{ userinfo.join_date }}</p>
         {% if is_superuser %}
             <p>As an <b>admin</b>! be sure to use your power to make everyone happy! <b>or else..</b></p>
         {% endif %}
