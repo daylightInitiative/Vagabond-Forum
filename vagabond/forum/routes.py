@@ -16,6 +16,8 @@ from vagabond.constants import *
 from flask import request, redirect, abort, url_for, jsonify
 import logging
 
+from vagabond.flask_wrapper import custom_render_template
+
 log = logging.getLogger(__name__)
 
 # view post route

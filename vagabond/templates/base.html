@@ -16,6 +16,9 @@
                 <a href="/reading_list.html">Reading List</a>
                 <!--<a href="/">Profile</a>-->
                 {% if is_authenticated == True %}
+                    {% if is_superuser == True %}
+                        <a href="/analytics">Analytics</a>
+                    {% endif %}
                     <a href="/profile">Profile</a>
                     <a href="/logout">Log out</a>
                 {% else %}

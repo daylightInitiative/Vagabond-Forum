@@ -4,7 +4,9 @@ from vagabond.dbmanager import DBManager
 from vagabond.config import Config
 from vagabond.queries import *
 from dotenv import load_dotenv
-
+from vagabond.utility import deep_get
+from generate_hash import create_hash
+from vagabond.avatar import create_user_avatar, update_user_avatar
 load_dotenv()
 
 # populates the empty database with the needed tables if not exists
@@ -31,20 +33,31 @@ if __name__ == '__main__':
     print("Wrote all needed tables")
 
     admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
+    admin_hash, admin_salt = create_hash(os.getenv("ADMIN_PASSWORD"), os.getenv("ADMIN_SALT"))
+    # putting hashes in the .env file is stupid and takes time
 
-    admin_salt = os.getenv("ADMIN_SALT")
-    john_salt = os.getenv("JOHN_SALT")
+    john_email = os.getenv("JOHN_EMAIL")
+    john_hash, john_salt = create_hash(os.getenv("JOHN_PASSWORD"), os.getenv("JOHN_SALT")) 
 
     # email, username, account_locked, loginAttempts, is_online, hashed_password, is_superuser
-    dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
-        admin_email, "admin", False, False, admin_password, admin_salt, True,))
+    get_userid = dbmanager.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
+        admin_email, "admin", False, False, admin_hash, admin_salt, True,))
     
-    john_password = os.getenv("JOHN_PASSWORD")
+    admin_userid = int(deep_get(get_userid, 0, 0))
+    # create admins avatar
+    admin_avatar = create_user_avatar(userid=admin_userid)
+    update_user_avatar(userID=admin_userid, avatar_hash=admin_avatar)
+
+    
     # lets create a test user to test out banning/account locking
-    dbmanager.write(query_str=INIT_SITE_ACCOUNTS, params=(
-        "john@example.com", "johnd", True, False, john_password, john_salt, False,))
+    get_userid = dbmanager.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
+        john_email, "johnd", True, False, john_hash, john_salt, False,))
     print("Setup all pre registered accounts")
+
+    john_userid = int(deep_get(get_userid, 0, 0))
+    # create admins avatar
+    john_avatar = create_user_avatar(userid=john_userid)
+    update_user_avatar(userID=john_userid, avatar_hash=john_avatar)
 
     # create some starter categories
     dbmanager.write(query_str="""
