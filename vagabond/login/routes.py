@@ -9,6 +9,8 @@ from vagabond.login.module import is_valid_login
 from vagabond.services import limiter, dbmanager
 from flask import request, make_response, redirect, url_for, jsonify
 from vagabond.flask_wrapper import custom_render_template
+
+from vagabond.analytics.module import associate_fingerprint_to_session, create_fingerprint
 import logging
 
 log = logging.getLogger(__name__)
@@ -47,6 +49,12 @@ def serve_login():
             log.debug("Sending session to client")
             response = make_response(redirect(url_for("index")))
             response.set_cookie(key="sessionID", value=sid, max_age=7200)
+
+            # now that we have set the session id, lets associate this fingerprint with the sid
+            # mainly for internal security, but we also use this for analytics
+
+            user_fingerprint = create_fingerprint()
+            associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
 
             return response
         else:

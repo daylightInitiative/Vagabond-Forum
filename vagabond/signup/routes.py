@@ -7,6 +7,9 @@ from vagabond.sessions.module import (
 from vagabond.signup.module import signup
 from vagabond.avatar import update_user_avatar, create_user_avatar
 from vagabond.flask_wrapper import custom_render_template
+
+
+from vagabond.analytics.module import associate_fingerprint_to_session, create_fingerprint
 import logging
 
 log = logging.getLogger(__name__)
@@ -49,5 +52,8 @@ def signup_page():
         log.debug("Sending session to client from signup")
         response = make_response(redirect(url_for("index")))
         response.set_cookie(key="sessionID", value=sid)
+
+        user_fingerprint = create_fingerprint()
+        associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
         
         return response

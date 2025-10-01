@@ -44,7 +44,6 @@ CREATE TABLE IF NOT EXISTS users (
     password_salt VARCHAR(30) NOT NULL, -- bcrypt salt length default rounds
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
     avatar_hash VARCHAR(32), -- the md5 hash of the avatar filename (we would get from the cdn but we dont have one)
-    fingerprint_id VARCHAR(64), -- the sha-256 hash of the fingerprint
     lastSeen TIMESTAMPTZ DEFAULT NOW(),
     join_date TIMESTAMPTZ DEFAULT NOW()
 );
@@ -70,6 +69,7 @@ CREATE TABLE IF NOT EXISTS sessions_table (
     user_id INT NOT NULL,
     display_user_agent VARCHAR(255) NOT NULL DEFAULT 'Unknown, Unknown',
     raw_user_agent VARCHAR(2048) NOT NULL DEFAULT 'Unknown', -- increasing the raw ua size so we get all of it
+    fingerprint_id VARCHAR(64), -- the sha-256 hash of the fingerprint
     temp_data_sid INT NOT NULL,
     lastLogin TIMESTAMPTZ DEFAULT NOW(),
     active BOOLEAN NOT NULL DEFAULT TRUE,

@@ -1,8 +1,19 @@
 
+from vagabond.services import dbmanager
 from flask import request
 import hashlib
+import logging
 
+log = logging.getLogger(__name__)
 
+# mainly for security and analytics
+def associate_fingerprint_to_session(fingerprint: str, sessionID: str) -> None:
+    log.warning("associating fingerprint to session id")
+    dbmanager.write(query_str="""
+        UPDATE sessions_table
+        SET fingerprint_id = %s
+        WHERE sid = %s
+    """, params=(fingerprint, sessionID,))
 
 def create_fingerprint() -> str:
     user_agent = request.headers.get("User-Agent")

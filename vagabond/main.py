@@ -94,6 +94,7 @@ def log_request_info():
 
     sid = get_session_id()
     user_id = get_userid_from_session(sessionID=sid)
+
     if user_id:
         dbmanager.write(query_str="""
             UPDATE users

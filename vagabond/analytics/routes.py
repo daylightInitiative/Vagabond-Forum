@@ -29,8 +29,34 @@ def send_analytics_data():
             WHERE TRUE
         """, get_columns=True)
 
-        data_dict = rows_to_dict(data_rows, data_cols)
+        exit_pages_dict_array = rows_to_dict(data_rows, data_cols)
 
+        # GET COUNT OF ALL USERS THAT ARE UNREGISTERED
+        # GET COUNT OF ALL USERS THAT ARE REGISTERED
+        # instead of finding it positively we handle it negatively by selecting 1
+        reg_rows, reg_cols = dbmanager.read(query_str="""
+            SELECT
+                (SELECT COUNT(*) FROM users) AS num_registered,
+                (
+                    SELECT COUNT(*) as num_unregistered
+                    FROM impressions imp
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM sessions_table st
+                        WHERE st.fingerprint_id = imp.impression_hash
+                    )
+                )
+        """, get_columns=True)
+        # get unregistered users by saying IF FINGERPRINT ISNT IN SESSION IDS THEN (not a user)
+
+        registry_data = rows_to_dict(reg_rows, reg_cols)[0]
+        log.debug(registry_data)
+
+        # need to combine registry data with the dict inside exit_pages_dict_array
+        data_dict = {
+            "exit_pages": exit_pages_dict_array,
+            "registry_data": registry_data
+        }
         log.debug(data_dict)
 
         return jsonify(data_dict), 200

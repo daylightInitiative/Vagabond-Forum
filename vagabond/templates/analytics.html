@@ -3,15 +3,14 @@
 {% block content %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 
-    <canvas id="myChart" style="width:100%;max-width:700px"></canvas>
+    <canvas id="usersChart" style="width:100%;max-width:700px;padding-left: 50%px;"></canvas>
+    <canvas id="exitPageChart" style="width:100%;max-width:700px"></canvas>
     <script>
-        var xValues = ["Italy", "France", "Spain", "USA", "Argentina"];
-        var yValues = [55, 49, 44, 24, 15];
 
-        async function get_analytics_data() {
+        async function get_data(endpoint) {
             try {
 
-                const response = await fetch("/get_analytics_data");
+                const response = await fetch(endpoint);
                 if(!response.ok) {
                     throw new Error(`Reponse status: ${response.status}`);
                 }
@@ -25,25 +24,25 @@
             return null;
         }
 
+        
+
         async function display_analytics() {
-            const draftData = await get_analytics_data();
+            const draftData = await get_data("/get_analytics_data");
             console.log(draftData);
             if (draftData) {
                 var xValues = [];
                 var yValues = [];
 
-                draftData.forEach(function(key, value) {
+                draftData.exit_pages.forEach(function(key, value) {
                     console.log(`Element at index ${key}: ${value}`);
                     xValues.push(key.pagepath);
                     yValues.push(key.hits);
                 });
 
-                // var xValues = ["Italy", "France", "Spain", "USA", "Argentina"];
-                // var yValues = [55, 49, 44, 24, 15];
                 // get the "contents" from the returned json
-                var barColors = ["red", "green","blue","orange","brown"];
+                var barColors = ["red", "green","blue","orange","brown", "yellow", "black"];
 
-                new Chart("myChart", {
+                new Chart("exitPageChart", {
                 type: "bar",
                 data: {
                     labels: xValues,
@@ -57,6 +56,28 @@
                     title: {
                     display: true,
                     text: "Exit page hits as per page"
+                    }
+                }
+                });
+
+                var yValues = [];
+                yValues.push(draftData.registry_data.num_unregistered, draftData.registry_data.num_registered);
+
+                console.log(draftData.registry_data.num_unregistered, draftData.registry_data.num_registered);
+                
+                new Chart("usersChart", {
+                type: "pie",
+                data: {
+                    labels: ["Unregistered users", "Registered users"],
+                    datasets: [{
+                    backgroundColor: barColors,
+                    data: yValues
+                    }]
+                },
+                options: {
+                    title: {
+                    display: true,
+                    text: "World Wide Wine Production"
                     }
                 }
                 });
