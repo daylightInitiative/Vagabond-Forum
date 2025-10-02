@@ -7,12 +7,14 @@ FROM categories AS cn
 LEFT JOIN (
     SELECT category_id, MAX(creation_date) as newest_post_date, COUNT(*) AS post_count
     FROM posts
+    WHERE posts.deleted_at is NULL
     GROUP BY category_id
 ) AS pc ON cn.id = pc.category_id
 LEFT JOIN (
     SELECT posts.category_id, COUNT(replies.id) AS reply_count
     FROM replies
     JOIN posts ON replies.parent_post_id = posts.id
+    WHERE replies.deleted_at is NULL
     GROUP BY posts.category_id
 ) AS rc ON cn.id = rc.category_id
 ORDER BY cn.name ASC;

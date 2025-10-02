@@ -27,7 +27,11 @@
                         <td><a href="/forums/{{ post.id }}/{{ post.url_title }}">{{ post.title }}</a> by <i>{{ post.author_username }}</i></td>
                         <td>{{ post.reply_count }}</td>
                         <td>{{ post.views }}</td>
-                        <td>{{ post.newest_post_date or "Never" }}</td>
+                        {% if post.newest_post_date %}
+                            <td>{{ moment(post.newest_post_date, local=True).fromNow() }}</td>
+                        {% else %}
+                            <td>Never</td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </table>

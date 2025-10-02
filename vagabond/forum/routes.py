@@ -9,7 +9,7 @@ from vagabond.sessions.module import (
     is_user_logged_in,
     get_tdid
 )
-from vagabond.forum.module import get_is_post_locked
+from vagabond.forum.module import get_is_post_locked, is_user_post_owner, is_user_reply_owner
 from vagabond.permissions import is_admin
 from vagabond.forum import forum_bp
 from vagabond.constants import *
@@ -20,18 +20,8 @@ from vagabond.flask_wrapper import custom_render_template
 
 log = logging.getLogger(__name__)
 
-@forum_bp.route("/forums/<int:post_num>/", methods=["GET"])
-def redirect_to_post(post_num):
-    view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
-    get_post = rows_to_dict(view_single, column_names)
-    single_post = deep_get(get_post, 0)
-
-    log.debug(single_post)
-
-    saved_content_hint = single_post.get("url_title")
-    return redirect( url_for("forum.serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
-
 # view post route
+@forum_bp.route("/forums/<int:post_num>/", defaults={'content_hint': None}, methods=["GET"])
 @forum_bp.route("/forums/<int:post_num>/<content_hint>", methods=["GET", "POST"])
 @limiter.limit("125 per minute", methods=["GET", "POST"])
 def serve_post_by_id(post_num, content_hint):
@@ -40,7 +30,9 @@ def serve_post_by_id(post_num, content_hint):
 
         # get the content hint, if the content hint doesnt match, redirect early.
         view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
+        log.debug("%s, %s", view_single, column_names)
         get_post = rows_to_dict(view_single, column_names)
+        log.debug(get_post)
         single_post = deep_get(get_post, 0)
 
         log.debug(single_post)
@@ -63,13 +55,67 @@ def serve_post_by_id(post_num, content_hint):
         # get if the post is locked or not
         is_post_locked = get_is_post_locked(post_num=post_num)
 
-        return custom_render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked)
+        sid = get_session_id()
+        user_id = get_userid_from_session(sessionID=sid)
+
+        is_post_owner = is_user_post_owner(userid=user_id, postid=post_num)
+        is_reply_owner = is_user_reply_owner(userid=user_id, postid=post_num)
+        log.debug(is_post_owner)
+        return custom_render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked, is_post_owner=is_post_owner, is_reply_owner=is_reply_owner)
+
+    elif request.method == "POST" and request.form.get("_post_type") and request.form.get("_method") == "DELETE":
+        # hacky way of deleting with just html forms, i'll bloat it up with proper javascript later
+        abort_if_not_signed_in()
+        
+        post_id = request.form.get('post_id')
+        post_type = request.form.get('_post_type')
+
+        if not post_id or not post_type:
+            return jsonify({"error": "Invalid form data"}), 400
+        
+        # decide if the user is the post owner by the session
+        sid = get_session_id()
+        user_id = get_userid_from_session(sessionID=sid)
+
+        if post_type == "post":
+
+            is_owner = is_user_post_owner(userid=user_id, postid=post_id)
+
+            if not is_owner:
+                return abort(401)
+            
+            # set the post as soft deleted
+            set_deleted = dbmanager.write(query_str="""
+                UPDATE posts
+                SET deleted_at = NOW()
+                WHERE author = %s
+            """, params=(user_id,))
+
+            log.debug("Post has been soft marked for deletion")
+        elif post_type == "reply":
+            abort_if_not_signed_in()
+
+            if not post_id:
+                return jsonify({"error": "Invalid post ID"}), 422
+            
+            get_parent_post_id = dbmanager.write(query_str="""
+                UPDATE replies
+                SET deleted_at = NOW()
+                WHERE id = %s
+                RETURNING parent_post_id
+            """, fetch=True, params=(post_id))
+            parent_post_id = deep_get(get_parent_post_id, 0, 0)
+
+            log.info("Reply has been soft marked for deletion")
+
+        return redirect(url_for("forum.serve_post_by_id", post_num=post_id, content_hint=content_hint))
 
     elif request.method == "POST":
         abort_if_not_signed_in()
 
         is_post_locked = get_is_post_locked(post_num)
         if is_post_locked:
+            log.debug("is locked")
             return abort(401)
 
         # for replies we get the data, and save it nothing more
@@ -123,29 +169,6 @@ def serve_forum():
         posts = rows_to_dict(post_rows, column_names)
 
         log.debug(posts)
-
-
-    elif request.method == "POST" and request.form.get("_method") == "DELETE":
-        reply_id = request.form.get('post_id')
-        abort_if_not_signed_in()
-
-        user_id = get_userid_from_session(sessionID=get_session_id())
-        if not is_admin(user_id):
-            return jsonify({"error": "Unauthorized"}), 401
-
-        if not reply_id:
-            return jsonify({"error": "Invalid post ID"}), 422
-        
-        get_parent_post_id = dbmanager.write(query_str="""
-            UPDATE replies
-            SET deleted_at = NOW()
-            WHERE id = %s
-            RETURNING parent_post_id
-        """, fetch=True, params=(reply_id))
-        parent_post_id = deep_get(get_parent_post_id, 0, 0)
-
-        log.info("marked reply for deletion")
-        return redirect(url_for("forum.serve_post_by_id", post_id=parent_post_id))
 
     return custom_render_template("forums.html", posts=posts, forum_category_id=category_id)
 

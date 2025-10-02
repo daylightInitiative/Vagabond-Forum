@@ -31,7 +31,11 @@
                         <td><a href="/forums?page=1&category={{ cat.id }}">{{ cat.name }}</a></td>
                         <td>{{ cat.post_count }}</td>
                         <td>{{ cat.reply_count }}</td>
-                        <td>{{ cat.newest_post_date }}</td>
+                        {% if cat.newest_post_date %}
+                            <td>{{ moment(cat.newest_post_date, local=True).fromNow() }}</td>
+                        {% else %}
+                            <td>Never</td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </table>

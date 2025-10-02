@@ -9,6 +9,7 @@ from vagabond.sessions.module import (
     is_user_logged_in,
     get_tdid
 )
+from vagabond.forum.module import is_user_post_owner
 from vagabond.forum import forum_bp
 from vagabond.constants import *
 from flask import request, redirect, abort, url_for, jsonify

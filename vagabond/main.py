@@ -62,6 +62,7 @@ def inject_jinja_variables():
     user_id = get_userid_from_session(sessionID=sid)
     return {
         "is_authenticated": is_user_logged_in(),
+        "current_userid": user_id,
         "is_superuser": is_admin(userid=user_id)
     }
 

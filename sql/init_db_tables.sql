@@ -84,7 +84,8 @@ CREATE TABLE IF NOT EXISTS news_feed (
     pinned BOOLEAN NOT NULL DEFAULT FALSE,
     contents VARCHAR(2000) NOT NULL,
     author BIGINT NOT NULL REFERENCES users (id),
-    creation_date TIMESTAMPTZ DEFAULT NOW()
+    creation_date TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ -- soft deletion
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -103,6 +104,7 @@ CREATE TABLE IF NOT EXISTS posts (
     url_title VARCHAR(40) NOT NULL DEFAULT '',
     post_locked BOOLEAN NOT NULL DEFAULT FALSE,
     creation_date TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ DEFAULT NULL, -- soft deletion
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
@@ -111,7 +113,7 @@ CREATE TABLE IF NOT EXISTS replies (
     parent_post_id INTEGER NOT NULL,
     contents VARCHAR(500) NOT NULL,
     author BIGINT NOT NULL REFERENCES users (id),
-    deleted_at TIMESTAMPTZ, -- soft deletion
+    deleted_at TIMESTAMPTZ DEFAULT NULL, -- soft deletion
     creation_date TIMESTAMPTZ DEFAULT NOW(),
     FOREIGN KEY (parent_post_id) REFERENCES posts(id) ON DELETE CASCADE
 );

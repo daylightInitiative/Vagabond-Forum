@@ -6,18 +6,19 @@ SELECT
 FROM (
     SELECT *
     FROM posts
-    WHERE posts.category_id = %s
+    WHERE posts.category_id = %s AND posts.deleted_at is NULL
     ORDER BY creation_date DESC
     LIMIT %s OFFSET %s
 ) AS p
 LEFT JOIN (
     SELECT parent_post_id, COUNT(*) AS reply_count
     FROM replies
+    WHERE replies.deleted_at is NULL
     GROUP BY parent_post_id
 ) AS rc ON p.id = rc.parent_post_id
 LEFT JOIN (
     SELECT MAX(creation_date) AS newest_post_date
     FROM posts
-    WHERE posts.category_id = %s
+    WHERE posts.category_id = %s and posts.deleted_at is NULL
 ) AS gd ON TRUE -- nothing to join on so we just put TRUE
 LEFT JOIN users u ON u.id = p.author;
