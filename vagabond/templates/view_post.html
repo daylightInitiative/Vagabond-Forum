@@ -46,7 +46,7 @@
                         <!-- display the delete button (a form hack is to have the post_id hidden here) -->
                         <!-- the route is protected -->
                         <form class="delete-post-button" action="{{ request.url }}?reply" method="POST">
-                            <input type="hidden" name="post_id" value="{{ post.id }}">
+                            <input type="hidden" name="reply_id" value="{{ post.id }}">
                             <input type="hidden" name="_method" value="DELETE">
                             <input type="hidden" name="_post_type" value="reply">
                             <button type="submit">Delete Post Reply</button>

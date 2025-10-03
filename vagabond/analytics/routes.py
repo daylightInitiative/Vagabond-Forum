@@ -1,7 +1,7 @@
 from vagabond.analytics import analytics_bp
 from vagabond.services import dbmanager, limiter
 from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session
-from vagabond.permissions import is_admin
+from vagabond.moderation import is_admin
 from vagabond.utility import rows_to_dict, deep_get
 from flask import abort, redirect, jsonify, request
 from vagabond.flask_wrapper import custom_render_template

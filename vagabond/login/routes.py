@@ -6,6 +6,7 @@ from vagabond.sessions.module import (
 from vagabond.utility import get_userid_from_email
 from vagabond.login import login_bp
 from vagabond.login.module import is_valid_login
+from vagabond.moderation import is_admin
 from vagabond.services import limiter, dbmanager
 from flask import request, make_response, redirect, url_for, jsonify
 from vagabond.flask_wrapper import custom_render_template

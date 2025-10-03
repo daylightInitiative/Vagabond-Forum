@@ -49,6 +49,10 @@ CREATE TABLE IF NOT EXISTS users (
 );
 -- using TIMESTAMPZ to account for different timezones
 
+-- this table is to keep track of admin's actions such as banning, shadowbanning and etc
+
+
+
 CREATE TABLE IF NOT EXISTS profiles (
     id SERIAL PRIMARY KEY,
     profile_id INT NOT NULL,
@@ -118,3 +122,20 @@ CREATE TABLE IF NOT EXISTS replies (
     FOREIGN KEY (parent_post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
+-- this table is to keep track of deletion of posts by moderators
+CREATE TABLE IF NOT EXISTS moderation_actions (
+    id SERIAL PRIMARY KEY,
+    action VARCHAR(255) NOT NULL,
+    target_user_id INTEGER NOT NULL,
+    target_post_id INTEGER,
+    performed_by INTEGER NOT NULL,
+    reason VARCHAR(2048) DEFAULT 'No reason specified.',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP,
+    reverted_by INTEGER,
+    reverted_at TIMESTAMP,
+
+    FOREIGN KEY (performed_by) REFERENCES users(id),
+    FOREIGN KEY (target_user_id) REFERENCES users(id),
+    FOREIGN KEY (target_post_id) REFERENCES posts(id)
+);

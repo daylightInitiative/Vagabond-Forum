@@ -8,7 +8,7 @@ from vagabond.sessions.module import (
 )
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
-from vagabond.permissions import is_admin
+from vagabond.moderation import is_admin
 from vagabond.logFormat import setup_logger # we love colors
 from vagabond.analytics.module import create_fingerprint
 

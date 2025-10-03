@@ -7,8 +7,9 @@
 - [x] added session and non session fingerprinting
 - [x] added tracking Referrer header and exit page per route
 - [x] Add randomly generated user profiles like github has
+- [x] (The accountability update) log admin's logins, moderation actions
 - [x] Add thread categories above forums
-- [ ] add user/creator/admin permissions (modify, delete, create new post in certain thread)
+- [x] add user/creator/admin permissions (modify, delete, create new post in certain thread)
 - [x] Decide on a scheme for forum structure categories, posts, etc
 - [ ] Add shadow banning (request from my shadow-ey superiors)
 - [ ] Add top level admin panel to set visibility of threads, manage users moderation actions
