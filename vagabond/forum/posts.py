@@ -9,6 +9,8 @@ from vagabond.sessions.module import (
     is_user_logged_in,
     get_tdid
 )
+from vagabond.forum.module import get_is_category_locked
+from vagabond.moderation import is_admin
 from vagabond.forum import forum_bp
 from vagabond.constants import *
 from flask import request, redirect, abort, url_for, jsonify
@@ -81,14 +83,27 @@ def submit_new_post():
 
     abort_if_not_signed_in()
 
+    sessionID = get_session_id()
+    author = get_userid_from_session(sessionID=sessionID)
+
     if request.method == "GET":
         category_id = request.args.get('category')
         if not category_id:
             return jsonify({"error": "Invalid category id"}), 422
+        
+        category_locked = get_is_category_locked(categoryID=category_id)
+
+        if category_locked and not is_admin(userid=author):
+            abort(401)
 
         return custom_render_template("create_post.html", post_category=category_id)
 
     elif request.method == "POST":
+
+        category_locked = get_is_category_locked(categoryID=category_id)
+
+        if category_locked and not is_admin(userid=author):
+            abort(401)
 
         title = request.form.get('title', type=str)
         description = request.form.get('description', type=str)
@@ -99,9 +114,6 @@ def submit_new_post():
         category_id = request.args.get('category')
         if not category_id:
             return jsonify({"error": "Invalid category id"}), 422
-
-        sessionID = get_session_id()
-        author = get_userid_from_session(sessionID=sessionID)
 
         # now, instead of having to create this every time, lets save it to the db (auto truncates)
         url_safe_title = title_to_content_hint(title)

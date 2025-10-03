@@ -9,7 +9,7 @@ from vagabond.sessions.module import (
     is_user_logged_in,
     get_tdid
 )
-from vagabond.forum.module import get_is_post_locked, is_user_content_owner
+from vagabond.forum.module import get_is_post_locked, is_user_content_owner, get_is_category_locked
 from vagabond.moderation import is_admin, soft_delete_user_post
 from vagabond.forum import forum_bp
 from vagabond.constants import *
@@ -166,6 +166,7 @@ def serve_forum():
         posts = rows_to_dict(post_rows, column_names)
 
         log.debug(posts)
+        category_locked = get_is_category_locked(categoryID=category_id)
 
-    return custom_render_template("forums.html", posts=posts, forum_category_id=category_id)
+        return custom_render_template("forums.html", posts=posts, forum_category_id=category_id, forum_category_locked=category_locked)
 

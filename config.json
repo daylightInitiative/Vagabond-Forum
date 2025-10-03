@@ -6,12 +6,5 @@
         "database": "forum",
         "user": "admin",
         "port": "5432"
-    },
-
-    "categories": {
-        
-        "Announcements": true,
-        "Bushcraft Tips": false,
-        "Help & Support": false
     }
 }

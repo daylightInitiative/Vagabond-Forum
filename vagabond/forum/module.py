@@ -4,6 +4,14 @@ import logging
 
 log = logging.getLogger(__name__)
 
+def get_is_category_locked(categoryID):
+    get_locked = dbmanager.read(query_str="""
+        SELECT category_locked
+        FROM categories
+        WHERE id = %s
+    """, params=(categoryID,))
+    return deep_get(get_locked, 0, 0) or False
+
 def get_is_post_locked(post_num):
     get_locked = dbmanager.read(query_str="""
         SELECT post_locked

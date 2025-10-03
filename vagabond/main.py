@@ -25,6 +25,7 @@ from vagabond.signup import signup_bp
 from vagabond.profile import profile_bp
 from vagabond.users import users_bp
 from vagabond.analytics import analytics_bp
+from vagabond.admin import admin_bp
 
 #services
 from vagabond.dbmanager import DBManager, DBStatus
@@ -50,6 +51,7 @@ app.register_blueprint(signup_bp)
 app.register_blueprint(profile_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(analytics_bp)
+app.register_blueprint(admin_bp)
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -88,7 +90,6 @@ def log_request_info():
 
     # create the fingerprint hash
     user_fingerprint = create_fingerprint()
-    log.debug(user_fingerprint)
 
     # add the fingerprint to the database if it hasnt already
     # record the fingerprint, the number of times they've visited and the first time they visited (first seen the in wild)

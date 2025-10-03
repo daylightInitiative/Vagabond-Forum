@@ -61,19 +61,19 @@ if __name__ == '__main__':
 
     # create some starter categories
     dbmanager.write(query_str="""
-        INSERT INTO categories (name)
-            VALUES (%s)
-    """, params=("Announcements",))
+        INSERT INTO categories (name, category_locked)
+            VALUES (%s, %s)
+    """, params=("Announcements", True))
 
     dbmanager.write(query_str="""
-        INSERT INTO categories (name)
-            VALUES (%s)
-    """, params=("Bushcraft Tips",))
+        INSERT INTO categories (name, category_locked)
+            VALUES (%s, %s)
+    """, params=("Bushcraft Tips", False))
 
     dbmanager.write(query_str="""
-        INSERT INTO categories (name)
-            VALUES (%s)
-    """, params=("Help & Support",))
+        INSERT INTO categories (name, category_locked)
+            VALUES (%s, %s)
+    """, params=("Help & Support", False))
 
     # create some dummy posts
     dbmanager.write(query_str="""

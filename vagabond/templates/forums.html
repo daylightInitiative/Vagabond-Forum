@@ -8,7 +8,11 @@
     {% endif %}
     {% if is_authenticated %}
         <!-- once again this route is protected, dont even think about it. -->
-        <a href="/post?category={{ forum_category_id }}"><b>New Post</b></a>
+        {% if forum_category_locked == True %}
+            <p>This category is restricted to admins only.</p>
+        {% else %}
+            <a href="/post?category={{ forum_category_id }}"><b>New Post</b></a>
+        {% endif %}
     {% else %}
         <b>You must log in to make a new post.</b>
     {% endif %}
