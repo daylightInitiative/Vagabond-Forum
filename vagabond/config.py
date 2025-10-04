@@ -40,7 +40,8 @@ class Config():
                 "models_dir",
                 "file_log_level",
                 "console_log_level",
-                "db_config"
+                "db_config",
+                "flask_config"
             ]
             for field in fields:
                 if field in data:

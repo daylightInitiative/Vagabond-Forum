@@ -144,4 +144,8 @@ def serve_static(filename):
     return send_from_directory('static', filename)
 
 if __name__ == '__main__':
-    app.run(debug=True, extra_files=included_reload_files)
+    # host, port = host=app_config.flask_config.get("host"), port=app_config.flask_config.get("port")
+    host = app_config.flask_config.get("host")
+    lport = app_config.flask_config.get("post")
+    # app.run(host=host, port=port, debug=True, extra_files=included_reload_files)
+    app.run(debug=True, host=host, port=lport, extra_files=included_reload_files)

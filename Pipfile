@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 flask = "*"
 psycopg2-binary = "*"
-psycopg2 = "*"
 python-dotenv = "*"
 flask-limiter = "*"
 ua-parser = "*"
