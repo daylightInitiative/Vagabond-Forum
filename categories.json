@@ -1,0 +1,21 @@
+[
+    {
+        "category_name": "Announcements",
+        "admin_locked": true
+    },
+    {
+        "category_name": "Backpacking"
+    },
+    {
+        "category_name": "Hunting"
+    },
+    {
+        "category_name": "Camping & Survival"
+    },
+    {
+        "category_name": "Automotive & Vans"
+    },
+    {
+        "category_name": "Help & Support"
+    }
+]

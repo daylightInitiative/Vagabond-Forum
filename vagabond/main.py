@@ -13,7 +13,6 @@ from vagabond.logFormat import setup_logger # we love colors
 from vagabond.analytics.module import create_fingerprint
 
 from flask import Flask, jsonify, request, redirect, url_for, send_from_directory, abort, make_response
-from dotenv import load_dotenv
 from random import randint
 from vagabond.flask_wrapper import custom_render_template
 
@@ -31,8 +30,6 @@ from vagabond.admin import admin_bp
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.services import init_extensions, dbmanager, app_config, moment, limiter
 from vagabond.flask_wrapper import custom_render_template
-
-load_dotenv()
 
 app = Flask(__name__)
 

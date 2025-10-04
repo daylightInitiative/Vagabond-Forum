@@ -30,8 +30,8 @@ class Config():
         self.patch(data)
         self.patch_secrets()
         # change app configuration
-        if app:
-            app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
+        # if app:
+        #     app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
 
     def patch(self, data):
         if data is not None and type(data) is dict:
@@ -47,7 +47,11 @@ class Config():
                     setattr(self, field, data[field])
     
     def patch_secrets(self):
-        # (avoiding putting the password in plaintext json files)
+        # (avoiding putting the password and user in plaintext json files)
+        user = os.getenv("DB_USER")
+        if user:
+            self.db_config["user"] = user
+
         password = os.getenv("DB_PASSWORD")
         if password:
             self.db_config["password"] = password

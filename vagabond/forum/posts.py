@@ -85,9 +85,10 @@ def submit_new_post():
 
     sessionID = get_session_id()
     author = get_userid_from_session(sessionID=sessionID)
+    category_id = request.args.get('category')
 
     if request.method == "GET":
-        category_id = request.args.get('category')
+        
         if not category_id:
             return jsonify({"error": "Invalid category id"}), 422
         

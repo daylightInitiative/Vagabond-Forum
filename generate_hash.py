@@ -5,12 +5,11 @@ import bcrypt
 """
     returns a bcrypt hash given a password and salt
 """
-def create_hash(password: str, salt: str) -> tuple[str, str]:
-    hash = bcrypt.hashpw(password.encode('utf-8'), salt.encode('utf-8'))
+def create_hash(password: str) -> tuple[str, str]:
+    salt = bcrypt.gensalt()
+    hash = bcrypt.hashpw(password.encode('utf-8'), salt)
     hash_str = hash.decode('utf-8')
-    return hash_str, salt
-
-
+    return hash_str, salt.decode('utf-8')
 
 if __name__ == '__main__':
     try:

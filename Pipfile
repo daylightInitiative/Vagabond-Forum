@@ -13,6 +13,7 @@ ua-parser = "*"
 bcrypt = "*"
 flask-moment = "*"
 pillow = "*"
+flask-cors = "*"
 
 [dev-packages]
 

@@ -91,6 +91,7 @@ def serve_post_by_id(post_num, content_hint):
             soft_delete_user_post(post_type=post_type, post_id=post_num, user_id=user_id)
 
             log.debug("Post has been soft marked for deletion")
+            return redirect(url_for("forum.serve_post_by_id", post_num=post_num, content_hint=content_hint))
         elif post_type == "reply":
             reply_id = request.form.get('reply_id')
 
@@ -106,7 +107,7 @@ def serve_post_by_id(post_num, content_hint):
 
             log.info("Reply has been soft marked for deletion")
 
-        return redirect(url_for("forum.serve_post_by_id", post_num=reply_id, content_hint=content_hint))
+            return redirect(url_for("forum.serve_post_by_id", post_num=post_num, content_hint=content_hint))
 
     elif request.method == "POST":
         abort_if_not_signed_in()

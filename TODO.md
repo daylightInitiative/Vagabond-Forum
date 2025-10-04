@@ -4,6 +4,8 @@
 - [x] basic routes and cleanup sql requests
 - [ ] add sending emails externally
 - [ ] add muting foreign key to users table
+- [ ] add a ticket system for admins and moderators
+- [ ] add moderator as a less capability version of an admin
 - [x] added session and non session fingerprinting
 - [x] added tracking Referrer header and exit page per route
 - [x] Add randomly generated user profiles like github has

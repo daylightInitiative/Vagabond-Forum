@@ -3,6 +3,8 @@ from pathlib import Path
 import re
 from vagabond.constants import MAX_URL_TITLE
 from vagabond.services import dbmanager
+import secrets
+import string
 
 log = log.getLogger(__name__)
 
@@ -11,16 +13,21 @@ ROOT_FOLDER = APP_FOLDER.parent
 SQL_FOLDER = ROOT_FOLDER / "sql"
 
 included_reload_files = []
-main_config_file = ROOT_FOLDER / "config.json"
 
-included_reload_files.append(main_config_file)
+# restart stat on all json file changes
+for file in ROOT_FOLDER.iterdir():
+    if 'json' in file.suffix:
+        included_reload_files.append(file.absolute())
 
 # append the rest (our sql files)
 for file in SQL_FOLDER.iterdir():
     if 'sql' in file.suffix:
         included_reload_files.append(file.absolute())
 
+password_alphabet = string.ascii_letters + string.digits + '#*?'
 
+def generate_random_password(length: int) -> str:
+    return ''.join(secrets.choice(password_alphabet) for i in range(length))
 
 """
 Provides a display version of someones email used for codes and profile info

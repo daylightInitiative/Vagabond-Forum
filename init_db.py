@@ -4,7 +4,7 @@ from vagabond.dbmanager import DBManager
 from vagabond.config import Config
 from vagabond.queries import *
 from dotenv import load_dotenv
-from vagabond.utility import deep_get
+from vagabond.utility import deep_get, generate_random_password, ROOT_FOLDER
 from generate_hash import create_hash
 from vagabond.avatar import create_user_avatar, update_user_avatar
 load_dotenv()
@@ -32,48 +32,45 @@ if __name__ == '__main__':
     dbmanager.write(query_str=INIT_DB_TABLES)
     print("Wrote all needed tables")
 
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_hash, admin_salt = create_hash(os.getenv("ADMIN_PASSWORD"), os.getenv("ADMIN_SALT"))
-    # putting hashes in the .env file is stupid and takes time
+    users_config = ROOT_FOLDER / "users.json"
 
-    john_email = os.getenv("JOHN_EMAIL")
-    john_hash, john_salt = create_hash(os.getenv("JOHN_PASSWORD"), os.getenv("JOHN_SALT")) 
+    with open(users_config, "r") as f:
+        config_data = json.load(f)
 
-    # email, username, account_locked, loginAttempts, is_online, hashed_password, is_superuser
-    get_userid = dbmanager.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
-        admin_email, "admin", False, False, admin_hash, admin_salt, True,))
-    
-    admin_userid = int(deep_get(get_userid, 0, 0))
-    # create admins avatar
-    admin_avatar = create_user_avatar(userid=admin_userid)
-    update_user_avatar(userID=admin_userid, avatar_hash=admin_avatar)
+        for user in config_data:
 
-    
-    # lets create a test user to test out banning/account locking
-    get_userid = dbmanager.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
-        john_email, "johnd", True, False, john_hash, john_salt, False,))
+            email = user.get("email")
+            username = user.get("username")
+            raw_password = user.get("password", generate_random_password(15)) # TODO: parsing of csv? or xlsx
+            is_superuser = user.get("superuser", False)
+
+            hashstr, saltstr = create_hash(raw_password)
+
+            # email, username, account_locked, loginAttempts, is_online, hashed_password, is_superuser
+            get_userid = dbmanager.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
+                email, username, False, False, hashstr, saltstr, is_superuser,))
+            
+            new_user_id = int(deep_get(get_userid, 0, 0))
+            # create admins avatar
+            new_avatar = create_user_avatar(userid=new_user_id)
+            update_user_avatar(userID=new_user_id, avatar_hash=new_avatar)
+
     print("Setup all pre registered accounts")
+    categories_config = ROOT_FOLDER / "categories.json"
 
-    john_userid = int(deep_get(get_userid, 0, 0))
-    # create admins avatar
-    john_avatar = create_user_avatar(userid=john_userid)
-    update_user_avatar(userID=john_userid, avatar_hash=john_avatar)
+    # create all default categories dynamically
+    with open(categories_config, "r") as f:
+        config_data = json.load(f)
 
-    # create some starter categories
-    dbmanager.write(query_str="""
-        INSERT INTO categories (name, category_locked)
-            VALUES (%s, %s)
-    """, params=("Announcements", True))
+        for cat_dict in config_data:
+            
+            name = cat_dict.get("category_name")
+            admin_locked = cat_dict.get("admin_locked", False)
 
-    dbmanager.write(query_str="""
-        INSERT INTO categories (name, category_locked)
-            VALUES (%s, %s)
-    """, params=("Bushcraft Tips", False))
-
-    dbmanager.write(query_str="""
-        INSERT INTO categories (name, category_locked)
-            VALUES (%s, %s)
-    """, params=("Help & Support", False))
+            dbmanager.write(query_str="""
+                INSERT INTO categories (name, category_locked)
+                    VALUES (%s, %s)
+            """, params=(name, admin_locked))
 
     # create some dummy posts
     dbmanager.write(query_str="""
