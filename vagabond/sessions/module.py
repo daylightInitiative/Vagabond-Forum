@@ -25,7 +25,7 @@ def redirect_if_already_logged_in(page="index"):
 def get_session_id() -> str | None:
     return request.cookies.get("sessionID") or None
 
-def get_tdid(sessionID: str) -> str|None:
+def get_tdid(sessionID: str) -> str | None:
     get_tdid = dbmanager.read(query_str="""
         SELECT temp_data_sid
         FROM sessions_table

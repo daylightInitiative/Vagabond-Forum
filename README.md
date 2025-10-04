@@ -14,3 +14,12 @@ Vagabond forum is a forum project written python using flask and postgresql as a
 - Public user profile page /users/USERID/ will display individual user info
 - Dynamic creation of random pixelated patterns for default user avatars
 - Soft deletion of posts  for further investigation, review etc
+
+## Setup
+The easiest way to set up everything is to use docker... allegedly.
+Currently using docker compose v2, run the following command:
+
+```bash
+sudo docker compose build && sudo docker compose up
+```
+Now visit `http://localhost:5000` in your web browser.

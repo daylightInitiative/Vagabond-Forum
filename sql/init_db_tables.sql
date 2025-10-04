@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS users (
     hashed_password VARCHAR(60) NOT NULL, -- bcrypt hash length
     password_salt VARCHAR(30) NOT NULL, -- bcrypt salt length default rounds
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
-    avatar_hash VARCHAR(32), -- the md5 hash of the avatar filename (we would get from the cdn but we dont have one)
+    avatar_hash VARCHAR(64), -- the sha256 hash of the avatar filename (we would get from the cdn but we dont have one)
     lastSeen TIMESTAMPTZ DEFAULT NOW(),
     join_date TIMESTAMPTZ DEFAULT NOW()
 );

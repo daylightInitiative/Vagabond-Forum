@@ -1,7 +1,7 @@
 from PIL import Image
 from random import randint, choice
 from pathlib import Path
-from hashlib import md5
+from hashlib import sha256
 from vagabond.services import dbmanager
 
 # creates random pixel based avatar similar to github and stackoverflow
@@ -86,8 +86,8 @@ def create_user_avatar(userid: int) -> str:
     cropped = third_base.crop((left, 0, right, crop_width)) # crop from 210 -> 630(210+420) = 210 1 1/2 of the image
 
     # based on the userid lets generate a unique md5 hash
-    hash_object = md5()
-    hash_object.update(f"{userid}".encode('utf-8'))
+    hash_object = sha256() # no upside to using a weaker md5 hash (less collisions)
+    hash_object.update(f"{userid}_profile".encode('utf-8'))
     hash_str = hash_object.hexdigest()
 
     FILE_PATH = AVATARS_FOLDER / (hash_str + ".jpg")

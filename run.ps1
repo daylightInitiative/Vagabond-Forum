@@ -1,6 +1,6 @@
 Write-Host "Running Flask App bootstrap"
 
-# $venv_activated = Get-ChildItem Env:VIRTUAL_ENV
+$env:CONFIG_PATH = "config.json"
 
 # if ($null -eq $anotherVariable) {
 #     Write-Host "Venv is not activated... activating..."

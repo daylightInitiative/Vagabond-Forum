@@ -1,10 +1,8 @@
-from dotenv import load_dotenv
 from flask import current_app as app
 import logging
 import json
 import os
 
-load_dotenv()
 # special thanks to chatbot
 log = logging.getLogger(__name__)
 
@@ -14,6 +12,8 @@ def _load_config() -> str:
     if not config_path:
         log.critical("USAGE: CONFIG_PATH=/path/to/config.json")
         quit(1)
+
+    log.warning("[+] Loaded configuration file: %s", config_path)
 
     with open(config_path, "r") as f:
         config_data = json.load(f)

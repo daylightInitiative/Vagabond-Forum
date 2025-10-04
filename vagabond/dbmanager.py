@@ -26,7 +26,6 @@ class DBManager:
             raise RuntimeError("Database connection failed") # its better to error here
 
     # avoids redundant calls to .commit() and fetch
-    # TODO: add bit flagging for fetch and commit to unionize this function
     # https://www.psycopg.org/docs/cursor.html cursor.description gives column objects containing the column names
     def write(self, query_str, fetch=False, params=None):
         """Executes a query on the db, then calls .commit()"""

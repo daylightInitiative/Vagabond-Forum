@@ -16,7 +16,6 @@ def serve_userpage(userid):
     if not userid:
         return '', 422
     
-    # based on that userid lets do a query to get user information
     user_rows, user_cols = dbmanager.read(query_str="""
         SELECT p.description, username, is_online, lastSeen, join_date, avatar_hash
         FROM users

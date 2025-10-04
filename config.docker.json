@@ -1,12 +1,12 @@
 {
-    "file_log_level": "INFO",
-    "console_log_level": "DEBUG",
+    "file_log_level": "DEBUG",
+    "console_log_level": "INFO",
     "flask_config": {
         "host": "0.0.0.0",
         "port": "5000"
     },
     "db_config": {
-        "host": "127.0.0.1",
+        "host": "db",
         "database": "forum",
         "port": "5432"
     }

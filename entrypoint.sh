@@ -3,6 +3,7 @@ set -e
 
 echo "Running vagabond forum..."
 
+export CONFIG_PATH="config.docker.json"
 echo y | pipenv run python wipe_tables.py
 
 # export PGPASSWORD='root'

@@ -1,6 +1,6 @@
 ## Todo List
 
-- [ ] convert app to run in a docker instance for repro
+- [x] convert app to run in a docker instance for repro
 - [x] basic routes and cleanup sql requests
 - [ ] add sending emails externally
 - [ ] add muting foreign key to users table
