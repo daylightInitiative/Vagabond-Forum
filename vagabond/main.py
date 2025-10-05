@@ -8,7 +8,7 @@ from vagabond.sessions.module import (
 )
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
-from vagabond.moderation import is_admin
+from vagabond.moderation import is_admin, hellban_user
 from vagabond.logFormat import setup_logger # we love colors
 
 from flask import Flask, jsonify, request, redirect, url_for, send_from_directory, abort, make_response
@@ -128,7 +128,15 @@ def index():
 
     num_hits = deep_get(get_hits, 0, 0)
 
-    forum_cat_rows, forum_cat_cols = dbmanager.read(query_str=QUERY_FORUM_CATEGORIES, get_columns=True)
+    sid = get_session_id()
+    user_id = get_userid_from_session(sessionID=sid)
+
+    hellban_user(userid=user_id)
+
+    named_params = {
+        "current_userid": user_id
+    }
+    forum_cat_rows, forum_cat_cols = dbmanager.read(query_str=QUERY_FORUM_CATEGORIES, get_columns=True, params=named_params)
     categories_list = rows_to_dict(forum_cat_rows, forum_cat_cols)
 
     log.debug(categories_list)

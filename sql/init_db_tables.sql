@@ -122,6 +122,11 @@ CREATE TABLE IF NOT EXISTS replies (
     FOREIGN KEY (parent_post_id) REFERENCES posts(id) ON DELETE CASCADE
 );
 
+-- we're gonna on conflict do nothing here
+CREATE TABLE IF NOT EXISTS shadow_bans (
+    userid BIGINT PRIMARY KEY
+);
+
 -- this table is to keep track of deletion of posts by moderators
 CREATE TABLE IF NOT EXISTS moderation_actions (
     id SERIAL PRIMARY KEY,

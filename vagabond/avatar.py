@@ -1,5 +1,5 @@
 from PIL import Image
-from random import randint, choice
+from random import randint, choice, seed
 from pathlib import Path
 from hashlib import sha256
 from vagabond.services import dbmanager
@@ -45,10 +45,11 @@ def create_block(img, mapDict, row, col, color):
         (row, col): 1
     })
 
-def get_available_row_col(mapDict) -> tuple[int, int]:
+def get_available_row_col(mapDict, userID: int) -> tuple[int, int]:
     grid_cols = size[0] // block_size[0]
     grid_rows = size[1] // block_size[1]
 
+    seed(userID)
     row, col = randint(0, grid_cols - 1), randint(0, grid_rows - 1)
     while mapDict.get((row, col)):
         row, col = randint(0, grid_cols - 1), randint(0, grid_rows - 1)
@@ -68,11 +69,12 @@ def merge(im1: Image.Image, im2: Image.Image) -> Image.Image:
 
 def create_user_avatar(userid: int) -> str:
     columns_taken = {}
+    seed(userid) # to avoid constant readdition of fluff files lets seed it
     avatar_color = choice(random_colors)
     avatar_base = Image.new(mode='RGB', size=max_size, color=color_white)
 
     for i in range(1, 16):
-        row, col = get_available_row_col(mapDict=columns_taken)
+        row, col = get_available_row_col(mapDict=columns_taken, userID=userid)
         create_block(img=avatar_base, mapDict=columns_taken, row=row, col=col, color=avatar_color)
 
     second_base = avatar_base.transpose(Image.FLIP_LEFT_RIGHT)

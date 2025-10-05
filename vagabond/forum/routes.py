@@ -28,11 +28,13 @@ def serve_post_by_id(post_num, content_hint):
     if request.method == "GET":
         log.debug("We are viewing a singular post from /forums/%s/%s", post_num, content_hint)
 
+        sid = get_session_id()
+        user_id = get_userid_from_session(sessionID=sid)
+        log.warning(user_id)
+
         # get the content hint, if the content hint doesnt match, redirect early.
         view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
-        log.debug("%s, %s", view_single, column_names)
         get_post = rows_to_dict(view_single, column_names)
-        log.debug(get_post)
         single_post = deep_get(get_post, 0)
 
         log.debug(single_post)
@@ -47,16 +49,13 @@ def serve_post_by_id(post_num, content_hint):
             params=(post_num,))
 
         # get all the posts replies
-        replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num,))
+        replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num, user_id,))
         replies_list = rows_to_dict(replies_rows, column_names)
 
         log.debug(replies_list)
 
         # get if the post is locked or not
         is_post_locked = get_is_post_locked(post_num=post_num)
-
-        sid = get_session_id()
-        user_id = get_userid_from_session(sessionID=sid)
 
         is_post_owner = is_user_content_owner(post_type="post", userid=user_id, postid=post_num)
         is_reply_owner = is_user_content_owner(post_type="reply", userid=user_id, postid=post_num)
@@ -163,7 +162,20 @@ def serve_forum():
         log.debug("is the page offset")
 
         # query the response as json, page the query, include nested replies table
-        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=(category_id, str(PAGE_LIMIT), page_offset, category_id,))
+
+        # instead of positional arguments, we're going to used named ones for this
+        # since theres so many reuses of the current user viewing the post
+        sid = get_session_id()
+        userid = get_userid_from_session(sessionID=sid)
+
+        named_params = {
+            "current_userid": userid,
+            "category_id": category_id,
+            "page_limit": str(PAGE_LIMIT),
+            "page_offset": page_offset
+        }
+
+        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=named_params)
         posts = rows_to_dict(post_rows, column_names)
 
         log.debug(posts)

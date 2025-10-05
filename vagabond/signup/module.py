@@ -9,7 +9,7 @@ import bcrypt
 log = logging.getLogger(__name__)
 
 # returns true and signs the user up on success, on failure false is returned with a error message.
-def signup(email: str, username: str, password: str) -> tuple[bool, str]:
+def signup(email: str, username: str, password: str) -> tuple[bool|int, str]:
     try:
         
         username = username.strip()

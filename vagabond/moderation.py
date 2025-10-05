@@ -35,6 +35,42 @@ def is_admin(userid: str) -> bool:
     """, fetch=True, params=(userid,))
     return deep_get(get_is_superuser, 0, 0) or False
 
+# i dont see any reason to "unhellban someone"
+def hellban_user(userid: str, admin_userid: str | None = None, reason: str | None = None) -> None: # interesting way of optional arguments with type checking
+
+    if not userid:
+        log.warning("hellban was given a null userid")
+        return None
+
+    # hellban user
+    dbmanager.write(query_str="""
+        INSERT INTO shadow_bans (userid)
+            VALUES (%s) ON CONFLICT (userid) DO NOTHING
+    """, params=(userid,))
+
+    # add to moderation actions
+    # action VARCHAR(255) NOT NULL,
+    # target_user_id INTEGER NOT NULL,
+    # target_post_id INTEGER,
+    # performed_by INTEGER NOT NULL,
+    # reason VARCHAR(2048) DEFAULT 'No reason specified.',
+    # created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    # expires_at TIMESTAMP,
+    # reverted_by INTEGER,
+    # reverted_at TIMESTAMP,
+
+    dbmanager.write(query_str="""
+        INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+    """, params=(
+        ModerationAction.SHADOWBAN_USER.value,
+        userid,
+        admin_userid or 1, # "SYSTEM" user
+        reason
+    ))
+
+    return None
+
 def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
     table_to_search = ""
     if post_type == "post": table_to_search = "posts"

@@ -1,7 +1,13 @@
 [
     { 
         "email": "admin@example.com",
-        "username": "admin",
+        "username": "system",
+        "password": "welcome",
+        "superuser": true
+    },
+    { 
+        "email": "SYSTEM",
+        "username": "SYSTEM",
         "password": "welcome",
         "superuser": true
     },
