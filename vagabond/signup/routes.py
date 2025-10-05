@@ -2,14 +2,15 @@ from vagabond.signup import signup_bp
 from flask import request, jsonify, redirect, abort, make_response, url_for
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
+    associate_fingerprint_to_session,
+    create_fingerprint,
     create_session
 )
+from vagabond.profile.module import create_profile
 from vagabond.signup.module import signup
 from vagabond.avatar import update_user_avatar, create_user_avatar
 from vagabond.flask_wrapper import custom_render_template
 
-
-from vagabond.analytics.module import associate_fingerprint_to_session, create_fingerprint
 import logging
 
 log = logging.getLogger(__name__)
@@ -48,6 +49,9 @@ def signup_page():
 
         # update the avatar
         update_user_avatar(userID=userid, avatar_hash=avatar_url)
+
+        # create a profile for the user
+        create_profile(userID=userid)
 
         log.debug("Sending session to client from signup")
         response = make_response(redirect(url_for("index")))

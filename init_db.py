@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from vagabond.utility import deep_get, generate_random_password, ROOT_FOLDER
 from generate_hash import create_hash
 from vagabond.avatar import create_user_avatar, update_user_avatar
+from vagabond.profile.module import create_profile
 load_dotenv()
 
 # populates the empty database with the needed tables if not exists
@@ -54,6 +55,7 @@ if __name__ == '__main__':
             # create admins avatar
             new_avatar = create_user_avatar(userid=new_user_id)
             update_user_avatar(userID=new_user_id, avatar_hash=new_avatar)
+            create_profile(userID=new_user_id)
 
     print("Setup all pre registered accounts")
     categories_config = ROOT_FOLDER / "categories.json"

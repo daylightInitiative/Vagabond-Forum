@@ -1,4 +1,4 @@
-from vagabond.analytics.module import create_fingerprint
+from vagabond.sessions.module import create_fingerprint
 from flask import render_template
 import logging
 

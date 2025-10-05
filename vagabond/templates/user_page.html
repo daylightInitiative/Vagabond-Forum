@@ -5,7 +5,7 @@
     <div style="display: flex;">
 
         <div class="profile-view">
-            <img style="width: 200px; height: 200px;" src="/static/avatars/{{ userinfo.avatar_hash }}.jpg">
+            <img style="width: 200px; height: 200px;" src="{{ userinfo.avatar_hash }}">
             <p>Username: <b>{{ userinfo.username }}</b></p>
             <p>{{ 'Online' if userinfo.is_online == True else 'Offline' }}</p>
             <!-- value_if_true if condition else value_if_false -->

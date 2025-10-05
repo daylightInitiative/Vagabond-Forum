@@ -43,14 +43,13 @@ CREATE TABLE IF NOT EXISTS users (
     hashed_password VARCHAR(60) NOT NULL, -- bcrypt hash length
     password_salt VARCHAR(30) NOT NULL, -- bcrypt salt length default rounds
     is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
-    avatar_hash VARCHAR(64), -- the sha256 hash of the avatar filename (we would get from the cdn but we dont have one)
+    avatar_hash VARCHAR(90), -- '/static/avatars/firstbyte/secondbyte/sha256hash.jpg = 90 in length
     lastSeen TIMESTAMPTZ DEFAULT NOW(),
     join_date TIMESTAMPTZ DEFAULT NOW()
 );
 -- using TIMESTAMPZ to account for different timezones
 
 -- this table is to keep track of admin's actions such as banning, shadowbanning and etc
-
 
 
 CREATE TABLE IF NOT EXISTS profiles (

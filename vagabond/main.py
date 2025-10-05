@@ -4,13 +4,12 @@ import logging
 from vagabond.queries import *
 from vagabond.constants import *
 from vagabond.sessions.module import (
-    get_userid_from_session, is_user_logged_in, get_session_id
+    get_userid_from_session, is_user_logged_in, get_session_id, create_fingerprint
 )
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
 from vagabond.moderation import is_admin
 from vagabond.logFormat import setup_logger # we love colors
-from vagabond.analytics.module import create_fingerprint
 
 from flask import Flask, jsonify, request, redirect, url_for, send_from_directory, abort, make_response
 from random import randint

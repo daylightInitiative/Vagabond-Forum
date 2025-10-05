@@ -90,7 +90,18 @@ def create_user_avatar(userid: int) -> str:
     hash_object.update(f"{userid}_profile".encode('utf-8'))
     hash_str = hash_object.hexdigest()
 
-    FILE_PATH = AVATARS_FOLDER / (hash_str + ".jpg")
+    # get the first two bytes
+    hashbyte1 = hash_str[:2]
+    hashbyte2 = hash_str[2:4]
+
+    # seperate each file by its first two bytes so its more organized
+    DIVIDER_FOLDER = AVATARS_FOLDER / hashbyte1 / hashbyte2
+    DIVIDER_FOLDER.mkdir(parents=True, exist_ok=True)
+
+    FILE_NAME = hash_str + ".jpg"
+    FILE_PATH = DIVIDER_FOLDER / FILE_NAME
     cropped.save(FILE_PATH)
 
-    return hash_str
+    relative_path = f'/static/avatars/{hashbyte1}/{hashbyte2}/{FILE_NAME}'
+
+    return relative_path

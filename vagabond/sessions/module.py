@@ -4,6 +4,7 @@ from vagabond.queries import *
 from flask import request, abort, redirect, url_for
 from vagabond.services import dbmanager
 from ua_parser import parse_os, parse_user_agent, parse_device
+import hashlib
 import logging
 import secrets
 import string
@@ -21,6 +22,28 @@ def abort_if_not_signed_in():
 def redirect_if_already_logged_in(page="index"):
     if is_user_logged_in():
         return redirect( url_for(page) )
+
+# mainly for security and analytics
+def associate_fingerprint_to_session(fingerprint: str, sessionID: str) -> None:
+    log.warning("associating fingerprint to session id")
+    dbmanager.write(query_str="""
+        UPDATE sessions_table
+        SET fingerprint_id = %s
+        WHERE sid = %s
+    """, params=(fingerprint, sessionID,))
+
+def create_fingerprint() -> str:
+    user_agent = request.headers.get("User-Agent")
+    accepted_languages = request.headers.get("Accept-Language")
+    ip_address = request.remote_addr
+
+    combined_fingerprint = ip_address + user_agent + accepted_languages
+
+    hashobj = hashlib.sha256()
+    hashobj.update(combined_fingerprint.encode('utf-8'))
+
+    return hashobj.hexdigest()
+
 
 def get_session_id() -> str | None:
     return request.cookies.get("sessionID") or None

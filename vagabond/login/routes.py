@@ -1,7 +1,8 @@
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
     create_session, invalidate_session,
-    get_session_id
+    get_session_id, create_fingerprint,
+    associate_fingerprint_to_session
 )
 from vagabond.utility import get_userid_from_email
 from vagabond.login import login_bp
@@ -11,7 +12,6 @@ from vagabond.services import limiter, dbmanager
 from flask import request, make_response, redirect, url_for, jsonify
 from vagabond.flask_wrapper import custom_render_template
 
-from vagabond.analytics.module import associate_fingerprint_to_session, create_fingerprint
 import logging
 
 log = logging.getLogger(__name__)
