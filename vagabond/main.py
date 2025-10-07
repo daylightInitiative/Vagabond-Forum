@@ -131,8 +131,6 @@ def index():
     sid = get_session_id()
     user_id = get_userid_from_session(sessionID=sid)
 
-    hellban_user(userid=user_id)
-
     named_params = {
         "current_userid": user_id
     }

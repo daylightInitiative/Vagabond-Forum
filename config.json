@@ -2,14 +2,19 @@
     "file_log_level": "INFO",
     "console_log_level": "DEBUG",
     "flask_config": {
-        "host": "0.0.0.0",
+        "host": "127.0.0.1",
         "port": "5000"
     },
     "db_config": {
         "user": "admin",
-        "host": "0.0.0.0",
+        "host": "127.0.0.1",
         "database": "forum",
         "password": "root",
         "port": "5432"
+    },
+    "smtp_config": {
+        "public_email": "signup@vagabondforum.comz",
+        "host": "localhost",
+        "port": "1025"
     }
 }

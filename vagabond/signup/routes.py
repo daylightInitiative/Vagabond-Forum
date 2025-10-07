@@ -6,10 +6,13 @@ from vagabond.sessions.module import (
     create_fingerprint,
     create_session
 )
+from vagabond.services import limiter
 from vagabond.profile.module import create_profile
 from vagabond.signup.module import signup
+from vagabond.signup.email import generate_token, confirm_token, send_confirmation_code
 from vagabond.avatar import update_user_avatar, create_user_avatar
 from vagabond.flask_wrapper import custom_render_template
+from vagabond.utility import get_userid_from_email
 
 import logging
 
@@ -37,27 +40,53 @@ def signup_page():
 
         if not userid:
             return custom_render_template("signup.html", errmsg=errmsg)
-
-        sid = create_session(userid=userid, request_obj=request)
-
-        if not sid:
-            return custom_render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
-
-        # lets create the users randomly generated avatar (we dont have a cdn yet so... just in static)
-        # this returns the md5 hash of the image
-        avatar_url = create_user_avatar(userid)
-
-        # update the avatar
-        update_user_avatar(userID=userid, avatar_hash=avatar_url)
-
-        # create a profile for the user
-        create_profile(userID=userid)
-
-        log.debug("Sending session to client from signup")
-        response = make_response(redirect(url_for("index")))
-        response.set_cookie(key="sessionID", value=sid)
-
-        user_fingerprint = create_fingerprint()
-        associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
         
-        return response
+        email_token = generate_token(email=email)
+        send_confirmation_code(email=email, code=email_token)
+        
+        return custom_render_template("confirm_email.html", email=email)
+
+        
+    
+
+@signup_bp.route("/confirm", methods=["GET"])
+def confirm_signup_code():
+    
+    signup_code = request.args.get("token")
+
+    if not signup_code:
+        return jsonify({"error": "Bad token"}), 422
+    
+    decoded_email = confirm_token(token=signup_code)
+
+    if not decoded_email:
+        return jsonify({"error": "Expired token"}), 422
+
+    userid = get_userid_from_email(email=decoded_email)
+
+    if not userid:
+        return jsonify({"error": "User not found"}), 404
+
+    sid = create_session(userid=userid, request_obj=request)
+
+    if not sid:
+        return custom_render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
+
+    # lets create the users randomly generated avatar (we dont have a cdn yet so... just in static)
+    # this returns the md5 hash of the image
+    avatar_url = create_user_avatar(userid)
+
+    # update the avatar
+    update_user_avatar(userID=userid, avatar_hash=avatar_url)
+
+    # create a profile for the user
+    create_profile(userID=userid)
+
+    log.debug("Sending session to client from signup")
+    response = make_response(redirect(url_for("index")))
+    response.set_cookie(key="sessionID", value=sid)
+
+    user_fingerprint = create_fingerprint()
+    associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
+    
+    return response

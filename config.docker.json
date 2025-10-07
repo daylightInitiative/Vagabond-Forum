@@ -11,5 +11,10 @@
         "database": "forum",
         "password": "root",
         "port": "5432"
+    },
+    "smtp_config": {
+        "public_email": "signup@vagabondforum.comz",
+        "host": "mailpit",
+        "port": "1025"
     }
 }

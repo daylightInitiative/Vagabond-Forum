@@ -43,7 +43,8 @@ class Config():
                 "file_log_level",
                 "console_log_level",
                 "db_config",
-                "flask_config"
+                "flask_config",
+                "smtp_config"
             ]
             for field in fields:
                 if field in data:

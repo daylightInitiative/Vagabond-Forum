@@ -35,7 +35,7 @@ services:
   #     - RELAY_NETWORKS=:192.168.0.0/24
   #   restart: unless-stopped
 
-  mailpit:
+  mailpit: # always use the service name, as the host as per dockers internal DNS
     image: axllent/mailpit
     container_name: mailpit
     restart: unless-stopped
@@ -49,23 +49,6 @@ services:
         MP_DATABASE: /data/mailpit.db
         MP_SMTP_AUTH_ACCEPT_ANY: 1
         MP_SMTP_AUTH_ALLOW_INSECURE: 1
-
-  # postfix:
-  #   image: boky/postfix:latest
-  #   container_name: postfix
-  #   hostname: ${POSTFIX_HOSTNAME}
-  #   environment:
-  #     - ALLOWED_SENDER_DOMAINS=${ALLOWED_SENDER_DOMAINS}
-  #     - POSTFIX_mynetworks=${POSTFIX_MYNETWORKS}
-  #     - POSTFIX_smtpd_tls_cert_file=/etc/ssl/postfix/fullchain.pem
-  #     - POSTFIX_smtpd_tls_key_file=/etc/ssl/postfix/privkey.pem
-  #   ports:
-  #     - "25:25"
-  #     - "587:587"
-  #   volumes:
-  #     - ./postfix-data:/var/spool/postfix
-  #     - ./certs:/etc/ssl/postfix:ro
-  #   restart: unless-stopped
 
 volumes:
   pgdata:

@@ -1,6 +1,6 @@
-# postfix fluff
+# mailpit stuff
 certs/
-postfix-data/
+data/
 
 
 # Byte-compiled / optimized / DLL files

@@ -76,12 +76,10 @@ def deep_get(data, *indices):
 
 # when you need state, error handling but also functions I find that using a class here works nice
     
-def get_userid_from_email(email: str) -> str:
+def get_userid_from_email(email: str) -> str | bool:
     get_userid = dbmanager.read(query_str="""
             SELECT id
             FROM users
             WHERE email = %s
         """, fetch=True, params=(email,))
-    if not get_userid:
-        return None
-    return deep_get(get_userid, 0, 0)
+    return deep_get(get_userid, 0, 0) or False
