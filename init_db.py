@@ -1,14 +1,14 @@
 
-import os, json
+import base64
+import json
+import os
 from vagabond.dbmanager import DBManager
 from vagabond.config import Config
 from vagabond.queries import *
-from dotenv import load_dotenv
 from vagabond.utility import deep_get, generate_random_password, ROOT_FOLDER
 from generate_hash import create_hash
 from vagabond.avatar import create_user_avatar, update_user_avatar
 from vagabond.profile.module import create_profile
-load_dotenv()
 
 # populates the empty database with the needed tables if not exists
 # (not part of the app but uses some components)
@@ -27,11 +27,28 @@ dbmanager = DBManager(app_config)
 # this is idiot safe (the tables only create if they IF NOT EXISTS)
 # just used in development
 
+def format_env_key(key, value):
+    return f'\n{key}="{value}"'
+
 if __name__ == '__main__':
     db_version = dbmanager.write(query_str=SHOW_SERVER_VERSION, fetch=True)
     print("Running: ", db_version[0][0])
     dbmanager.write(query_str=INIT_DB_TABLES)
     print("Wrote all needed tables")
+
+    # if this was prod i would use load_dotenv (it makes it harder to deploy to test docker instance for others to repro)
+    # secrets.env is for our webserver, while the other .env file is used for the docker container
+    env = {
+        "SECRET_KEY": base64.b64encode(os.urandom(24)).decode('utf-8'),
+        "SECURITY_PASSWORD_SALT": base64.b64encode(os.urandom(24)).decode('utf-8')
+    }
+
+    # generate a new flask secret key
+    with open("secrets.env", 'w') as f:
+        
+        for key, secret in env.items():
+            fmt_str = format_env_key(key, secret)
+            f.write(fmt_str)
 
     users_config = ROOT_FOLDER / "users.json"
 

@@ -13,8 +13,6 @@ def _load_config() -> str:
         log.critical("USAGE: CONFIG_PATH=/path/to/config.json")
         quit(1)
 
-    log.warning("[+] Loaded configuration file: %s", config_path)
-
     with open(config_path, "r") as f:
         config_data = json.load(f)
         return config_data
@@ -27,11 +25,15 @@ class Config():
     db_config = None
 
     def __init__(self, app=None, data=None):
+        config_path = os.getenv("CONFIG_PATH", "")
+        log.warning("[+] Loaded configuration file: %s", config_path) # important for debugging to know which config
+
         self.patch(data)
         self.patch_secrets()
         # change app configuration
-        # if app:
-        #     app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
+        if app:
+            app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
+            app.config["SECURITY_PASSWORD_SALT"] = os.getenv("SECURITY_PASSWORD_SALT")
 
     def patch(self, data):
         if data is not None and type(data) is dict:

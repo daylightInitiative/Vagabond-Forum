@@ -6,8 +6,10 @@
         "port": "5000"
     },
     "db_config": {
+        "user": "admin",
         "host": "db",
         "database": "forum",
+        "password": "root",
         "port": "5432"
     }
 }

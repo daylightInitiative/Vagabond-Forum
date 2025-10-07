@@ -6,20 +6,33 @@ body {
   background-attachment: fixed;
 }
 
-footer {
-  font-size: x-small;
-  color: #888888;
-  padding-top: 12%;
+.landscape-image {
+  height: 200px;
+  background: transparent;
 }
 
 .footer-veil {
-  flex-shrink: 0;
   background-color: var(--bg-color);
   color: var(--text-color);
   width: 100%;
-  height: 100%;
+  padding: 2rem;
+  margin-top: auto;
+  min-height: 200px;
+}
+
+
+.footer-veil a {
+  color: var(--link-color);
+  text-decoration: underline;
+}
+
+.footer-veil table {
+  margin: 0 auto;
+  width: 80%;
+}
+
+footer {
+  font-size: x-small;
   text-align: center;
-  margin: auto;
-  margin-top: 9%;
-  padding: 1rem;
+  margin-top: 4rem;
 }

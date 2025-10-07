@@ -13,7 +13,7 @@
 - [x] Add thread categories above forums
 - [x] add user/creator/admin permissions (modify, delete, create new post in certain thread)
 - [x] Decide on a scheme for forum structure categories, posts, etc
-- [ ] Add shadow banning (request from my shadow-ey superiors)
+- [x] Add shadow banning (request from my shadow-ey superiors)
 - [ ] Add top level admin panel to set visibility of threads, manage users moderation actions
 - [x] user profile page /profile?userid=ID_HERE with avatars, information, join date
 - [ ] add a stats page for showing the total number of every type of thing, as well as the rate at which they are growing, and graphs of those rates by day/week/month/year
