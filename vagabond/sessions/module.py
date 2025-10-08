@@ -6,6 +6,7 @@ from vagabond.services import dbmanager
 from ua_parser import parse_os, parse_user_agent, parse_device
 from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv, find_dotenv
+from datetime import datetime, timezone, timedelta
 
 import hashlib
 import logging
@@ -20,6 +21,61 @@ log = logging.getLogger(__name__)
 # generate a new token and detect collisions
 # query the session token to see if it is valid
 # invalidate and delete the session token
+
+from functools import wraps
+
+def Session_Activity_Handler(app):
+    @app.before_request
+    def update_session_activity():
+        sid = get_session_id()
+        if not sid:
+            return  # no session to refresh
+        
+        if not is_valid_session(sessionID=sid):
+            return
+
+        session_duration = timedelta(hours=2)
+        expires_at = datetime.now(timezone.utc) + session_duration
+
+        # Update the existing session row for this sid
+        try:
+            success = dbmanager.write(query_str="""
+                    UPDATE sessions_table
+                    SET expires_at = %s
+                    WHERE sid = %s
+                """,
+                params=(expires_at, sid)
+            )
+
+            if success == DBStatus.SUCCESS:
+                log.debug("Refreshed activity for sid %s", sid)
+            else:
+                log.error("Failure to refresh session for sid %s", sid)
+        except Exception as e:
+            log.error("Exception refreshing session for sid %s: %s", sid, e)
+
+        log.info("Refreshing session %s", sid)
+    
+
+def CSRF(app):
+    @app.before_request
+    def csrf_protect():
+        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            view_func = app.view_functions[request.endpoint]
+            if not getattr(view_func, '_csrf_exempt', False):
+                is_valid_csrf_or_abort()
+
+# every function in python is an object, and instead of keeping a global list
+# we can at decorator time just attach a special attribute to check with getattr
+def csrf_exempt(f):
+
+    @wraps(f)
+    def decorated_func(*args, **kwargs):
+        return f(*args, **kwargs)
+    
+    decorated_func._csrf_exempt = True
+
+    return decorated_func
 
 # csrf protections (stateless, itsdangerous urlsafetimed is signed and only valid within a time stamp so no need to use a DB)
 # we are also using the session id and the constant salt we randomly generated, so it will always be the same
@@ -140,11 +196,14 @@ def create_session(userid: str, request_obj) -> str | None:
     combined_ua = f"{ua_os.family} {ua_os.major}, {ua_browser.family}"
     # [insert geolocation service tracking here]
 
+    session_duration = timedelta(hours=2) # 7200 seconds
+    expires_at = datetime.now(timezone.utc) + session_duration
+
     # lets create a new session in the sessions_table
     success = dbmanager.write(query_str="""
-        INSERT INTO sessions_table (sid, ipaddr, user_id, display_user_agent, raw_user_agent, temp_data_sid, active)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, params=(sid, ipaddr, userid, combined_ua, raw_user_agent, temp_session_data_id, True))
+        INSERT INTO sessions_table (sid, ipaddr, user_id, display_user_agent, raw_user_agent, temp_data_sid, active, expires_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, params=(sid, ipaddr, userid, combined_ua, raw_user_agent, temp_session_data_id, True, expires_at))
 
     if success == DBStatus.FAILURE:
         log.critical("Failure to create a new session for userID: %s", userid)
@@ -157,11 +216,14 @@ def create_session(userid: str, request_obj) -> str | None:
 
 def is_valid_session(sessionID: str) -> bool:
     # check if the session is valid (just checking the active variable and this userid)
+    # get the device fingerprint
+    fingerprint = get_fingerprint()
+
     is_session_valid = dbmanager.read(query_str="""
         SELECT 1
         FROM sessions_table
-        WHERE sid = %s AND active = TRUE
-    """, fetch=True, params=(sessionID,))
+        WHERE sid = %s AND fingerprint_id = %s AND active = TRUE AND (expires_at IS NULL OR expires_at > NOW())
+    """, fetch=True, params=(sessionID, fingerprint,))
 
     return is_session_valid or False # it wasnt found or something wrong is going on
 

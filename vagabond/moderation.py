@@ -87,10 +87,8 @@ def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
         WHERE id = %s
         RETURNING author
     """ # if we return the author from this it makes it easier to call
-    log.warning(update_query)
 
     result = dbmanager.write(query_str=update_query, fetch=True, params=(post_id,))
-    log.debug(result)
     target_user_id = deep_get(result, 0, 0)
 
     user_is_admin = is_admin(userid=user_id)

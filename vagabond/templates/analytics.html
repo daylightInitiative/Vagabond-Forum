@@ -9,8 +9,13 @@
 
         async function get_data(endpoint) {
             try {
-
-                const response = await fetch(endpoint);
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const response = await fetch(endpoint, {
+                    headers: {
+                        "Content-type": "application/json; charset=UTF-8",
+                        "X-CSRFToken": csrfToken
+                    },
+                });
                 if(!response.ok) {
                     throw new Error(`Reponse status: ${response.status}`);
                 }

@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS sessions_table (
     temp_data_sid INT NOT NULL,
     lastLogin TIMESTAMPTZ DEFAULT NOW(),
     active BOOLEAN NOT NULL DEFAULT TRUE,
+    expires_at TIMESTAMPTZ NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (temp_data_sid) REFERENCES temp_session_data(tempid)
 );

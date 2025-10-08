@@ -5,7 +5,7 @@ import os
 from vagabond.queries import *
 from vagabond.constants import *
 from vagabond.sessions.module import (
-    get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint, is_valid_csrf_or_abort
+    get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint, is_valid_csrf_or_abort, CSRF, Session_Activity_Handler
 )
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
@@ -36,6 +36,9 @@ load_dotenv(find_dotenv("secrets.env"))
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+
+Session_Activity_Handler(app)
+CSRF(app)
 
 app.config["custom_config"] = app_config
 log = logging.getLogger() # root logger doesnt need an identifier
@@ -77,9 +80,6 @@ def inject_jinja_variables():
 def log_request_info():
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
-    
-    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
-        is_valid_csrf_or_abort()
 
     log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1, visited_timestamp = NOW()')

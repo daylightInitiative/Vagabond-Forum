@@ -4,7 +4,8 @@ from vagabond.sessions.module import (
     redirect_if_already_logged_in,
     associate_fingerprint_to_session,
     get_fingerprint,
-    create_session
+    create_session,
+    csrf_exempt
 )
 from vagabond.services import limiter
 from vagabond.profile.module import create_profile
@@ -18,6 +19,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+@csrf_exempt
 @signup_bp.route('/signup', methods=['GET', 'POST'])
 def signup_page():
     
@@ -84,7 +86,7 @@ def confirm_signup_code():
 
     log.debug("Sending session to client from signup")
     response = make_response(redirect(url_for("index")))
-    response.set_cookie(key="sessionID", value=sid, max_age=7200)
+    response.set_cookie(key="sessionID", value=sid, max_age=7200, samesite="Strict")
 
     user_fingerprint = get_fingerprint()
     associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
