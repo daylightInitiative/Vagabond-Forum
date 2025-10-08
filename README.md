@@ -18,10 +18,12 @@ Vagabond forum is a forum project written python using flask and postgresql as a
 
 ## Setup
 The easiest way to set up everything is to use docker... allegedly.
-Currently using docker compose v2, run the following command:
+Currently using docker compose v2, run the following commands:
 
 ```bash
-sudo docker compose build && sudo docker compose up
+sudo chmod +x ./runDocker.sh && ./runDocker.sh
 ```
+
 Now visit `http://localhost:5000` in your web browser.
+
 For simulated email confirmations, visit `http://localhost:8025/` to access the mailpit instance.

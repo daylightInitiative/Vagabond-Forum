@@ -31,15 +31,16 @@ async function save_draft() {
         if((old_content === current_contents) || current_contents === "") {
             return; // um dont send a request when nothing has changed
         }
-
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const response = await fetch('/save_draft', {
             method: "POST",
-            body: JSON.stringify({
-                contents: current_contents
-            }),
             headers: {
-                "Content-type": "application/json; charset=UTF-8"
-            }
+                "Content-type": "application/json; charset=UTF-8",
+                "X-CSRFToken": csrfToken
+            },
+            body: JSON.stringify({
+                "contents": current_contents
+            })
         })
 
         if (!response.ok) {

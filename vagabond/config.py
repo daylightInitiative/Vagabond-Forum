@@ -1,7 +1,10 @@
 from flask import current_app as app
+from dotenv import load_dotenv, find_dotenv
 import logging
 import json
 import os
+
+load_dotenv(find_dotenv("secrets.env"))
 
 # special thanks to chatbot
 log = logging.getLogger(__name__)
@@ -32,7 +35,7 @@ class Config():
         self.patch_secrets()
         # change app configuration
         if app:
-            app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
+            app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
             app.config["SECURITY_PASSWORD_SALT"] = os.getenv("SECURITY_PASSWORD_SALT")
 
     def patch(self, data):

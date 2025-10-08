@@ -9,7 +9,7 @@ from vagabond.sessions.module import (
     is_user_logged_in,
     get_tdid
 )
-from vagabond.forum.module import get_is_post_locked, is_user_content_owner, get_is_category_locked
+from vagabond.forum.module import get_is_post_locked, is_user_content_owner, get_is_category_locked, get_is_post_deleted
 from vagabond.moderation import is_admin, soft_delete_user_post
 from vagabond.forum import forum_bp
 from vagabond.constants import *
@@ -30,7 +30,6 @@ def serve_post_by_id(post_num, content_hint):
 
         sid = get_session_id()
         user_id = get_userid_from_session(sessionID=sid)
-        log.warning(user_id)
 
         # get the content hint, if the content hint doesnt match, redirect early.
         view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
@@ -60,7 +59,9 @@ def serve_post_by_id(post_num, content_hint):
         is_post_owner = is_user_content_owner(post_type="post", userid=user_id, postid=post_num)
         is_reply_owner = is_user_content_owner(post_type="reply", userid=user_id, postid=post_num)
 
-        return custom_render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked, is_post_owner=is_post_owner, is_reply_owner=is_reply_owner)
+        is_post_deleted = get_is_post_deleted(post_num=post_num)
+
+        return custom_render_template("view_post.html", post=single_post, replies=replies_list, is_post_locked=is_post_locked, is_post_owner=is_post_owner, is_post_deleted=is_post_deleted, is_reply_owner=is_reply_owner)
 
     elif request.method == "POST" and request.form.get("_post_type") and request.form.get("_method") == "DELETE":
         # hacky way of deleting with just html forms, i'll bloat it up with proper javascript later
@@ -75,22 +76,25 @@ def serve_post_by_id(post_num, content_hint):
         sid = get_session_id()
         user_id = get_userid_from_session(sessionID=sid)
 
+        log.debug(post_type)
+
         if post_type == "post":
+            log.warning("we are deleting a post")
             post_id = request.form.get('post_id')
 
             if not post_id:
                 return jsonify({"error": "Invalid post ID"}), 422
 
-            is_owner = is_user_content_owner(post_type=post_type, userid=user_id, postid=post_id) or is_admin(userid=user_id)
+            is_owner = is_user_content_owner(post_type=post_type, userid=user_id, postid=post_id)
 
-            if not is_owner:
+            if not is_owner and is_admin(userid=user_id) == False:
                 return abort(401)
             
             # set the post as soft deleted
-            soft_delete_user_post(post_type=post_type, post_id=post_num, user_id=user_id)
+            soft_delete_user_post(post_type=post_type, post_id=post_id, user_id=user_id)
 
             log.debug("Post has been soft marked for deletion")
-            return redirect(url_for("forum.serve_post_by_id", post_num=post_num, content_hint=content_hint))
+            return redirect(url_for("index"))
         elif post_type == "reply":
             reply_id = request.form.get('reply_id')
 
@@ -156,7 +160,7 @@ def serve_forum():
                 raise ValueError("Invalid page number")
         except (TypeError, ValueError):
             # redirect to the first page if page_num is invalid (postgres id starts at 1)
-            return redirect(url_for("forum.forums.html") + "?page=1")
+            return redirect(url_for("vagabond.index", page=1))
 
         page_offset = str((page_num - 1) * PAGE_LIMIT)
         log.debug("is the page offset")

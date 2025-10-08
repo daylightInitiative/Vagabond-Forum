@@ -12,6 +12,7 @@
 
     <h2>About Me:</h2>
     <form class="new-post-form" action="/profile" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <textarea id="description" name="description" maxlength="2000" rows="5" cols="50" required>{{ about_me or '' }}</textarea>
         <br><br>
         <button id="save-description" class="btn btn-primary" type="submit">Save</button>

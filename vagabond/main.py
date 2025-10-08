@@ -1,5 +1,6 @@
 
 import logging
+import os
 
 from vagabond.queries import *
 from vagabond.constants import *
@@ -13,6 +14,7 @@ from vagabond.logFormat import setup_logger # we love colors
 
 from flask import Flask, jsonify, request, redirect, url_for, send_from_directory, abort, make_response
 from random import randint
+from dotenv import load_dotenv, find_dotenv
 from vagabond.flask_wrapper import custom_render_template
 
 #blueprints
@@ -30,7 +32,12 @@ from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.services import init_extensions, dbmanager, app_config, moment, limiter
 from vagabond.flask_wrapper import custom_render_template
 
+from flask_wtf import CSRFProtect
+load_dotenv(find_dotenv("secrets.env"))
+
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+csrf = CSRFProtect(app)
 
 app.config["custom_config"] = app_config
 log = logging.getLogger() # root logger doesnt need an identifier

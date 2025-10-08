@@ -24,6 +24,8 @@ class ModerationAction(Enum):
     ASSIGN_ROLE = 'assign_role'
     UNASSIGN_ROLE = 'unassign_role'
     SUSPEND_USER = 'suspend_user'
+    ENABLE_2FA = 'enable_2fa'
+    DISABLE_2FA = 'disable_2fa'
     REVERT_ACTION = 'revert_action'
 
 
@@ -85,8 +87,7 @@ def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
         WHERE id = %s
         RETURNING author
     """ # if we return the author from this it makes it easier to call
-    log.debug(update_query)
-    log.debug(post_id)
+    log.warning(update_query)
 
     result = dbmanager.write(query_str=update_query, fetch=True, params=(post_id,))
     log.debug(result)
@@ -113,5 +114,7 @@ def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
             created_at   
         ) VALUES (%s, %s, %s, %s, %s, NOW())
     """, params=(modaction, target_user_id, post_id, user_id, deletion_reason))
+
+    return None
 
 

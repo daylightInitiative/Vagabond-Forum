@@ -3,7 +3,7 @@
 {% block content %}
 
     <!-- admins can see deleted posts for investigatory purposes -->
-    {% if post and post.deleted_at is none or is_superuser == True %}
+    {% if post and is_post_deleted == False or is_superuser == True %}
         <div class="user-post">
                 <h2><b>{{ post.title }}</b></h2>
                 <p>author: <a href="/users/{{ post.author }}/">{{ post.author_username }}</a> on {{ post.creation_date }}</p>
@@ -13,6 +13,7 @@
                     {% if is_post_owner %}
                         <p>You are the post owner, you may delete this post at any time</p>
                         <form class="delete-post-button" action="{{ request.url }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <input type="hidden" name="post_id" value="{{ post.id }}">
                             <input type="hidden" name="_method" value="DELETE">
                             <input type="hidden" name="_post_type" value="post">
@@ -24,6 +25,7 @@
                         <b>This post has been locked, it is no longer accepting replies.</b>
                     {% else %}
                         <form class="new-post-form" action="{{ request.url }}?reply" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <input type="hidden" name="post_id" value="{{ post.id }}">
                             <h4>Reply to this post</h4>
                             <textarea id="reply" name="reply" placeholder="Write your reply here" rows="5" cols="50" required></textarea>
@@ -46,6 +48,7 @@
                         <!-- display the delete button (a form hack is to have the post_id hidden here) -->
                         <!-- the route is protected -->
                         <form class="delete-post-button" action="{{ request.url }}?reply" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <input type="hidden" name="reply_id" value="{{ post.id }}">
                             <input type="hidden" name="_method" value="DELETE">
                             <input type="hidden" name="_post_type" value="reply">

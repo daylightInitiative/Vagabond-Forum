@@ -12,6 +12,14 @@ def get_is_category_locked(categoryID: str) -> bool:
     """, params=(categoryID,))
     return deep_get(get_locked, 0, 0) or False
 
+def get_is_post_deleted(post_num: str) -> bool:
+    get_deleted = dbmanager.read(query_str="""
+        SELECT deleted_at IS NOT NULL
+        FROM posts
+        WHERE id = %s
+    """, params=(post_num,))
+    return deep_get(get_deleted, 0, 0) or False
+
 def get_is_post_locked(post_num: str) -> bool:
     get_locked = dbmanager.read(query_str="""
         SELECT post_locked
@@ -36,6 +44,8 @@ def is_user_content_owner(post_type:str, userid: str, postid: str) -> bool:
             SELECT 1 FROM {table} WHERE author = %s AND id = %s
         );
     """
+    
 
     get_is_owner = dbmanager.read(query_str=check_owner, fetch=True, params=(userid, postid,))
+    log.debug("check owner: %s", get_is_owner)
     return deep_get(get_is_owner, 0, 0) or False

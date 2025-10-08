@@ -5,10 +5,42 @@ from vagabond.services import limiter, dbmanager
 from vagabond.profile import profile_bp
 from vagabond.utility import deep_get, get_censored_email
 from vagabond.flask_wrapper import custom_render_template
-from flask import request, redirect, jsonify, url_for
+from flask import request, redirect, jsonify, url_for, abort
 import logging
 
 log = logging.getLogger(__name__)
+
+@profile_bp.route('/account/settings/2fa', methods=["POST"])
+def toggle_2fa():
+    abort_if_not_signed_in()
+
+    sid = get_session_id()
+    userid = get_userid_from_session(sessionID=sid)
+
+    if not sid or not userid:
+        abort(401)
+
+    data = request.get_json()
+    should_2fa_be_enabled = data.get("enabled")
+
+    # need to add csrf protection to this request
+    if not should_2fa_be_enabled:
+        return jsonify({"error": "Invalid request"}), 422
+    
+    # bools are super iffy, so we're just going to compare using a number
+    if not isinstance(should_2fa_be_enabled, bool):
+        return jsonify({"error": "Invalid request"}), 422
+    
+    is_enabled = int(should_2fa_be_enabled)
+
+    dbmanager.write(query_str="""
+        UPDATE users
+        SET is_2fa_enabled = %s
+        WHERE id = %s
+    """, params=(is_enabled, userid,))
+
+    return '', 200
+
 
 @profile_bp.route('/profile', methods=["GET", "POST"])
 def serve_profile():

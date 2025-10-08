@@ -13,6 +13,7 @@ bcrypt = "*"
 flask-moment = "*"
 pillow = "*"
 flask-cors = "*"
+flask-wtf = "*"
 
 [dev-packages]
 
