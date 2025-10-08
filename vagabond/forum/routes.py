@@ -79,7 +79,6 @@ def serve_post_by_id(post_num, content_hint):
         log.debug(post_type)
 
         if post_type == "post":
-            log.warning("we are deleting a post")
             post_id = request.form.get('post_id')
 
             if not post_id:
@@ -160,10 +159,9 @@ def serve_forum():
                 raise ValueError("Invalid page number")
         except (TypeError, ValueError):
             # redirect to the first page if page_num is invalid (postgres id starts at 1)
-            return redirect(url_for("vagabond.index", page=1))
+            return redirect(url_for("index"))
 
         page_offset = str((page_num - 1) * PAGE_LIMIT)
-        log.debug("is the page offset")
 
         # query the response as json, page the query, include nested replies table
 

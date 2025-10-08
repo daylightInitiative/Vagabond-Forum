@@ -7,7 +7,7 @@
         {% endif %}
         <p>Dont have an account yet? <a href="/signup">Sign Up</a></p>
         <form class="login-form" action="/login" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="csrf_token" value="{{ get_csrf_token() }}"/>
             <h1>Login</h1>
             <label for="email">Email</label>
             <input type="text" id="email" name="email" required>

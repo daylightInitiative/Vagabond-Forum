@@ -4,16 +4,53 @@ from vagabond.queries import *
 from flask import request, abort, redirect, url_for
 from vagabond.services import dbmanager
 from ua_parser import parse_os, parse_user_agent, parse_device
+from itsdangerous import URLSafeTimedSerializer
+from dotenv import load_dotenv, find_dotenv
+
 import hashlib
 import logging
 import secrets
 import string
+import os
+
+load_dotenv(find_dotenv("secrets.env"))
 
 log = logging.getLogger(__name__)
 
 # generate a new token and detect collisions
 # query the session token to see if it is valid
 # invalidate and delete the session token
+
+# csrf protections (stateless, itsdangerous urlsafetimed is signed and only valid within a time stamp so no need to use a DB)
+# we are also using the session id and the constant salt we randomly generated, so it will always be the same
+def get_csrf_token(): # we want to keep this argumentless for ease of use
+    sid = get_session_id()
+
+    if sid and is_valid_session(sessionID=sid):
+        serializer = URLSafeTimedSerializer(os.getenv("SECRET_KEY"))
+        return serializer.dumps(sid, salt=os.getenv("SECURITY_PASSWORD_SALT"))
+
+def is_valid_csrf_token(token, expiration=7200) -> str | bool:
+    current_sid = get_session_id()
+    serializer = URLSafeTimedSerializer(os.getenv("SECRET_KEY"))
+    try:
+        sid = serializer.loads(
+            token, salt=os.getenv("SECURITY_PASSWORD_SALT"), max_age=expiration
+        )
+        return sid == current_sid
+    except Exception:
+        return False
+    
+def is_valid_csrf_or_abort():
+    token = (
+        request.headers.get("X-CSRF-Token")
+        or request.form.get("csrf_token")
+    )
+
+    if not token or not is_valid_csrf_token(token):
+        log.warning("CSRF token missing or invalid for request to %s from %s", request.path, request.remote_addr)
+        abort(403)
+
 
 def abort_if_not_signed_in():
     if not is_user_logged_in():
@@ -32,7 +69,7 @@ def associate_fingerprint_to_session(fingerprint: str, sessionID: str) -> None:
         WHERE sid = %s
     """, params=(fingerprint, sessionID,))
 
-def create_fingerprint() -> str:
+def get_fingerprint() -> str:
     user_agent = request.headers.get("User-Agent")
     accepted_languages = request.headers.get("Accept-Language")
     ip_address = request.remote_addr

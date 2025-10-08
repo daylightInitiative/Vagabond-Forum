@@ -36,6 +36,4 @@ def serve_userpage(userid):
 
     get_user_posts = rows_to_dict(post_rows, post_cols)
 
-    log.debug(user_info)
-
     return custom_render_template("user_page.html", userinfo=user_info, posts=get_user_posts)

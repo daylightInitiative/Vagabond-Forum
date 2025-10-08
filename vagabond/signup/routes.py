@@ -3,7 +3,7 @@ from flask import request, jsonify, redirect, abort, make_response, url_for
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
     associate_fingerprint_to_session,
-    create_fingerprint,
+    get_fingerprint,
     create_session
 )
 from vagabond.services import limiter
@@ -84,9 +84,9 @@ def confirm_signup_code():
 
     log.debug("Sending session to client from signup")
     response = make_response(redirect(url_for("index")))
-    response.set_cookie(key="sessionID", value=sid)
+    response.set_cookie(key="sessionID", value=sid, max_age=7200)
 
-    user_fingerprint = create_fingerprint()
+    user_fingerprint = get_fingerprint()
     associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
     
     return response

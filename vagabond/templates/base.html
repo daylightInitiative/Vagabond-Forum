@@ -37,5 +37,5 @@
         <span>&copy; Vagabond Forum 2025</span>
     </footer>
     <!-- This way all templates that use this as a base will have access to the csrf token -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="{{ get_csrf_token() }}">
 </html>

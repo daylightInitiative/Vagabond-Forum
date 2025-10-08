@@ -1,0 +1,173 @@
+./init_db.py:67:            # email, username, account_locked, loginAttempts, is_online, hashed_password, is_superuser
+./vagabond/admin/routes.py:7:import logging
+./vagabond/admin/routes.py:9:log = logging.getLogger(__name__)
+./vagabond/admin/routes.py:23:    log.debug(user_to_moderate)
+./vagabond/analytics/module.py:4:import logging
+./vagabond/analytics/module.py:6:log = logging.getLogger(__name__)
+./vagabond/analytics/routes.py:8:import logging
+./vagabond/analytics/routes.py:10:log = logging.getLogger(__name__)
+./vagabond/analytics/routes.py:51:        log.debug(registry_data)
+./vagabond/analytics/routes.py:58:        log.debug(data_dict)
+./vagabond/analytics/routes.py:64:# since we're google.... we need to use funny terminology lol
+./vagabond/analytics/routes.py:84:        log.debug(analytics_data)
+./vagabond/analytics/routes.py:98:        log.debug(user_fingerprint)
+./vagabond/analytics/routes.py:111:        #log.debug(get_session_id())
+./vagabond/config.py:3:import logging
+./vagabond/config.py:10:log = logging.getLogger(__name__)
+./vagabond/config.py:16:        log.critical("USAGE: CONFIG_PATH=/path/to/config.json")
+./vagabond/config.py:27:    log_level = "DEBUG"
+./vagabond/config.py:32:        log.warning("[+] Loaded configuration file: %s", config_path) # important for debugging to know which config
+./vagabond/config.py:46:                "file_log_level",
+./vagabond/config.py:47:                "console_log_level",
+./vagabond/dbmanager.py:3:import logging as log
+./vagabond/dbmanager.py:8:log = log.getLogger(__name__)
+./vagabond/dbmanager.py:25:            log.critical("Failure upon establishing a connection to the database: %s", e)
+./vagabond/dbmanager.py:46:                log.critical("Database write query failed: %s", e)
+./vagabond/dbmanager.py:73:            log.exception("Database query failed: %s", e)
+./vagabond/flask_wrapper.py:3:import logging
+./vagabond/flask_wrapper.py:6:log = logging.getLogger(__name__)
+./vagabond/flask_wrapper.py:19:    log.debug(raw_template_name)
+./vagabond/forum/module.py:3:import logging
+./vagabond/forum/module.py:5:log = logging.getLogger(__name__)
+./vagabond/forum/module.py:38:        log.error("Invalid post type: passed to is_user_content_owner")
+./vagabond/forum/module.py:50:    log.debug("check owner: %s", get_is_owner)
+./vagabond/forum/posts.py:9:    is_user_logged_in,
+./vagabond/forum/posts.py:18:import logging
+./vagabond/forum/posts.py:20:log = logging.getLogger(__name__)
+./vagabond/forum/posts.py:31:    if not is_user_logged_in():
+./vagabond/forum/posts.py:35:        # get saved draft logic here
+./vagabond/forum/posts.py:60:        log.debug(data)
+./vagabond/forum/posts.py:73:            log.critical("Failed to save draft data for tdid: %s", tdid)
+./vagabond/forum/posts.py:128:        log.debug(new_post_id)
+./vagabond/forum/routes.py:9:    is_user_logged_in,
+./vagabond/forum/routes.py:17:import logging
+./vagabond/forum/routes.py:21:log = logging.getLogger(__name__)
+./vagabond/forum/routes.py:29:        log.debug("We are viewing a singular post from /forums/%s/%s", post_num, content_hint)
+./vagabond/forum/routes.py:39:        log.debug(single_post)
+./vagabond/forum/routes.py:54:        log.debug(replies_list)
+./vagabond/forum/routes.py:79:        log.debug(post_type)
+./vagabond/forum/routes.py:82:            log.warning("we are deleting a post")
+./vagabond/forum/routes.py:96:            log.debug("Post has been soft marked for deletion")
+./vagabond/forum/routes.py:111:            log.info("Reply has been soft marked for deletion")
+./vagabond/forum/routes.py:134:        log.debug("creating a reply linked to the parent post")
+./vagabond/forum/routes.py:156:        log.debug(f"queried post {page_num}")
+./vagabond/forum/routes.py:166:        log.debug("is the page offset")
+./vagabond/forum/routes.py:185:        log.debug(posts)
+./vagabond/logFormat.py:3:import logging
+./vagabond/logFormat.py:5:def setup_logger(log):
+./vagabond/logFormat.py:6:    log.setLevel(app_config.console_log_level)
+./vagabond/logFormat.py:9:    if not log.hasHandlers():
+./vagabond/logFormat.py:10:        console_handler = logging.StreamHandler()
+./vagabond/logFormat.py:11:        console_handler.setLevel(logging.DEBUG)
+./vagabond/logFormat.py:14:        file_handler = logging.FileHandler("app.log")
+./vagabond/logFormat.py:15:        file_handler.setLevel(app_config.file_log_level)
+./vagabond/logFormat.py:16:        file_formatter = logging.Formatter(
+./vagabond/logFormat.py:21:        log.addHandler(console_handler)
+./vagabond/logFormat.py:22:        log.addHandler(file_handler)
+./vagabond/logFormat.py:24:class CustomFormatter(logging.Formatter):
+./vagabond/logFormat.py:36:        logging.DEBUG: light_blue + format_str + reset,
+./vagabond/logFormat.py:37:        logging.INFO: light_green + format_str + reset,
+./vagabond/logFormat.py:38:        logging.WARNING: yellow + format_str + reset,
+./vagabond/logFormat.py:39:        logging.ERROR: red + format_str + reset,
+./vagabond/logFormat.py:40:        logging.CRITICAL: bold_red + format_str + reset
+./vagabond/logFormat.py:46:            log_fmt = self.FORMATS.get(record.levelno, self.format_str)
+./vagabond/logFormat.py:47:            formatter = logging.Formatter(log_fmt)
+./vagabond/logFormat.py:51:            log_fmt = self.FORMATS.get(record.levelno, self.format_str)
+./vagabond/logFormat.py:52:            formatter = logging.Formatter(log_fmt)
+./vagabond/login/module.py:6:import logging
+./vagabond/login/module.py:9:log = logging.getLogger(__name__)
+./vagabond/login/module.py:11:# TODO: Add send email on new ip address login here,
+./vagabond/login/module.py:13:def increment_wrong_login_attempts():
+./vagabond/login/module.py:17:def is_valid_login(email: str, password: str) -> tuple[bool, str]:
+./vagabond/login/module.py:45:            log.warning("Cannot retrieve hash")
+./vagabond/login/module.py:57:        log.error("Unexpected error during login", exc_info=e)
+./vagabond/login/module.py:60:    log.debug("Successful login")
+./vagabond/login/module.py:61:    return True, "Login Successful"
+./vagabond/login/routes.py:2:    redirect_if_already_logged_in,
+./vagabond/login/routes.py:8:from vagabond.login import login_bp
+./vagabond/login/routes.py:9:from vagabond.login.module import is_valid_login
+./vagabond/login/routes.py:15:import logging
+./vagabond/login/routes.py:17:log = logging.getLogger(__name__)
+./vagabond/login/routes.py:19:@login_bp.route("/login", methods=["GET", "POST"])
+./vagabond/login/routes.py:22:def serve_login():
+./vagabond/login/routes.py:24:    redirect_if_already_logged_in()
+./vagabond/login/routes.py:27:        return custom_render_template("login.html")
+./vagabond/login/routes.py:36:        is_authenticated, errmsg = is_valid_login(email=email, password=password)
+./vagabond/login/routes.py:45:                return custom_render_template("login.html", errmsg="Internal server error: Failed to fetch user")    
+./vagabond/login/routes.py:48:                return custom_render_template("login.html", errmsg="Internal server error: Unable to acquire session ID")
+./vagabond/login/routes.py:50:            log.debug("Sending session to client")
+./vagabond/login/routes.py:62:            return custom_render_template("login.html", errormsg=errmsg)
+./vagabond/login/routes.py:64:@login_bp.route('/logout')
+./vagabond/login/routes.py:65:def logout():
+./vagabond/login/routes.py:70:    response = make_response(redirect(url_for('login.serve_login')))
+./vagabond/login/__init__.py:3:login_bp = Blueprint('login', __name__)
+./vagabond/login/__init__.py:4:from vagabond.login.routes import *
+./vagabond/main.py:2:import logging
+./vagabond/main.py:8:    get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint
+./vagabond/main.py:13:from vagabond.logFormat import setup_logger # we love colors
+./vagabond/main.py:22:from vagabond.login import login_bp
+./vagabond/main.py:43:log = logging.getLogger() # root logger doesnt need an identifier
+./vagabond/main.py:44:setup_logger(log)
+./vagabond/main.py:51:app.register_blueprint(login_bp)
+./vagabond/main.py:60:# https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
+./vagabond/main.py:69:        "is_authenticated": is_user_logged_in(),
+./vagabond/main.py:77:def log_request_info():
+./vagabond/main.py:80:    log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
+./vagabond/main.py:85:        log.debug("refered from %s", site_referral)
+./vagabond/main.py:116:    log.critical("Internal Server Error has occured: %s", error)
+./vagabond/main.py:147:    log.debug(categories_list)
+./vagabond/moderation.py:5:import logging
+./vagabond/moderation.py:7:log = logging.getLogger(__name__)
+./vagabond/moderation.py:44:        log.warning("hellban was given a null userid")
+./vagabond/moderation.py:81:        log.error("Invalid post type: passed to soft_delete_user_post")
+./vagabond/moderation.py:90:    log.warning(update_query)
+./vagabond/moderation.py:93:    log.debug(result)
+./vagabond/moderation.py:106:    # now lets log the action
+./vagabond/moderation.py:107:    log_action = dbmanager.write(query_str="""
+./vagabond/profile/routes.py:2:    get_session_id, is_user_logged_in, get_userid_from_session, abort_if_not_signed_in
+./vagabond/profile/routes.py:9:import logging
+./vagabond/profile/routes.py:11:log = logging.getLogger(__name__)
+./vagabond/profile/routes.py:77:            SELECT active, lastLogin, display_user_agent, ipaddr
+./vagabond/profile/routes.py:80:            ORDER BY lastLogin DESC
+./vagabond/profile/routes.py:88:                lastLogin = deep_get(get_list, i, 1),
+./vagabond/profile/routes.py:118:        log.debug("saved about me: %s", truncated_str)
+./vagabond/sessions/module.py:8:import logging
+./vagabond/sessions/module.py:12:log = logging.getLogger(__name__)
+./vagabond/sessions/module.py:19:    if not is_user_logged_in():
+./vagabond/sessions/module.py:22:def redirect_if_already_logged_in(page="index"):
+./vagabond/sessions/module.py:23:    if is_user_logged_in():
+./vagabond/sessions/module.py:28:    log.warning("associating fingerprint to session id")
+./vagabond/sessions/module.py:59:        log.critical("Failure to fetch TDID")
+./vagabond/sessions/module.py:65:def is_user_logged_in() -> bool:
+./vagabond/sessions/module.py:73:# returns the sessionID or None on error, intended to be called at login and signup
+./vagabond/sessions/module.py:89:            log.critical("Failed checking unique sid: %s", e)
+./vagabond/sessions/module.py:113:        log.critical("Failure to create a new session for userID: %s", userid)
+./vagabond/sessions/module.py:116:    log.debug("A new session was created successfully")
+./vagabond/sessions/module.py:157:        log.critical("Failed to invalidate session [%s]", sessionID)
+./vagabond/sessions/routes.py:5:import logging
+./vagabond/sessions/routes.py:7:log = logging.getLogger(__name__)
+./vagabond/sessions/routes.py:16:        log.critical("Failed to grab sid while trying to invalidate all other sessions")
+./vagabond/sessions/routes.py:29:    log.debug("signed out of sessions")
+./vagabond/signup/email.py:10:import logging
+./vagabond/signup/email.py:14:log = logging.getLogger(__name__)
+./vagabond/signup/email.py:37:            #server.login(sender_email, password)
+./vagabond/signup/email.py:40:            log.debug(f"Email sent to {receiver_email}")
+./vagabond/signup/email.py:43:        log.error(f"SMTP error occurred while sending email: {smtp_err}")
+./vagabond/signup/email.py:46:        log.error(f"A SMTP error occurred: {e}")
+./vagabond/signup/email.py:49:        log.error(f"Unexpected error occurred while sending email: {e}")
+./vagabond/signup/module.py:6:import logging
+./vagabond/signup/module.py:9:log = logging.getLogger(__name__)
+./vagabond/signup/module.py:28:        # now lets hash the password, create the user and log them in (log in happens in main)
+./vagabond/signup/module.py:45:        log.error("Unexpected error during login", exc_info=e)
+./vagabond/signup/module.py:48:    log.debug("Successful Signup")
+./vagabond/signup/routes.py:4:    redirect_if_already_logged_in,
+./vagabond/signup/routes.py:17:import logging
+./vagabond/signup/routes.py:19:log = logging.getLogger(__name__)
+./vagabond/signup/routes.py:24:    redirect_if_already_logged_in()
+./vagabond/signup/routes.py:85:    log.debug("Sending session to client from signup")
+./vagabond/users/routes.py:7:import logging
+./vagabond/users/routes.py:10:log = logging.getLogger(__name__)
+./vagabond/users/routes.py:39:    log.debug(user_info)
+./vagabond/utility.py:1:import logging as log
+./vagabond/utility.py:9:log = log.getLogger(__name__)
+./vagabond/utility.py:74:        # log.warning("Failed to access element at [%s]: %d levels deep.\nerror: %s\nmethod call from: %s", data, i, e, caller_info)

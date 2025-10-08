@@ -1,6 +1,6 @@
 from vagabond.analytics import analytics_bp
 from vagabond.services import dbmanager, limiter
-from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, create_fingerprint
+from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, get_fingerprint
 from vagabond.moderation import is_admin
 from vagabond.utility import rows_to_dict, deep_get
 from flask import abort, redirect, jsonify, request
@@ -48,14 +48,12 @@ def send_analytics_data():
         # get unregistered users by saying IF FINGERPRINT ISNT IN SESSION IDS THEN (not a user)
 
         registry_data = rows_to_dict(reg_rows, reg_cols)[0]
-        log.debug(registry_data)
 
         # need to combine registry data with the dict inside exit_pages_dict_array
         data_dict = {
             "exit_pages": exit_pages_dict_array,
             "registry_data": registry_data
         }
-        log.debug(data_dict)
 
         return jsonify(data_dict), 200
     elif request.method == "POST":
@@ -81,7 +79,6 @@ def acquiesce_exitpage():
         # for right now before we get more "advanced" analytics
         # we're just going to track if the user is_online or not.
         analytics_data = request.get_json()
-        log.debug(analytics_data)
 
         exit_page_path = analytics_data.get("exitpage")
 
@@ -94,8 +91,7 @@ def acquiesce_exitpage():
         """, params=(exit_page_path,)) # in this case hits is ambigious so we reference the value explicitly when reading
 
         # update the duration for a session end
-        user_fingerprint = create_fingerprint()
-        log.debug(user_fingerprint)
+        user_fingerprint = get_fingerprint()
         dbmanager.write(query_str="""
             UPDATE impression_durations
             SET impression_end = NOW()

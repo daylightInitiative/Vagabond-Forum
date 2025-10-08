@@ -5,7 +5,7 @@ import os
 from vagabond.queries import *
 from vagabond.constants import *
 from vagabond.sessions.module import (
-    get_userid_from_session, is_user_logged_in, get_session_id, create_fingerprint
+    get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint, is_valid_csrf_or_abort
 )
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
@@ -32,12 +32,10 @@ from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.services import init_extensions, dbmanager, app_config, moment, limiter
 from vagabond.flask_wrapper import custom_render_template
 
-from flask_wtf import CSRFProtect
 load_dotenv(find_dotenv("secrets.env"))
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-csrf = CSRFProtect(app)
 
 app.config["custom_config"] = app_config
 log = logging.getLogger() # root logger doesnt need an identifier
@@ -63,12 +61,14 @@ app.register_blueprint(admin_bp)
 # I will eventually switch over to blueprints as the site gains complexity
 @app.context_processor
 def inject_jinja_variables():
+    from vagabond.sessions.module import get_csrf_token
     sid = get_session_id()
     user_id = get_userid_from_session(sessionID=sid)
     return {
         "is_authenticated": is_user_logged_in(),
         "current_userid": user_id,
-        "is_superuser": is_admin(userid=user_id)
+        "is_superuser": is_admin(userid=user_id),
+        "get_csrf_token": get_csrf_token
     }
 
 
@@ -77,6 +77,10 @@ def inject_jinja_variables():
 def log_request_info():
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
+    
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        is_valid_csrf_or_abort()
+
     log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1, visited_timestamp = NOW()')
 
@@ -92,7 +96,7 @@ def log_request_info():
         """, params=(site_referral,))
 
     # create the fingerprint hash
-    user_fingerprint = create_fingerprint()
+    user_fingerprint = get_fingerprint()
 
     # add the fingerprint to the database if it hasnt already
     # record the fingerprint, the number of times they've visited and the first time they visited (first seen the in wild)

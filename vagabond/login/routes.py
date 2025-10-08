@@ -1,7 +1,7 @@
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
     create_session, invalidate_session,
-    get_session_id, create_fingerprint,
+    get_session_id, get_fingerprint,
     associate_fingerprint_to_session
 )
 from vagabond.utility import get_userid_from_email
@@ -54,7 +54,7 @@ def serve_login():
             # now that we have set the session id, lets associate this fingerprint with the sid
             # mainly for internal security, but we also use this for analytics
 
-            user_fingerprint = create_fingerprint()
+            user_fingerprint = get_fingerprint()
             associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
 
             return response

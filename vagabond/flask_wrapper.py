@@ -1,4 +1,4 @@
-from vagabond.sessions.module import create_fingerprint
+from vagabond.sessions.module import get_fingerprint
 from flask import render_template
 import logging
 
@@ -7,7 +7,7 @@ log = logging.getLogger(__name__)
 
 def custom_render_template(template_name: str, **context):
 
-    user_fingerprint = create_fingerprint() # add this to the inject context processor
+    user_fingerprint = get_fingerprint() # add this to the inject context processor
     dbmanager.write(query_str="""
         INSERT INTO impressions (impression_hash, impression_hits, impression_first_visited)
         VALUES (%s, 1, NOW())

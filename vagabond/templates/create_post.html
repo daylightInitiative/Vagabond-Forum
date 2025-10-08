@@ -3,7 +3,7 @@
 {% block content %}
     <div>
             <form class="new-post-form" action="/post?category={{ post_category }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="csrf_token" value="{{ get_csrf_token() }}"/>
                 <h2>New Post</h2>
                 <label for="title">Post Title:</label>
                 <input type="text" id="title" maxlength="250" name="title" required>
