@@ -65,7 +65,8 @@ def serve_login():
         else:
             return custom_render_template("login.html", errormsg=errmsg)
 
-@login_bp.route('/logout')
+@login_bp.route('/logout', methods=["GET"])
+@csrf_exempt
 def logout():
     sid = get_session_id()
     if sid:

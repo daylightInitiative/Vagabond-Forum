@@ -24,46 +24,21 @@ log = logging.getLogger(__name__)
 
 from functools import wraps
 
-def Session_Activity_Handler(app):
-    @app.before_request
-    def update_session_activity():
-        sid = get_session_id()
-        if not sid:
-            return  # no session to refresh
-        
-        if not is_valid_session(sessionID=sid):
-            return
-
-        session_duration = timedelta(hours=2)
-        expires_at = datetime.now(timezone.utc) + session_duration
-
-        # Update the existing session row for this sid
-        try:
-            success = dbmanager.write(query_str="""
-                    UPDATE sessions_table
-                    SET expires_at = %s
-                    WHERE sid = %s
-                """,
-                params=(expires_at, sid)
-            )
-
-            if success == DBStatus.SUCCESS:
-                log.debug("Refreshed activity for sid %s", sid)
-            else:
-                log.error("Failure to refresh session for sid %s", sid)
-        except Exception as e:
-            log.error("Exception refreshing session for sid %s: %s", sid, e)
-
-        log.info("Refreshing session %s", sid)
-    
 
 def CSRF(app):
     @app.before_request
     def csrf_protect():
         if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            endpoint = request.endpoint
+            if not endpoint:
+                log.error("Missing endpoint: %s", request.full_path)
+                abort(403)
+
             view_func = app.view_functions[request.endpoint]
-            if not getattr(view_func, '_csrf_exempt', False):
+            if view_func and not getattr(view_func, '_csrf_exempt', False):
                 is_valid_csrf_or_abort()
+            else:
+                log.debug("skipping CSRF check because view was explicitly ommited")
 
 # every function in python is an object, and instead of keeping a global list
 # we can at decorator time just attach a special attribute to check with getattr
@@ -99,11 +74,13 @@ def is_valid_csrf_token(token, expiration=7200) -> str | bool:
     
 def is_valid_csrf_or_abort():
     token = (
-        request.headers.get("X-CSRF-Token")
+        request.headers.get("X-CSRFToken")
         or request.form.get("csrf_token")
     )
 
     if not token or not is_valid_csrf_token(token):
+        sid = get_session_id()
+
         log.warning("CSRF token missing or invalid for request to %s from %s", request.path, request.remote_addr)
         abort(403)
 
@@ -222,12 +199,13 @@ def is_valid_session(sessionID: str) -> bool:
     is_session_valid = dbmanager.read(query_str="""
         SELECT 1
         FROM sessions_table
-        WHERE sid = %s AND fingerprint_id = %s AND active = TRUE AND (expires_at IS NULL OR expires_at > NOW())
-    """, fetch=True, params=(sessionID, fingerprint,))
+        WHERE sid = %s AND active = TRUE AND (expires_at IS NULL OR expires_at > NOW())
+    """, fetch=True, params=(sessionID,))
+    # #  removing this for now until we can get a better solution
 
     return is_session_valid or False # it wasnt found or something wrong is going on
 
-def get_userid_from_session(sessionID: str) -> str:
+def get_userid_from_session(sessionID: str) -> str | None:
     get_userid = dbmanager.read(query_str="""
             SELECT user_id
             FROM sessions_table
@@ -241,6 +219,8 @@ def get_userid_from_session(sessionID: str) -> str:
 def invalidate_session(sessionID: str) -> None:
     invalidate_session = None
     n_retries = 0
+
+    log.warning("Invalidating session of sid: %s", sessionID)
 
     # retry until success
     while invalidate_session != DBStatus.SUCCESS and n_retries < 3:

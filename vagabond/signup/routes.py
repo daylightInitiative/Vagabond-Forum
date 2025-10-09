@@ -19,8 +19,9 @@ import logging
 
 log = logging.getLogger(__name__)
 
-@csrf_exempt
+
 @signup_bp.route('/signup', methods=['GET', 'POST'])
+@csrf_exempt
 def signup_page():
     
     redirect_if_already_logged_in()

@@ -17,7 +17,7 @@ def serve_userpage(userid):
         return '', 422
     
     user_rows, user_cols = dbmanager.read(query_str="""
-        SELECT p.description, username, is_online, lastSeen, join_date, avatar_hash
+        SELECT p.description, users.id, username, is_online, lastSeen, join_date, avatar_hash
         FROM users
         LEFT JOIN profiles AS p ON p.profile_id = users.id
         WHERE users.id = %s

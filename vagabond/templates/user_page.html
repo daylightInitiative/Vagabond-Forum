@@ -12,6 +12,103 @@
             <p>Last Online: {{ userinfo.lastseen }}</p>
             <p>Joined: {{ userinfo.join_date }}</p>
             <p>About Me: {{ userinfo.description or '' }}</p>
+
+            <!-- We dont want users to be able to report themselves lol -->
+            {% if current_userid != userinfo.id %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportMenu">Report User</button>
+
+                <!-- Modal -->
+                <div class="modal fade" id="reportMenu" tabindex="-1" aria-labelledby="reportMenuLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+
+                            <form id="reportForm">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="reportMenuLabel">Submit a report ticket</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="recipient-name" class="col-form-label">Report user: <b>{{ userinfo.username }}</b></label>
+                                        <input type="text" class="form-control" placeholder="Title" id="recipient-name">
+                                    </div>
+                                    <!-- <div class="mb-3">
+                                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">None Selected</button>
+                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                            <li><a class="dropdown-item" href="#">Action</a></li>
+                                            <li><a class="dropdown-item" href="#">Another action</a></li>
+                                            <li><a class="dropdown-item" href="#">Something else here</a></li>
+                                        </ul>
+                                    </div> -->
+                                    <div class="mb-3">
+                                        <label for="message-text" class="col-form-label">Report Message</label>
+                                        <textarea class="form-control" id="message-text" placeholder="Explain what happened in your own words..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Submit Report</button>
+                                </div>
+                            </form>
+
+                        </div>
+                    </div>
+                </div>
+
+            {% endif %}
+
+            <script>
+                // Must include a DOMContentLoaded if accessing the csrf token, as it is not always immediately available
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(function(item) {
+                        item.addEventListener('click', function() {
+                            const dropdownButton = document.getElementById('dropdownMenuButton1');
+                            dropdownButton.textContent = this.textContent;
+                        });
+                    });
+
+                    document.getElementById('reportForm').addEventListener('submit', function (e) {
+                        e.preventDefault();
+
+                        const title = document.getElementById('recipient-name').value;
+                        const message = document.getElementById('message-text').value;
+
+                        if (title.length <= 3) {
+                            return alert("Report title must be greater than 3 characters.");
+                        }
+
+                        if (message.length <= 35) {
+                            return alert("Report title must be greater than 50 characters.");
+                        }
+
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                        fetch('/moderation/ticket', {
+                            method: 'POST',
+                            headers: {
+                                "Content-type": "application/json; charset=UTF-8",
+                                "X-CSRFToken": csrfToken
+                            },
+                            body: JSON.stringify({
+                                ticket_type: "report",
+                                title: title,
+                                contents: message
+                            })
+                        }).then(response => {
+                            if (response.ok) {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('reportMenu'));
+                                modal.hide();
+                            } else {
+                                console.log("Failed to submit report");
+                            }
+                        })
+                    .catch(error => {
+                        console.error("Error submitting report:", error);
+                    });
+                }); 
+                });
+            </script>
         </div>
         <div class="posts-container">
             <div class="posts-bar">

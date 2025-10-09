@@ -7,89 +7,93 @@
     <canvas id="exitPageChart" style="width:100%;max-width:700px"></canvas>
     <script>
 
-        async function get_data(endpoint) {
-            try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                const response = await fetch(endpoint, {
-                    headers: {
-                        "Content-type": "application/json; charset=UTF-8",
-                        "X-CSRFToken": csrfToken
-                    },
-                });
-                if(!response.ok) {
-                    throw new Error(`Reponse status: ${response.status}`);
-                }
-                const data = await response.json();
-                return data;
-                
-            } catch (error) {
-                console.log(error);
-            }
-
-            return null;
-        }
-
         
 
-        async function display_analytics() {
-            const draftData = await get_data("/get_analytics_data");
-            console.log(draftData);
-            if (draftData) {
-                var xValues = [];
-                var yValues = [];
-
-                draftData.exit_pages.forEach(function(key, value) {
-                    console.log(`Element at index ${key}: ${value}`);
-                    xValues.push(key.pagepath);
-                    yValues.push(key.hits);
-                });
-
-                // get the "contents" from the returned json
-                var barColors = ["red", "green","blue","orange","brown", "yellow", "black"];
-
-                new Chart("exitPageChart", {
-                type: "bar",
-                data: {
-                    labels: xValues,
-                    datasets: [{
-                    backgroundColor: barColors,
-                    data: yValues
-                    }]
-                },
-                options: {
-                    legend: {display: false},
-                    title: {
-                    display: true,
-                    text: "Exit page hits as per page"
+        document.addEventListener("DOMContentLoaded", function() {
+            async function get_data(endpoint) {
+                try {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                    const response = await fetch(endpoint, {
+                        headers: {
+                            "Content-type": "application/json; charset=UTF-8",
+                            "X-CSRFToken": csrfToken
+                        },
+                    });
+                    if(!response.ok) {
+                        throw new Error(`Reponse status: ${response.status}`);
                     }
+                    const data = await response.json();
+                    return data;
+                    
+                } catch (error) {
+                    console.log(error);
                 }
-                });
 
-                var yValues = [];
-                yValues.push(draftData.registry_data.num_unregistered, draftData.registry_data.num_registered);
-
-                console.log(draftData.registry_data.num_unregistered, draftData.registry_data.num_registered);
-                
-                new Chart("usersChart", {
-                type: "pie",
-                data: {
-                    labels: ["Unregistered users", "Registered users"],
-                    datasets: [{
-                    backgroundColor: barColors,
-                    data: yValues
-                    }]
-                },
-                options: {
-                    title: {
-                    display: true,
-                    text: "% Users unregistered vs registered"
-                    }
-                }
-                });
+                return null;
             }
-        }
 
-        display_analytics();
+            
+
+            async function display_analytics() {
+                const draftData = await get_data("/get_analytics_data");
+                console.log(draftData);
+                if (draftData) {
+                    var xValues = [];
+                    var yValues = [];
+
+                    draftData.exit_pages.forEach(function(key, value) {
+                        console.log(`Element at index ${key}: ${value}`);
+                        xValues.push(key.pagepath);
+                        yValues.push(key.hits);
+                    });
+
+                    // get the "contents" from the returned json
+                    var barColors = ["red", "green","blue","orange","brown", "yellow", "black"];
+
+                    new Chart("exitPageChart", {
+                    type: "bar",
+                    data: {
+                        labels: xValues,
+                        datasets: [{
+                        backgroundColor: barColors,
+                        data: yValues
+                        }]
+                    },
+                    options: {
+                        legend: {display: false},
+                        title: {
+                        display: true,
+                        text: "Exit page hits as per page"
+                        }
+                    }
+                    });
+
+                    var yValues = [];
+                    yValues.push(draftData.registry_data.num_unregistered, draftData.registry_data.num_registered);
+
+                    console.log(draftData.registry_data.num_unregistered, draftData.registry_data.num_registered);
+                    
+                    new Chart("usersChart", {
+                    type: "pie",
+                    data: {
+                        labels: ["Unregistered users", "Registered users"],
+                        datasets: [{
+                        backgroundColor: barColors,
+                        data: yValues
+                        }]
+                    },
+                    options: {
+                        title: {
+                        display: true,
+                        text: "% Users unregistered vs registered"
+                        }
+                    }
+                    });
+                }
+            }
+
+            display_analytics();
+        });
     </script>
 
     <link rel="stylesheet" href="/static/css/page_style.css">

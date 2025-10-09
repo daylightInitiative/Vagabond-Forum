@@ -82,6 +82,18 @@ CREATE TABLE IF NOT EXISTS sessions_table (
     FOREIGN KEY (temp_data_sid) REFERENCES temp_session_data(tempid)
 );
 
+CREATE TABLE IF NOT EXISTS tickets (
+    ticket_type VARCHAR(8) NOT NULL, -- appeal, support, report, feedback
+    ticket_status VARCHAR(25) NOT NULL, -- approved, needs_investigation, under_review
+    title VARCHAR(64) NOT NULL,
+    contents VARCHAR(2048) NOT NULL,
+    reporter_userid BIGINT NOT NULL,
+    creation_date TIMESTAMPTZ DEFAULT NOW(),
+    solved_at TIMESTAMPTZ,
+    ticket_conclusion VARCHAR(2048) NOT NULL DEFAULT 'No conclusion provided',
+    FOREIGN KEY (reporter_userid) REFERENCES users(id)
+);
+
 -- title, contents, pinned, author
 CREATE TABLE IF NOT EXISTS news_feed (
     id SERIAL PRIMARY KEY,

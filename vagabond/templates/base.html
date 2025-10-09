@@ -36,6 +36,56 @@
     <footer>
         <span>&copy; Vagabond Forum 2025</span>
     </footer>
+    {% if is_authenticated %}
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                async function getCSRF() {
+                    try {
+                        const response = await fetch('/csrf-token');
+                        if (response.ok) {
+                            const data = await response.json();
+                            return data.csrf_token;
+                        } else {
+                            console.error("Failed to fetch CSRF token");
+                        }
+                    } catch (err) {
+                        console.error("Error fetching CSRF token:", err);
+                    }
+                }
+
+                // update the meta tag
+                // update all the forms input tag
+
+                // now lets update the csrf token meta tag until we can achieve future unification
+                async function update_CSRF_fields() {
+                    const csrf_token = await getCSRF();
+                    
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    if (csrfMeta) {
+                        csrfMeta.setAttribute("content", csrf_token);
+                    }
+
+                    console.log("updated meta tag");
+                    
+                    document.querySelectorAll('form').forEach(form => {
+                        const csrfInputs = form.querySelectorAll('input[name="csrf_token"]');
+                        csrfInputs.forEach(input => {
+                            input.value = csrf_token;
+                        });
+
+                        form.addEventListener('submit', async (event) => {
+                            const newToken = await getCSRF();
+                            csrfInputs.forEach(input => {
+                                input.value = newToken;
+                            });
+                        });
+                    });
+                }
+
+                update_CSRF_fields();
+            });
+        </script>
+    {% endif %}
     <!-- This way all templates that use this as a base will have access to the csrf token -->
     <meta name="csrf-token" content="{{ get_csrf_token() }}">
 </html>

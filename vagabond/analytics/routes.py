@@ -1,6 +1,6 @@
 from vagabond.analytics import analytics_bp
 from vagabond.services import dbmanager, limiter
-from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, get_fingerprint
+from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, get_fingerprint, csrf_exempt
 from vagabond.moderation import is_admin
 from vagabond.utility import rows_to_dict, deep_get
 from flask import abort, redirect, jsonify, request
@@ -61,6 +61,7 @@ def send_analytics_data():
 
 # since we're google.... we need to use funny terminology lol
 @analytics_bp.route('/analytics', methods=['GET', 'POST'])
+@csrf_exempt
 def acquiesce_exitpage():
 
     if request.method == "GET":
@@ -114,5 +115,7 @@ def acquiesce_exitpage():
                 FROM sessions_table st
                 WHERE users.id = st.user_id AND sid = %s
             """, params=(sid,))
+
+        log.warning("Saved analytics data for viewing of SID: %s", sid)
 
         return '', 200

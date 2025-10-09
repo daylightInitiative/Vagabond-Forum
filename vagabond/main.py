@@ -5,7 +5,7 @@ import os
 from vagabond.queries import *
 from vagabond.constants import *
 from vagabond.sessions.module import (
-    get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint, is_valid_csrf_or_abort, CSRF, Session_Activity_Handler
+    get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint, is_valid_csrf_or_abort, CSRF, is_valid_session, invalidate_session
 )
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.utility import included_reload_files
@@ -37,7 +37,6 @@ load_dotenv(find_dotenv("secrets.env"))
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
-Session_Activity_Handler(app)
 CSRF(app)
 
 app.config["custom_config"] = app_config
@@ -80,13 +79,20 @@ def inject_jinja_variables():
 def log_request_info():
     if '/static' in request.path: # we dont want resources to count as a website visit
         return
+    
+    sid = get_session_id()
+    if not sid:
+        return  # no session to refresh
+        
+    if not is_valid_session(sessionID=sid):
+        invalidate_session(sessionID=sid)
+        return
 
     log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
     dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1, visited_timestamp = NOW()')
 
     site_referral = request.headers.get("Referer")
     if site_referral:
-        log.debug("refered from %s", site_referral)
 
         dbmanager.write(query_str="""
             INSERT INTO referrer_links (link_origin, hits)
@@ -101,7 +107,6 @@ def log_request_info():
     # add the fingerprint to the database if it hasnt already
     # record the fingerprint, the number of times they've visited and the first time they visited (first seen the in wild)
 
-    sid = get_session_id()
     user_id = get_userid_from_session(sessionID=sid)
 
     if user_id:
