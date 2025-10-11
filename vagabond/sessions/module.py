@@ -118,19 +118,22 @@ def get_fingerprint() -> str:
 def get_session_id() -> str | None:
     return request.cookies.get("sessionID") or None
 
-def get_tdid(sessionID: str) -> str | None:
-    get_tdid = dbmanager.read(query_str="""
+def get_tsid(sessionID: str) -> str | None:
+    if not is_valid_session(sessionID=sessionID):
+        return None
+
+    get_tsid = dbmanager.read(query_str="""
         SELECT temp_data_sid
         FROM sessions_table
         WHERE sid = %s
     """, params=(sessionID,))
 
-    if get_tdid == DBStatus.FAILURE:
-        log.critical("Failure to fetch TDID")
+    if get_tsid == DBStatus.FAILURE:
+        log.critical("Failure to fetch tsid")
         return '', 500
 
-    tdid = deep_get(get_tdid, 0, 0)
-    return tdid if tdid else None
+    tsid = deep_get(get_tsid, 0, 0)
+    return tsid if tsid else None
 
 def is_user_logged_in() -> bool:
     sid = get_session_id()

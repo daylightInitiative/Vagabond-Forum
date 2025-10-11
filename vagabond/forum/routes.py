@@ -7,7 +7,7 @@ from vagabond.sessions.module import (
     get_session_id,
     get_userid_from_session,
     is_user_logged_in,
-    get_tdid
+    get_tsid
 )
 from vagabond.forum.module import get_is_post_locked, is_user_content_owner, get_is_category_locked, get_is_post_deleted
 from vagabond.moderation import is_admin, soft_delete_user_post

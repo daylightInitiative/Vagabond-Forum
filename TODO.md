@@ -2,6 +2,7 @@
 
 - [x] convert app to run in a docker instance for repro
 - [x] basic routes and cleanup sql requests
+- [x] basic ticket system for user reporting
 - [ ] add sending emails externally
 - [ ] add muting foreign key to users table
 - [ ] add a ticket system for admins and moderators

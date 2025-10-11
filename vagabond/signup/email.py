@@ -6,9 +6,13 @@ from typing import TypedDict, List
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv, find_dotenv
-from vagabond.services import app_config
+from vagabond.services import app_config, dbmanager
+from vagabond.utility import deep_get
+from vagabond.sessions.module import get_tsid
 import logging
 import os
+import string
+import secrets
 load_dotenv(find_dotenv("secrets.env"))
 
 log = logging.getLogger(__name__)
@@ -50,12 +54,59 @@ def send_email(receiver_email: str, email_dict: EmailContent) -> None:
 
     return None
 
+"""Generates the 2fa code, adds it to the db and then returns"""
+def generate_2FA_code(sessionID: str) -> str:
+    new_2fa_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(6))
+    tsid = get_tsid(sessionID=sessionID)
+
+    # only one code, on conflict update the code
+    dbmanager.write(query_str="""
+        INSERT INTO verification_codes (temp_session_id, code)
+        VALUES (%s, %s)
+        ON CONFLICT (temp_session_id) DO UPDATE
+        SET 
+            code = EXCLUDED.code,
+            created_at = NOW(),
+            expires_at = NOW() + INTERVAL '1 hour';
+    """, params=(tsid, new_2fa_code,))
+
+    return new_2fa_code
+
+def confirm_2FA_code(sessionID: str, code: str) -> bool:
+    tsid = get_tsid(sessionID=sessionID)
+
+    code_exists = dbmanager.read(query_str="""
+        SELECT TRUE
+        FROM verification_codes
+        WHERE temp_session_id = %s AND expires_at > NOW() AND code = %s
+    """, params=(tsid, code,))
+
+    if not code_exists:
+        return False
+
+    code_is_valid = deep_get(code_exists, 0, 0)
+
+    if not code_is_valid:
+        return False
+    
+    return True
+
+def send_2fa_code(email: str, code: str) -> None:
+    send_email(receiver_email=email, email_dict={
+        "subject": "Your 2fa authentication code",
+        "body": f"""
+            <b>Hello user, use this temporary code to enable 2fa.</b><br><br>
+            <p>{code}</p>
+        """
+    })
+    return None
+
 def send_confirmation_code(email: str, code: str) -> None:
     confirmation_url = url_for("signup.confirm_signup_code", token=code, _external=True)
     send_email(receiver_email=email, email_dict={
         "subject": "Your temporary signup code",
         "body": f"""
-            <b>Hello, user use this temporary link to complete your account setup.</b><br><br>
+            <b>Hello user, use this temporary link to complete your account setup.</b><br><br>
             <a href="{confirmation_url}">Click this link<a> to finalize your account setup: 
         """
     })

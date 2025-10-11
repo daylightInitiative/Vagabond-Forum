@@ -3,14 +3,15 @@ from vagabond.sessions.module import (
 )
 from vagabond.services import limiter, dbmanager
 from vagabond.profile import profile_bp
-from vagabond.utility import deep_get, get_censored_email
+from vagabond.signup.email import generate_token, confirm_token, send_2fa_code, generate_2FA_code, confirm_2FA_code
+from vagabond.utility import deep_get, get_censored_email, get_email_from_userid
 from vagabond.flask_wrapper import custom_render_template
 from flask import request, redirect, jsonify, url_for, abort
 import logging
 
 log = logging.getLogger(__name__)
 
-@profile_bp.route('/account/settings/2fa', methods=["POST"])
+@profile_bp.route('/account/settings/2fa', methods=["GET", "POST"]) # TODO: add easy way to send requests, and PATCH, PUT, DELETE
 def toggle_2fa():
     abort_if_not_signed_in()
 
@@ -20,26 +21,49 @@ def toggle_2fa():
     if not sid or not userid:
         abort(401)
 
-    data = request.get_json()
-    should_2fa_be_enabled = data.get("enabled")
+    if request.method == "GET":
+        # generate a new verification code and send to the users email
+        user_email = get_email_from_userid(userid=userid)
+        new_2FA_code = generate_2FA_code(sessionID=sid)
 
-    # need to add csrf protection to this request
-    if not should_2fa_be_enabled:
-        return jsonify({"error": "Invalid request"}), 422
-    
-    # bools are super iffy, so we're just going to compare using a number
-    if not isinstance(should_2fa_be_enabled, bool):
-        return jsonify({"error": "Invalid request"}), 422
-    
-    is_enabled = int(should_2fa_be_enabled)
+        send_2fa_code(email=user_email, code=new_2FA_code)
+        log.warning("sending verification code to email....")
 
-    dbmanager.write(query_str="""
-        UPDATE users
-        SET is_2fa_enabled = %s
-        WHERE id = %s
-    """, params=(is_enabled, userid,))
+        return '', 200
+    elif request.method == "POST":
 
-    return '', 200
+        data = request.get_json()
+        confirm_code = data.get("confirm_code")
+
+        if not confirm_code:
+            return jsonify({"error": "Invalid form data"}) # we should define errors as constants
+
+        is_2fa_enabled = dbmanager.read(query_str="""
+            SELECT is_2fa_enabled
+            FROM users
+            WHERE id = %s
+        """, params=(userid,))
+        should_2fa_be_enabled = deep_get(is_2fa_enabled, 0, 0) # default its usually at
+        log.debug("is 2fa enabled: %s, %s", should_2fa_be_enabled, type(should_2fa_be_enabled))
+        
+        # bools are super iffy, so we're just going to compare using a number
+        if not isinstance(should_2fa_be_enabled, bool):
+            return jsonify({"error": "Invalid request"}), 422
+        
+        is_enabled = not should_2fa_be_enabled
+
+        if not confirm_2FA_code(sessionID=sid, code=confirm_code):
+            return '', jsonify({"error": "Invalid 2FA code"}) # somehow display/handle this on the frontend
+
+        dbmanager.write(query_str="""
+            UPDATE users
+            SET is_2fa_enabled = %s
+            WHERE id = %s
+        """, params=(is_enabled, userid,))
+
+        log.warning("Toggled 2fa, following a successful email verification")
+
+        return redirect(url_for("profile.serve_profile"))
 
 
 @profile_bp.route('/profile', methods=["GET", "POST"])
@@ -52,7 +76,7 @@ def serve_profile():
     if request.method == "GET":
         
         get_info = dbmanager.read(query_str="""
-            SELECT email, username, join_date, avatar_hash
+            SELECT email, username, join_date, avatar_hash, is_2fa_enabled
             FROM users
             WHERE id = %s
         """, params=(userid,))
@@ -63,13 +87,15 @@ def serve_profile():
         username = deep_get(get_info, 0, 1)
         joinDate = deep_get(get_info, 0, 2)
         avatar_hash = deep_get(get_info, 0, 3)
+        is_2fa_enabled = deep_get(get_info, 0, 4)
 
         userinfo = dict(
             userid = userid,
             username = username,
             join_date = joinDate,
             avatar_hash = avatar_hash,
-            email = hidden_email
+            email = hidden_email,
+            is_2fa_enabled = is_2fa_enabled
         )
 
         # get the session profiles to be displayed in the profile file (for right now)

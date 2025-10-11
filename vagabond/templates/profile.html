@@ -10,6 +10,102 @@
         {% endif %}
     {% endif %}
 
+    <button id="openAuth" style="width: 150px; align-self: center;" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#authMenu">
+        {{ 'Enable 2FA' if not userinfo.is_2fa_enabled else 'Disable 2FA' }}
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="authMenu" tabindex="-1" aria-labelledby="authMenuLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <form id="reportForm">
+                    <!-- <input type="hidden" name="csrf_token" value="{{ get_csrf_token() }}"/> -->
+                    <div class="modal-header">
+                    <h5 class="modal-title" id="authMenuLabel">Authenticate to toggle 2FA for user: <i>{{ userinfo.username }}</i></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="recipient-name" class="col-form-label">Check your email for a temporary 2FA authentication code. Expires in 1hr.</b></label>
+                            <input type="text" class="form-control" placeholder="Your 6 digit code" id="verification_code" maxlength="6">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Submit Report</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            async function get_data(endpoint) {
+                try {
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                    const response = await fetch(endpoint, {
+                        headers: {
+                            "Content-type": "application/json; charset=UTF-8",
+                            "X-CSRFToken": csrfToken
+                        },
+                    });
+                    if(!response.ok) {
+                        throw new Error(`Reponse status: ${response.status}`);
+                    }
+                    // const data = await response.json();
+                    // return data;
+                    
+                } catch (error) {
+                    console.log(error);
+                }
+
+                return null;
+            }
+            // now lets send another email each time they open this menu
+            document.getElementById('openAuth').addEventListener('click', function (e) {
+                get_data("/account/settings/2fa"); // this will send email for a new code if authenticated
+            });
+
+            document.getElementById('reportForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const verification_code = document.getElementById('verification_code').value;
+                console.log(verification_code);
+
+                if (verification_code.length < 6) {
+                    return alert("Temporary code must not be greater than 6 digits.");
+                }
+
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                fetch('/account/settings/2fa', {
+                    method: 'POST',
+                    headers: {
+                        "Content-type": "application/json; charset=UTF-8",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: JSON.stringify({
+                        confirm_code: verification_code
+                    })
+                }).then(response => {
+                    if (response.ok) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('authMenu'));
+                        modal.hide();
+                    } else {
+                        console.log("Failed to submit report");
+                    }
+                })
+            .catch(error => {
+                console.error("Error submitting report:", error);
+            });
+        });
+        });
+    </script>
+
     <h2>About Me:</h2>
     <form class="new-post-form" action="/profile" method="POST">
         <input type="hidden" name="csrf_token" value="{{ get_csrf_token() }}"/>

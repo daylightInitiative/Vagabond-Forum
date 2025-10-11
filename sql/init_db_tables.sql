@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS impressions (
 );
 
 -- if we want it to be 1:1 we key by the impression_hash, otherwise like users we key by the serial id
--- also if you use a serial you dont need ON CONFLICT (tdid) DO NOTHING (or do something...?)
+-- also if you use a serial you dont need ON CONFLICT (tsid) DO NOTHING (or do something...?)
 CREATE TABLE IF NOT EXISTS impression_durations (
     id SERIAL PRIMARY KEY,
     impression_hash VARCHAR(64) NOT NULL,
@@ -50,8 +50,24 @@ CREATE TABLE IF NOT EXISTS users (
 );
 -- using TIMESTAMPZ to account for different timezones
 
--- this table is to keep track of admin's actions such as banning, shadowbanning and etc
+CREATE TABLE IF NOT EXISTS temp_session_data (
+    tempid SERIAL PRIMARY KEY,
+    draft_text VARCHAR(2000) DEFAULT '' NOT NULL,
+    last_updated TIMESTAMPTZ DEFAULT NOW()
+);
 
+-- instead of worrying about global uniqueness and all of this confusing on conflict stuff, lets isolate the latest 2fa code
+-- to the session's temp session data
+CREATE TABLE IF NOT EXISTS verification_codes (
+    temp_session_id BIGINT PRIMARY KEY,
+    code VARCHAR(6) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '1 hour',
+    FOREIGN KEY (temp_session_id) REFERENCES temp_session_data(tempid) ON DELETE CASCADE
+);
+
+-- this table is to keep track of admin's actions such as banning, shadowbanning and etc
+-- TODO: INSTALL PG_CRON EXTENSION FOR CLEANUP OF VERIFICATION CODES
 
 CREATE TABLE IF NOT EXISTS profiles (
     id SERIAL PRIMARY KEY,
@@ -60,11 +76,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     description VARCHAR(500) NOT NULL DEFAULT ''
 );
 
-CREATE TABLE IF NOT EXISTS temp_session_data (
-    tempid SERIAL PRIMARY KEY,
-    draft_text VARCHAR(2000) DEFAULT '' NOT NULL,
-    last_updated TIMESTAMPTZ DEFAULT NOW()
-);
+
 
 CREATE TABLE IF NOT EXISTS sessions_table (
     id SERIAL PRIMARY KEY,

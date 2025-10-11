@@ -5,7 +5,7 @@ Vagabond forum is a forum project written python using flask and postgresql as a
 - Categorized forums, with creator level and admin permissions
 - Permission system for administrators and audit logs for moderation
 - Forum credentials are stored in a `.env` file ignored by git and loaded at runtime
-- Server sided session based system for login/signup and authentication
+- Server sided session based system for login/signup and authentication, secured with stateless CSRF tokens
 - Creation, deletion of posts and replies to posts globally by admins, and post/reply creators
 - Browser fingerprinting for enhanced security and anonymous analytics
 - Rich analytics and graphs for viewing frequency of `exitpages` and the duration of a viewing page to page, tracks what sites are in the `Referer` header
@@ -15,6 +15,8 @@ Vagabond forum is a forum project written python using flask and postgresql as a
 - Dynamic creation of random pixelated patterns for default user avatars
 - Soft deletion of posts  for further investigation, review etc
 - Email verification upon account creation to prevent spam
+- User reporting and ticket system for moderation
+- 2FA email based verification (2-Factor authentication)
 
 ## Setup
 The easiest way to set up everything is to use docker... allegedly.

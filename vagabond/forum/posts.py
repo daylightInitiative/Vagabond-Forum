@@ -7,7 +7,7 @@ from vagabond.sessions.module import (
     get_session_id,
     get_userid_from_session,
     is_user_logged_in,
-    get_tdid
+    get_tsid
 )
 from vagabond.forum.module import get_is_category_locked
 from vagabond.moderation import is_admin
@@ -34,7 +34,7 @@ def save_draft():
     if request.method == "GET":
         # get saved draft logic here
         
-        temp_session_id = get_tdid(sessionID=sid)
+        temp_session_id = get_tsid(sessionID=sid)
         
         get_draft = dbmanager.read(query_str="""
             SELECT draft_text
@@ -60,17 +60,17 @@ def save_draft():
         log.debug(data)
 
         # get the temporary data id
-        tdid = get_tdid(sessionID=sid)
+        tsid = get_tsid(sessionID=sid)
 
         text_to_save = data.get("contents")
         save_draft = dbmanager.write(query_str="""
             UPDATE temp_session_data
             SET draft_text = %s
             WHERE tempid = %s
-        """, params=(text_to_save, tdid,))
+        """, params=(text_to_save, tsid,))
 
         if save_draft == DBStatus.FAILURE:
-            log.critical("Failed to save draft data for tdid: %s", tdid)
+            log.critical("Failed to save draft data for tsid: %s", tsid)
             return jsonify({"error": "Internal server error"}), 500
 
     return '', 200
