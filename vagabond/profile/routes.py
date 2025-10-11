@@ -3,10 +3,11 @@ from vagabond.sessions.module import (
 )
 from vagabond.services import limiter, dbmanager
 from vagabond.profile import profile_bp
-from vagabond.signup.email import generate_token, confirm_token, send_2fa_code, generate_2FA_code, confirm_2FA_code
+from vagabond.email import generate_token, confirm_token, send_2fa_code, generate_2FA_code, confirm_2FA_code
 from vagabond.utility import deep_get, get_censored_email, get_email_from_userid
 from vagabond.flask_wrapper import custom_render_template
 from flask import request, redirect, jsonify, url_for, abort
+from vagabond.moderation import ModerationAction
 import logging
 
 log = logging.getLogger(__name__)
@@ -51,6 +52,18 @@ def toggle_2fa():
             return jsonify({"error": "Invalid request"}), 422
         
         is_enabled = not should_2fa_be_enabled
+
+        action = ModerationAction.ENABLE_2FA if is_enabled else ModerationAction.DISABLE_2FA
+
+        dbmanager.write(query_str="""
+            INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
+                VALUES (%s, %s, %s, %s, NOW())
+        """, params=(
+            action.value,
+            userid,
+            1, # "SYSTEM" user
+            "User manually authenticated 2FA"
+        ))
 
         if not confirm_2FA_code(sessionID=sid, code=confirm_code):
             return '', jsonify({"error": "Invalid 2FA code"}) # somehow display/handle this on the frontend

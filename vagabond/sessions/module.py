@@ -114,9 +114,10 @@ def get_fingerprint() -> str:
 
     return hashobj.hexdigest()
 
-
+# it shouldnt be ambiguous that the session is valid or not.
 def get_session_id() -> str | None:
-    return request.cookies.get("sessionID") or None
+    sid = request.cookies.get("sessionID")
+    return sid if is_valid_session(sessionID=sid) else None
 
 def get_tsid(sessionID: str) -> str | None:
     if not is_valid_session(sessionID=sessionID):

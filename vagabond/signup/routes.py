@@ -10,7 +10,7 @@ from vagabond.sessions.module import (
 from vagabond.services import limiter
 from vagabond.profile.module import create_profile
 from vagabond.signup.module import signup
-from vagabond.signup.email import generate_token, confirm_token, send_confirmation_code
+from vagabond.email import generate_token, confirm_token, send_confirmation_code
 from vagabond.avatar import update_user_avatar, create_user_avatar
 from vagabond.flask_wrapper import custom_render_template
 from vagabond.utility import get_userid_from_email

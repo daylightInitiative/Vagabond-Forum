@@ -1,10 +1,64 @@
 from vagabond.services import dbmanager
 from vagabond.utility import deep_get
+from vagabond.sessions.module import get_session_id, get_userid_from_session
+from flask import abort, redirect, url_for, jsonify
 
-from enum import Enum, auto
+from functools import wraps
+from enum import Enum, auto, StrEnum
 import logging
 
 log = logging.getLogger(__name__)
+
+class UserPermission(StrEnum):
+    USER = "user"               # normal registered user
+    MODERATOR = "moderator"     # forum moderator
+    ADMIN = "admin"             # site admins who moderate, well..moderators
+
+def get_role_from_userid(userid: str) -> UserPermission | None:
+    has_role = dbmanager.read(query_str="""
+        SELECT user_role
+        FROM users
+        WHERE id = %s
+    """, params=(userid,))
+    current_role = deep_get(has_role, 0, 0)
+
+    if not current_role:
+        log.warning("Failure to fetch user role info for userid: %s", userid)
+        return None
+
+    role_to_return = None
+    try:
+        role_to_return = UserPermission(current_role)
+    except ValueError as e:
+        log.error("Failure converting user role into a UserPermission")
+        return None
+
+    return role_to_return
+
+def has_permission(userid: str, roles:list[UserPermission]) -> bool:
+    return True if get_role_from_userid(userid) in roles else False
+
+""" Decorator that checks if a user has authentication for a given route, with the new roles system
+    @requires_permission([UserPermission.ADMIN, ...])
+      Note: It is recomended to alias the user permissions for readability """
+def requires_permission(roles: list[UserPermission]):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            sid = get_session_id()
+            user_id = get_userid_from_session(sessionID=sid)
+
+            if not user_id:
+                return redirect(url_for("login.serve_login"))
+
+            user_role = get_role_from_userid(user_id)
+
+            if user_role not in roles:
+                return abort(403)
+
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 # these actions can also be performed by a special user named "SYSTEM" which is automated
 # TODO: move over ban data to another table specifically for it
@@ -30,12 +84,7 @@ class ModerationAction(Enum):
 
 
 def is_admin(userid: str) -> bool:
-    get_is_superuser = dbmanager.read(query_str="""
-        SELECT is_superuser
-        FROM users
-        WHERE id = %s
-    """, fetch=True, params=(userid,))
-    return deep_get(get_is_superuser, 0, 0) or False
+    return has_permission(userid=userid, roles=[UserPermission.ADMIN, UserPermission.MODERATOR])
 
 # i dont see any reason to "unhellban someone"
 def hellban_user(userid: str, admin_userid: str | None = None, reason: str | None = None) -> None: # interesting way of optional arguments with type checking

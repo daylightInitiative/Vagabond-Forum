@@ -1,7 +1,7 @@
 from vagabond.analytics import analytics_bp
 from vagabond.services import dbmanager, limiter
 from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, get_fingerprint, csrf_exempt
-from vagabond.moderation import is_admin
+from vagabond.moderation import requires_permission, UserPermission as Perms
 from vagabond.utility import rows_to_dict, deep_get
 from flask import abort, redirect, jsonify, request
 from vagabond.flask_wrapper import custom_render_template
@@ -10,16 +10,10 @@ import logging
 log = logging.getLogger(__name__)
 
 @analytics_bp.route('/get_analytics_data', methods=['GET'])
+@requires_permission([Perms.ADMIN, Perms.MODERATOR])
 def send_analytics_data():
     if request.method == "GET":
         abort_if_not_signed_in()
-
-        # admin check
-        sid = get_session_id()
-        userid = get_userid_from_session(sessionID=sid)
-        can_view = is_admin(userid)
-        if can_view == False:
-            abort(401)
 
         data_rows, data_cols = dbmanager.read(query_str="""
             SELECT pagePath, hits
@@ -61,19 +55,13 @@ def send_analytics_data():
 
 # since we're google.... we need to use funny terminology lol
 @analytics_bp.route('/analytics', methods=['GET', 'POST'])
+@requires_permission([Perms.ADMIN, Perms.MODERATOR])
 @csrf_exempt
 def acquiesce_exitpage():
 
     if request.method == "GET":
 
         abort_if_not_signed_in()
-
-        # admin check
-        sid = get_session_id()
-        userid = get_userid_from_session(sessionID=sid)
-        can_view = is_admin(userid)
-        if can_view == False:
-            abort(401)
 
         return custom_render_template("analytics.html")
     elif request.method == "POST":

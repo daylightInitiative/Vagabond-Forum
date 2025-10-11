@@ -54,7 +54,7 @@ def send_email(receiver_email: str, email_dict: EmailContent) -> None:
 
     return None
 
-"""Generates the 2fa code, adds it to the db and then returns"""
+"""Generates the 2fa code, adds it to the db and then returns the 2fa code"""
 def generate_2FA_code(sessionID: str) -> str:
     new_2fa_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(6))
     tsid = get_tsid(sessionID=sessionID)

@@ -60,13 +60,14 @@ if __name__ == '__main__':
             email = user.get("email")
             username = user.get("username")
             raw_password = user.get("password", generate_random_password(15)) # TODO: parsing of csv? or xlsx
-            is_superuser = user.get("superuser", False)
+            user_role = user.get("role", "user")
 
             hashstr, saltstr = create_hash(raw_password)
 
-            # email, username, account_locked, loginAttempts, is_online, hashed_password, is_superuser
+            # email, username, account_locked, loginAttempts, is_online, hashed_password, user_role
+            
             get_userid = dbmanager.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
-                email, username, False, False, hashstr, saltstr, is_superuser,))
+                email, username, False, False, hashstr, saltstr, user_role,))
             
             new_user_id = int(deep_get(get_userid, 0, 0))
             # create admins avatar

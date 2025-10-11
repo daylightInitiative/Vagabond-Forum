@@ -3,13 +3,19 @@
         "email": "SYSTEM",
         "username": "SYSTEM",
         "password": "welcome",
-        "superuser": true
+        "role": "admin"
     },
     { 
         "email": "admin@example.com",
         "username": "admin",
         "password": "welcome",
-        "superuser": true
+        "role": "admin"
+    },
+    { 
+        "email": "joeschmo1999@example.com",
+        "username": "joeschmo",
+        "password": "patriot",
+        "role": "moderator"
     },
     {
         "email": "johndoe@example.com",

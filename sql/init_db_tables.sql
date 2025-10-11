@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_online BOOLEAN NOT NULL DEFAULT FALSE,
     hashed_password VARCHAR(60) NOT NULL, -- bcrypt hash length
     password_salt VARCHAR(30) NOT NULL, -- bcrypt salt length default rounds
-    is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
+    user_role VARCHAR(10) NOT NULL,
     is_2fa_enabled BOOLEAN DEFAULT FALSE,
     avatar_hash VARCHAR(90), -- '/static/avatars/firstbyte/secondbyte/sha256hash.jpg = 90 in length
     lastSeen TIMESTAMPTZ DEFAULT NOW(),

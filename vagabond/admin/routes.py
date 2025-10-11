@@ -1,7 +1,8 @@
 from vagabond.flask_wrapper import custom_render_template
 from flask import request, redirect, abort, jsonify
 
-from vagabond.moderation import is_admin
+from vagabond.moderation import is_admin, requires_permission
+from vagabond.moderation import UserPermission as Perms
 from vagabond.sessions.module import abort_if_not_signed_in, get_session_id, get_userid_from_session, is_valid_session
 from vagabond.admin import admin_bp
 from vagabond.services import dbmanager, limiter
@@ -41,6 +42,7 @@ def create_ticket():
     return '', 200
 
 @admin_bp.route("/admin", methods=['GET', 'POST'])
+@requires_permission([Perms.ADMIN, Perms.MODERATOR])
 def serve_admin_panel():
     
     abort_if_not_signed_in()
