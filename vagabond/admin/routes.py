@@ -1,3 +1,4 @@
+from vagabond.constants import RouteError
 from vagabond.flask_wrapper import custom_render_template
 from flask import request, redirect, abort, jsonify
 
@@ -14,7 +15,7 @@ def contains_json_key_or_error(dictionary: dict, keydict: dict) -> None:
     for key, value in keydict.items():
         key_exists = dictionary.get(key)
         if not key_exists or not type(key_exists) == value:
-            return jsonify({"error": "Invalid Form data"}), 422
+            return jsonify({"error": RouteError.INVALID_FORM_DATA}), 422
     return None
 
 @admin_bp.route("/moderation/ticket", methods=['POST'])

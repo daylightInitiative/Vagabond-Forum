@@ -2,6 +2,7 @@
     "file_log_level": "INFO",
     "console_log_level": "DEBUG",
     "flask_config": {
+        "proxy": false,
         "host": "127.0.0.1",
         "port": "5000"
     },

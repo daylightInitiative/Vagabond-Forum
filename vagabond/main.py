@@ -17,6 +17,7 @@ from flask import Flask, jsonify, request, redirect, url_for, send_from_director
 from random import randint
 from dotenv import load_dotenv, find_dotenv
 from vagabond.flask_wrapper import custom_render_template
+from werkzeug.middleware.proxy_fix import ProxyFix # when using nginx, we need to use this
 
 #blueprints
 from vagabond.sessions import session_bp
@@ -37,12 +38,19 @@ load_dotenv(find_dotenv("secrets.env"))
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-
-CSRF(app)
-
 app.config["custom_config"] = app_config
+
 log = logging.getLogger() # root logger doesnt need an identifier
 setup_logger(log)
+
+if app_config.flask_config.get("proxy") == True:
+
+    log.warning("[+] Running on proxy, applying wsgi proxy fix")
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+    )
+
+CSRF(app)
 
 # init all extensions
 init_extensions(app)

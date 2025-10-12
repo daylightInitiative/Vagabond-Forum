@@ -1,3 +1,4 @@
+from vagabond.constants import RouteError
 from vagabond.sessions.module import (
     get_session_id, is_user_logged_in, get_userid_from_session, abort_if_not_signed_in
 )
@@ -37,7 +38,7 @@ def toggle_2fa():
         confirm_code = data.get("confirm_code")
 
         if not confirm_code:
-            return jsonify({"error": "Invalid form data"}) # we should define errors as constants
+            return jsonify({"error": RouteError.INVALID_FORM_DATA}), 422
 
         is_2fa_enabled = dbmanager.read(query_str="""
             SELECT is_2fa_enabled
@@ -49,7 +50,7 @@ def toggle_2fa():
         
         # bools are super iffy, so we're just going to compare using a number
         if not isinstance(should_2fa_be_enabled, bool):
-            return jsonify({"error": "Invalid request"}), 422
+            return jsonify({"error": RouteError.INVALID_REQUEST}), 422
         
         is_enabled = not should_2fa_be_enabled
 
@@ -66,7 +67,7 @@ def toggle_2fa():
         ))
 
         if not confirm_2FA_code(sessionID=sid, code=confirm_code):
-            return '', jsonify({"error": "Invalid 2FA code"}) # somehow display/handle this on the frontend
+            return jsonify({"error": RouteError.BAD_TOKEN}), 422 # somehow display/handle this on the frontend
 
         dbmanager.write(query_str="""
             UPDATE users

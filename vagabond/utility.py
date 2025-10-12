@@ -1,6 +1,6 @@
 import logging as log
 from pathlib import Path
-from datetime import datetime, ordi
+from datetime import datetime
 import re
 from vagabond.constants import MAX_URL_TITLE
 from vagabond.services import dbmanager

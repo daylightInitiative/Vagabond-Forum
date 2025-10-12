@@ -1,4 +1,5 @@
 from flask import current_app as app
+from vagabond.constants import RouteError
 from vagabond.sessions.module import abort_if_not_signed_in, get_session_id, get_userid_from_session, csrf_exempt, is_valid_session, get_csrf_token
 from vagabond.sessions import session_bp
 from vagabond.services import dbmanager
@@ -23,7 +24,7 @@ def sign_out_other_sessions():
 
     if not current_sid:
         log.critical("Failed to grab sid while trying to invalidate all other sessions")
-        return '', 500
+        return jsonify({"error": RouteError.INTERNAL_SERVER_ERROR}), 500
     
     user_id = get_userid_from_session(sessionID=current_sid)
 

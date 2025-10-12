@@ -11,6 +11,11 @@ WORKDIR /vagabond
 
 COPY Pipfile Pipfile.lock ./
 RUN pipenv install --deploy --ignore-pipfile
+RUN pip install uwsgi
+# we need to copy the nginx configuration
+RUN pipenv requirements > requirements.txt
+RUN pip install -r requirements.txt
+
 
 COPY . .
 RUN chmod +x entrypoint.sh

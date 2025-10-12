@@ -1,7 +1,8 @@
+from vagabond.constants import RouteError
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.queries import *
-from flask import request, abort, redirect, url_for
+from flask import jsonify, request, abort, redirect, url_for
 from vagabond.services import dbmanager
 from ua_parser import parse_os, parse_user_agent, parse_device
 from itsdangerous import URLSafeTimedSerializer
@@ -131,7 +132,7 @@ def get_tsid(sessionID: str) -> str | None:
 
     if get_tsid == DBStatus.FAILURE:
         log.critical("Failure to fetch tsid")
-        return '', 500
+        return jsonify({"error": RouteError.INTERNAL_SERVER_ERROR}), 500
 
     tsid = deep_get(get_tsid, 0, 0)
     return tsid if tsid else None

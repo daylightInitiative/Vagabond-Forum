@@ -1,3 +1,4 @@
+from vagabond.constants import RouteError
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
     create_session, invalidate_session,
@@ -33,7 +34,7 @@ def serve_login():
         password = request.form.get('password')
 
         if not email or not password:
-            return jsonify({"error": "Invalid form data"}), 422
+            return jsonify({"error": RouteError.INVALID_FORM_DATA}), 422
         
         is_authenticated, errmsg = is_valid_login(email=email, password=password)
         

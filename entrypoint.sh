@@ -14,4 +14,5 @@ echo y | pipenv run python wipe_tables.py
 # fi 
 pipenv run python init_db.py
 
-exec pipenv run python -m vagabond.main
+# exec pipenv run python -m vagabond.main
+uwsgi --socket 0.0.0.0:5000 --wsgi-file vagabond/main.py --callable app --processes 4 --threads 2 --stats 0.0.0.0:9191

@@ -1,8 +1,9 @@
+from vagabond.constants import RouteError
 from vagabond.users import users_bp
 from vagabond.services import dbmanager, limiter
 
 from vagabond.utility import deep_get, rows_to_dict
-from flask import url_for
+from flask import jsonify, url_for
 from vagabond.flask_wrapper import custom_render_template
 import logging
 
@@ -14,7 +15,7 @@ log = logging.getLogger(__name__)
 def serve_userpage(userid):
 
     if not userid:
-        return '', 422
+        return jsonify({"error": RouteError.INVALID_USER_ID}), 422
     
     user_rows, user_cols = dbmanager.read(query_str="""
         SELECT p.description, users.id, username, is_online, lastSeen, join_date, avatar_hash
