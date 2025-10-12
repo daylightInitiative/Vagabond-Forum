@@ -1,5 +1,6 @@
 import logging as log
 from pathlib import Path
+from datetime import datetime, ordi
 import re
 from vagabond.constants import MAX_URL_TITLE
 from vagabond.services import dbmanager
@@ -35,6 +36,17 @@ Provides a display version of someones email used for codes and profile info
 """
 def get_censored_email(email: str):
     return email[0:3] + ('*' * (len(email) - 3))
+
+# used to help better organize many emails of internal errors
+def get_email_subject_date():
+    now = datetime.now()
+    weekday = now.strftime('%a')
+    month = now.strftime('%b')
+    return f"{weekday}, {month} {now.day}"
+
+# ISO 8601 format with timezone offset (postgres like so its standardized)
+def get_current_TIMESTAMPZ():
+    return datetime.now().astimezone().isoformat()
 
 # having to manually stop and start the flask application again everytime you change a sql or .json file can be quite troublesome
 def read_sql_file(filename):

@@ -7,9 +7,10 @@ from vagabond.constants import *
 from vagabond.sessions.module import (
     get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint, is_valid_csrf_or_abort, CSRF, is_valid_session, invalidate_session
 )
-from vagabond.utility import rows_to_dict, deep_get
+from vagabond.utility import rows_to_dict, deep_get, get_email_from_userid, get_current_TIMESTAMPZ, get_email_subject_date
 from vagabond.utility import included_reload_files
 from vagabond.moderation import is_admin, hellban_user
+from vagabond.email import send_email
 from vagabond.logFormat import setup_logger # we love colors
 
 from flask import Flask, jsonify, request, redirect, url_for, send_from_directory, abort, make_response
@@ -116,6 +117,10 @@ def log_request_info():
             WHERE id = %s
         """, params=(user_id,))
 
+@app.errorhandler(401)
+def not_authorized_error(error):
+    return custom_render_template('error_pages/401.html'), 401
+
 @app.errorhandler(404)
 def not_found_error(error):
     return custom_render_template('error_pages/404.html'), 404
@@ -123,6 +128,20 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     log.critical("Internal Server Error has occured: %s", error)
+
+    timestamp_now = get_current_TIMESTAMPZ()
+    subject_datestamp = get_email_subject_date()
+
+    # send a ping to sysadmins/site admins
+    sys_email = get_email_from_userid(userid=1) # system user
+    send_email(receiver_email=sys_email, email_dict={
+        "subject": f"Internal Server Error Report, {subject_datestamp}",
+        "body": f"""
+            Error 500, '{error}'
+            This report was automatically generated at {timestamp_now}
+        """
+    })
+
     return custom_render_template('error_pages/500.html'), 500
 
 @app.route("/news.html")

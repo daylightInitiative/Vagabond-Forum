@@ -1,4 +1,18 @@
-body {
+/* body {
+  background-image: url('/static/img/moraine-lake-panorama-public-domain.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+} */
+
+.landscape-image {
+  height: 300px;
+  margin-top: -60px;
+  margin-left: -35px;
+  margin-right: -35px;
+  margin-bottom: -35px;
+  background: transparent;
   background-image: url('/static/img/moraine-lake-panorama-public-domain.jpg');
   background-repeat: no-repeat;
   background-size: cover;
@@ -6,10 +20,7 @@ body {
   background-attachment: fixed;
 }
 
-.landscape-image {
-  height: 200px;
-  background: transparent;
-}
+
 
 .footer-veil {
   background-color: var(--bg-color);
@@ -22,7 +33,7 @@ body {
 
 
 .footer-veil a {
-  color: var(--link-color);
+  color: #212121;
   text-decoration: underline;
 }
 
@@ -35,4 +46,5 @@ footer {
   font-size: x-small;
   text-align: center;
   margin-top: 4rem;
+  background-color: var(--bg-color);
 }

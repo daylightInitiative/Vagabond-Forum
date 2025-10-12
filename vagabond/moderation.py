@@ -15,6 +15,10 @@ class UserPermission(StrEnum):
     ADMIN = "admin"             # site admins who moderate, well..moderators
 
 def get_role_from_userid(userid: str) -> UserPermission | None:
+
+    if not userid:
+        return None
+
     has_role = dbmanager.read(query_str="""
         SELECT user_role
         FROM users
@@ -23,7 +27,7 @@ def get_role_from_userid(userid: str) -> UserPermission | None:
     current_role = deep_get(has_role, 0, 0)
 
     if not current_role:
-        log.warning("Failure to fetch user role info for userid: %s", userid)
+        log.warning("Failure to fetch user role '%s' info for userid: %s", current_role, userid)
         return None
 
     role_to_return = None

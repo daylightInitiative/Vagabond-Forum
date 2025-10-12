@@ -4,19 +4,22 @@ table {
   margin: 2rem auto;
   max-width: 1000px;
   font-size: 0.95rem;
-  color: var(--a-link-color);
-  border: 1px solid #b6b6b6;
+  /* color: var(--a-link-color); */
+  border: 1px solid #161616;
+  background-color: #161616;
+  color: #dadada;
 }
 
 th,
 td {
-  border: 1px solid #b6b6b6; /* inner column and row borders */
+  border: 1px solid #424242; /* inner column and row borders */
   padding: 0.5rem;
   text-align: left;
+  color: #dadada;
 }
 
 td a {
-  color: var(--a-link-color);
+  color: #dadada;
 }
 
 td a:hover {
@@ -25,4 +28,5 @@ td a:hover {
 
 body {
   text-align: center;
+  color: #161616;
 }
