@@ -38,7 +38,7 @@ def toggle_2fa():
         confirm_code = data.get("confirm_code")
 
         if not confirm_code:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 422
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
 
         is_2fa_enabled = db.read(query_str="""
             SELECT is_2fa_enabled
@@ -50,7 +50,7 @@ def toggle_2fa():
         
         # bools are super iffy, so we're just going to compare using a number
         if not isinstance(should_2fa_be_enabled, bool):
-            return jsonify({"error": RouteStatus.INVALID_REQUEST}), 422
+            return jsonify({"error": RouteStatus.INVALID_REQUEST.value}), 422
         
         is_enabled = not should_2fa_be_enabled
 
@@ -67,7 +67,7 @@ def toggle_2fa():
         ))
 
         if not confirm_2FA_code(sessionID=sid, code=confirm_code):
-            return jsonify({"error": RouteStatus.BAD_TOKEN}), 422 # somehow display/handle this on the frontend
+            return jsonify({"error": RouteStatus.BAD_TOKEN.value}), 422 # somehow display/handle this on the frontend
 
         db.write(query_str="""
             UPDATE users

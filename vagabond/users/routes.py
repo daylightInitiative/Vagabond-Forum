@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 def serve_userpage(userid):
 
     if not userid:
-        return jsonify({"error": RouteStatus.INVALID_USER_ID}), 422
+        return jsonify({"error": RouteStatus.INVALID_USER_ID.value}), 422
     
     user_rows, user_cols = db.read(query_str="""
         SELECT p.description, users.id, username, is_online, lastSeen, join_date, avatar_hash

@@ -132,7 +132,7 @@ def get_tsid(sessionID: str) -> str | None:
 
     if get_tsid == DBStatus.FAILURE:
         log.critical("Failure to fetch tsid")
-        return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
+        return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR.value}), 500
 
     tsid = deep_get(get_tsid, 0, 0)
     return tsid if tsid else None

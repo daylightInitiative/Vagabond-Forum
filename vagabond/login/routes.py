@@ -34,7 +34,7 @@ def serve_login():
         password = request.form.get('password')
 
         if not email or not password:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 422
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
         
         is_authenticated, errmsg = is_valid_login(email=email, password=password)
         

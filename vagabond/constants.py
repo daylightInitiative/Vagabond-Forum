@@ -8,6 +8,7 @@ from enum import Enum, auto
 # errors (consistency is important with our api)
 
 class RouteStatus(Enum):
+
     INVALID_FORM_DATA = "Invalid form data"
     INVALID_CATEGORY_ID = "Invalid category ID"
     INVALID_POST_ID = "Invalid post ID"

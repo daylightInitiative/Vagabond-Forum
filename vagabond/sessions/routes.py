@@ -24,7 +24,7 @@ def sign_out_other_sessions():
 
     if not current_sid:
         log.critical("Failed to grab sid while trying to invalidate all other sessions")
-        return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
+        return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR.value}), 500
     
     user_id = get_userid_from_session(sessionID=current_sid)
 

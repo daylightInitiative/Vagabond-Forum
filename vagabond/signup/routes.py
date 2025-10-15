@@ -38,7 +38,7 @@ def signup_page():
         password = request.form.get('password', type=str)
         
         if not email or not username or not password:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 422
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
         
         userid, errmsg = signup(email=email, username=username, password=password)
 
@@ -59,17 +59,17 @@ def confirm_signup_code():
     signup_code = request.args.get("token")
 
     if not signup_code:
-        return jsonify({"error": RouteStatus.BAD_TOKEN}), 422
+        return jsonify({"error": RouteStatus.BAD_TOKEN.value}), 422
     
     decoded_email = confirm_token(token=signup_code)
 
     if not decoded_email:
-        return jsonify({"error": RouteStatus.EXPIRED_TOKEN}), 422
+        return jsonify({"error": RouteStatus.EXPIRED_TOKEN.value}), 422
 
     userid = get_userid_from_email(email=decoded_email)
 
     if not userid:
-        return jsonify({"error": RouteStatus.INVALID_USER_ID}), 404
+        return jsonify({"error": RouteStatus.INVALID_USER_ID.value}), 404
 
     sid = create_session(userid=userid, request_obj=request)
 

@@ -58,12 +58,20 @@ CREATE TABLE IF NOT EXISTS message_recipient_group (
 
 CREATE TABLE IF NOT EXISTS user_messages (
     id SERIAL PRIMARY KEY,
-    contents VARCHAR(300) NOT NULL,
+    contents VARCHAR(500) NOT NULL,
     creator_id BIGINT NOT NULL REFERENCES users(id),
     -- msg_group is a way of mass messaging, but also the ability for one to one messaging
     msg_group_id BIGINT NOT NULL REFERENCES message_recipient_group(groupid),
+    reply_id BIGINT REFERENCES user_messages(id),
     creation_date TIMESTAMPTZ DEFAULT NOW(),
     deleted_at TIMESTAMPTZ -- soft deletion
+);
+
+CREATE TABLE IF NOT EXISTS edited_messages (
+    id SERIAL PRIMARY KEY,
+    edited_at TIMESTAMPTZ DEFAULT NOW(),
+    original_contents VARCHAR(500) NOT NULL,
+    message_id BIGINT NOT NULL REFERENCES user_messages(id)
 );
 
 CREATE TABLE IF NOT EXISTS message_group_users (

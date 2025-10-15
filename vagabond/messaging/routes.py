@@ -1,11 +1,12 @@
 
 # instead of hardcoding a route, lets create a messaging api that requires authentication
 
+from click import group
 from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
 )
 from vagabond.messaging import messaging_bp
-from vagabond.messaging.module import can_add_user_to_group
+from vagabond.messaging.module import can_user_access_group, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect
 from vagabond.constants import RouteStatus
 from vagabond.services import dbmanager as db
@@ -23,13 +24,96 @@ def serve_group():
 # when getting the paginated output we should filter by date ASC
 # for getting paginated output, creating a new message returning the postid for the javascript (that way its easier to reply to it)
 @messaging_bp.route("/api/v1/messages/groups/<group_id>/messages", methods=["GET", "POST"])
-def serve_messages():
-    pass
+@csrf_exempt
+def serve_messages(group_id):
+
+    # if not is_user_logged_in():
+    #     return jsonify({"error": RouteError.INVALID_PERMISSIONS}), 401
+
+    sid = get_session_id()
+    userID = "1"
+
+    data = request.get_json()
+
+    if request.method == "GET":
+        pass
+    elif request.method == "POST":
+        # creation of a new message
+
+        msg_contents = data.get("contents")
+
+        if not msg_contents:
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+
+        msg_group_id = group_id
+
+        if not msg_group_id:
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+
+        msg_creator_id = userID
+
+        if not can_user_access_group(userID=msg_creator_id, groupID=msg_group_id):
+            log.warning("(user_id=%s, group_id=%s) cannot access group upon creating message", msg_creator_id, msg_group_id)
+            return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
+        
+        db.write(query_str="""
+            INSERT INTO user_messages (contents, creator_id, msg_group_id)
+                 VALUES (%s, %s, %s)
+        """, params=(msg_contents, msg_creator_id, msg_group_id,))
+
+        log.debug("created new message in (user_id=%s, group_id=%s)", msg_creator_id, msg_group_id)
+
+        return '', 200
+
 
 # for deleting and editing messages of a particular group id,
 @messaging_bp.route("/api/v1/messages/groups/<group_id>/messages/<message_id>", methods=["PATCH", "DELETE"])
-def serve_edit_message():
-    pass
+@csrf_exempt
+def serve_edit_message(group_id, message_id):
+
+    # if not is_user_logged_in():
+    #     return jsonify({"error": RouteError.INVALID_PERMISSIONS}), 401
+
+    sid = get_session_id()
+    userID = "1" #get_userid_from_session(sessionID=sid)
+
+    data = request.get_json()
+
+    if not can_user_access_group(userID=userID, groupID=group_id):
+        return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
+
+    if request.method == "PATCH":
+        
+        new_contents = data.get("edited_message")
+        if not new_contents:
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+
+        if not is_user_message_owner(userID=userID, messageID=message_id):
+            log.warning("User %s tried to modify an existing message that was not owned by them")
+            return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
+
+        # before we edit, lets take a shadow log of all edits
+        db.write(query_str="""
+            INSERT INTO edited_messages (original_contents, message_id)
+            SELECT contents, id
+            FROM user_messages
+            WHERE id = %s AND msg_group_id = %s
+        """, params=(message_id, group_id,))
+
+        # edit the message of this message id
+        db.write(query_str="""
+            UPDATE user_messages
+            SET contents = %s
+            WHERE id = %s AND msg_group_id = %s
+        """, params=(new_contents, message_id, group_id,))
+
+        log.debug("edited message (message_id=%s, group_id=%s)", message_id, group_id)
+
+    elif request.method == "DELETE":
+        pass
+
+
+    return '', 200
 
 # its critical we dont really delete messages for later investigation, etc.
 @messaging_bp.route("/api/v1/messages/groups/create", methods=["POST"])
@@ -40,13 +124,14 @@ def serve_create_group():
     #     return jsonify({"error": RouteError.INVALID_PERMISSIONS}), 401
 
     data = request.get_json()
+    userID = "1"
 
     if request.method == "POST":
         # create a new group
         # get the userid we are trying to message, its a json list
         users_to_add = data.get("recipient_list")
         if not users_to_add or len(users_to_add) <= 0:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 422
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
 
         log.debug(users_to_add)
 
@@ -59,7 +144,7 @@ def serve_create_group():
         group_id = deep_get(get_group_id, 0, 0) or -1
         if group_id < 0:
             log.error("Failure to create message group")
-            return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
+            return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR.value}), 500
         
         log.debug(f"created group_id={group_id}")
 
@@ -67,12 +152,11 @@ def serve_create_group():
 
         for user_id in users_to_add:
             log.debug(f"creating entry to group_users, (group_id={group_id}, user_id={user_id})")
-            can_add_user = can_add_user_to_group(userID=str(user_id), groupID=group_id)
-            if can_add_user:
-                db.write(query_str=f"""
-                    INSERT INTO message_group_users (group_id, user_id)
-                        VALUES (%s, %s)
-                """, params=(group_id, user_id,))
+            db.write(query_str=f"""
+                INSERT INTO message_group_users (group_id, user_id)
+                    VALUES (%s, %s)
+            """, params=(group_id, user_id,))
+                
 
 
         return '', 200

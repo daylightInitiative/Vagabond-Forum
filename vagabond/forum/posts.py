@@ -45,7 +45,7 @@ def save_draft():
         saved_draft_text = deep_get(get_draft, 0, 0)
 
         if not saved_draft_text:
-            return jsonify({"error": RouteStatus.FETCH_NO_CONTENT}), 204 # no content
+            return jsonify({"error": RouteStatus.FETCH_NO_CONTENT.value}), 204 # no content
         
         draft = {
             "contents": saved_draft_text
@@ -71,7 +71,7 @@ def save_draft():
 
         if save_draft == DBStatus.FAILURE:
             log.critical("Failed to save draft data for tsid: %s", tsid)
-            return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
+            return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR.value}), 500
 
     return '', 200
 
@@ -90,7 +90,7 @@ def submit_new_post():
     if request.method == "GET":
         
         if not category_id:
-            return jsonify({"error": RouteStatus.INVALID_CATEGORY_ID}), 422
+            return jsonify({"error": RouteStatus.INVALID_CATEGORY_ID.value}), 422
         
         category_locked = get_is_category_locked(categoryID=category_id)
 
@@ -110,11 +110,11 @@ def submit_new_post():
         description = request.form.get('description', type=str)
         
         if not title or not description:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 400
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 400
         
         category_id = request.args.get('category')
         if not category_id:
-            return jsonify({"error": RouteStatus.INVALID_CATEGORY_ID}), 422
+            return jsonify({"error": RouteStatus.INVALID_CATEGORY_ID.value}), 422
 
         # now, instead of having to create this every time, lets save it to the db (auto truncates)
         url_safe_title = title_to_content_hint(title)
@@ -129,4 +129,4 @@ def submit_new_post():
         if new_post_id:
             return redirect(url_for("forum.serve_post_by_id", post_num=new_post_id, content_hint=url_safe_title))
 
-    return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
+    return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR.value}), 500

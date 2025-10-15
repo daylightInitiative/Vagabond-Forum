@@ -5,9 +5,10 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def can_add_user_to_group(userID: str, groupID: str) -> bool:
+def is_user_in_group(userID: str, groupID: str) -> bool:
     if not is_valid_userid(userID=userID):
-        return False # ignore
+        log.warning("is_user_in_group passed an invalid userid: %s", userID)
+        return False
 
     get_is_in_group = db.read(query_str="""
         SELECT EXISTS (
@@ -20,11 +21,31 @@ def can_add_user_to_group(userID: str, groupID: str) -> bool:
     is_in_group_already = deep_get(get_is_in_group, 0, 0)
 
     if is_in_group_already is None:
-        log.warning("Failure to validate if user could join group")
-        return False
+        log.warning("Failure to validate if user is in group")
+        return True
 
     if is_in_group_already:
-        log.debug("Requested (user_id=%s, group_id=%s) already exists", userID, groupID)
-        return False
+        log.debug("Requested (user_id=%s, group_id=%s) already exists in group", userID, groupID)
+        return True
     
-    return True
+    return False
+
+def is_user_message_owner(userID: str, messageID: str) -> bool:
+    if not is_valid_userid(userID=userID):
+        return False
+
+    is_user_msg_owner = db.read(query_str="""
+        SELECT 1
+        FROM user_messages
+        WHERE id = %s AND creator_id = %s
+    """, params=(messageID, userID,))
+
+    is_user_owner = deep_get(is_user_msg_owner, 0, 0) or False
+    return is_user_owner
+
+def can_user_access_group(userID: str, groupID: str) -> bool:
+    is_in_group = is_user_in_group(userID=userID, groupID=groupID)
+    if is_in_group:
+        return True
+    
+    return False
