@@ -1,4 +1,4 @@
-from vagabond.constants import RouteError
+from vagabond.constants import RouteStatus
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
     create_session, invalidate_session,
@@ -10,7 +10,7 @@ from vagabond.utility import get_userid_from_email
 from vagabond.login import login_bp
 from vagabond.login.module import is_valid_login
 from vagabond.moderation import is_admin
-from vagabond.services import limiter, dbmanager
+from vagabond.services import limiter, dbmanager as db
 from flask import request, make_response, redirect, url_for, jsonify, session
 from vagabond.flask_wrapper import custom_render_template
 
@@ -34,7 +34,7 @@ def serve_login():
         password = request.form.get('password')
 
         if not email or not password:
-            return jsonify({"error": RouteError.INVALID_FORM_DATA}), 422
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 422
         
         is_authenticated, errmsg = is_valid_login(email=email, password=password)
         

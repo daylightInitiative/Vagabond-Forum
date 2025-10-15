@@ -2,7 +2,7 @@
 from vagabond.queries import *
 from vagabond.utility import get_userid_from_email, is_valid_email_address, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 import logging
 import bcrypt
 
@@ -26,7 +26,7 @@ def is_valid_login(email: str, password: str) -> tuple[bool, str]:
         if not userid:
             return False, "Incorrect email or password"
         
-        is_banned = dbmanager.read(query_str="""
+        is_banned = db.read(query_str="""
             SELECT id, account_locked
             FROM users
             WHERE id = %s and account_locked = TRUE
@@ -35,7 +35,7 @@ def is_valid_login(email: str, password: str) -> tuple[bool, str]:
         if is_banned and deep_get(is_banned, 0, 0) == True:
             return False, "Account associated with email has been disabled."
 
-        get_hash = dbmanager.read(query_str="""
+        get_hash = db.read(query_str="""
             SELECT hashed_password
             FROM users
             WHERE id = %s

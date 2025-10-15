@@ -1,4 +1,4 @@
-from vagabond.services import dbmanager, limiter
+from vagabond.services import dbmanager as db, limiter
 from vagabond.utility import rows_to_dict, deep_get, title_to_content_hint
 from vagabond.dbmanager import DBStatus
 from vagabond.queries import *
@@ -36,7 +36,7 @@ def save_draft():
         
         temp_session_id = get_tsid(sessionID=sid)
         
-        get_draft = dbmanager.read(query_str="""
+        get_draft = db.read(query_str="""
             SELECT draft_text
             FROM temp_session_data
             WHERE tempid = %s and LENGTH(draft_text) > 0
@@ -45,7 +45,7 @@ def save_draft():
         saved_draft_text = deep_get(get_draft, 0, 0)
 
         if not saved_draft_text:
-            return jsonify({"error": RouteError.FETCH_NO_CONTENT}), 204 # no content
+            return jsonify({"error": RouteStatus.FETCH_NO_CONTENT}), 204 # no content
         
         draft = {
             "contents": saved_draft_text
@@ -63,7 +63,7 @@ def save_draft():
         tsid = get_tsid(sessionID=sid)
 
         text_to_save = data.get("contents")
-        save_draft = dbmanager.write(query_str="""
+        save_draft = db.write(query_str="""
             UPDATE temp_session_data
             SET draft_text = %s
             WHERE tempid = %s
@@ -71,7 +71,7 @@ def save_draft():
 
         if save_draft == DBStatus.FAILURE:
             log.critical("Failed to save draft data for tsid: %s", tsid)
-            return jsonify({"error": RouteError.INTERNAL_SERVER_ERROR}), 500
+            return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
 
     return '', 200
 
@@ -90,7 +90,7 @@ def submit_new_post():
     if request.method == "GET":
         
         if not category_id:
-            return jsonify({"error": RouteError.INVALID_CATEGORY_ID}), 422
+            return jsonify({"error": RouteStatus.INVALID_CATEGORY_ID}), 422
         
         category_locked = get_is_category_locked(categoryID=category_id)
 
@@ -110,16 +110,16 @@ def submit_new_post():
         description = request.form.get('description', type=str)
         
         if not title or not description:
-            return jsonify({"error": RouteError.INVALID_FORM_DATA}), 400
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 400
         
         category_id = request.args.get('category')
         if not category_id:
-            return jsonify({"error": RouteError.INVALID_CATEGORY_ID}), 422
+            return jsonify({"error": RouteStatus.INVALID_CATEGORY_ID}), 422
 
         # now, instead of having to create this every time, lets save it to the db (auto truncates)
         url_safe_title = title_to_content_hint(title)
 
-        retrieved = dbmanager.write(query_str="INSERT INTO posts (title, contents, author, url_title, category_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+        retrieved = db.write(query_str="INSERT INTO posts (title, contents, author, url_title, category_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",
             fetch=True,
             params=(title, description, author, url_safe_title, category_id,)
         )
@@ -129,4 +129,4 @@ def submit_new_post():
         if new_post_id:
             return redirect(url_for("forum.serve_post_by_id", post_num=new_post_id, content_hint=url_safe_title))
 
-    return jsonify({"error": RouteError.INTERNAL_SERVER_ERROR}), 500
+    return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500

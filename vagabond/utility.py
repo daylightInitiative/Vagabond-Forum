@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 import re
 from vagabond.constants import MAX_URL_TITLE
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 import secrets
 import string
 
@@ -88,8 +88,22 @@ def deep_get(data, *indices):
 
 # when you need state, error handling but also functions I find that using a class here works nice
 
+def is_valid_userid(userID: str) -> bool:
+    if not userID.isdigit():
+        log.warning("%s failed a digit userid check.", userID)
+        return False
+    
+    userid_exists = db.read(query_str="""
+        SELECT EXISTS (
+            SELECT 1
+            FROM users
+            WHERE id = %s AND account_locked = FALSE
+        );
+    """, params=(userID,))
+    return deep_get(userid_exists, 0, 0) or False
+
 def get_email_from_userid(userid: str) -> str | bool:
-    get_email = dbmanager.read(query_str="""
+    get_email = db.read(query_str="""
             SELECT email
             FROM users
             WHERE id = %s
@@ -97,7 +111,7 @@ def get_email_from_userid(userid: str) -> str | bool:
     return deep_get(get_email, 0, 0) or False
 
 def get_userid_from_email(email: str) -> str | bool:
-    get_userid = dbmanager.read(query_str="""
+    get_userid = db.read(query_str="""
             SELECT id
             FROM users
             WHERE email = %s

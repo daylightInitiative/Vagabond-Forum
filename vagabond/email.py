@@ -6,7 +6,7 @@ from typing import TypedDict, List
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv, find_dotenv
-from vagabond.services import app_config, dbmanager
+from vagabond.services import dbmanager as db, app_config
 from vagabond.utility import deep_get
 from vagabond.sessions.module import get_tsid
 import logging
@@ -60,7 +60,7 @@ def generate_2FA_code(sessionID: str) -> str:
     tsid = get_tsid(sessionID=sessionID)
 
     # only one code, on conflict update the code
-    dbmanager.write(query_str="""
+    db.write(query_str="""
         INSERT INTO verification_codes (temp_session_id, code)
         VALUES (%s, %s)
         ON CONFLICT (temp_session_id) DO UPDATE
@@ -75,7 +75,7 @@ def generate_2FA_code(sessionID: str) -> str:
 def confirm_2FA_code(sessionID: str, code: str) -> bool:
     tsid = get_tsid(sessionID=sessionID)
 
-    code_exists = dbmanager.read(query_str="""
+    code_exists = db.read(query_str="""
         SELECT TRUE
         FROM verification_codes
         WHERE temp_session_id = %s AND expires_at > NOW() AND code = %s

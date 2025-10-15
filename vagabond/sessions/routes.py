@@ -1,8 +1,8 @@
 from flask import current_app as app
-from vagabond.constants import RouteError
+from vagabond.constants import RouteStatus
 from vagabond.sessions.module import abort_if_not_signed_in, get_session_id, get_userid_from_session, csrf_exempt, is_valid_session, get_csrf_token
 from vagabond.sessions import session_bp
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 from flask import abort, jsonify, request
 import logging
 
@@ -24,13 +24,13 @@ def sign_out_other_sessions():
 
     if not current_sid:
         log.critical("Failed to grab sid while trying to invalidate all other sessions")
-        return jsonify({"error": RouteError.INTERNAL_SERVER_ERROR}), 500
+        return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
     
     user_id = get_userid_from_session(sessionID=current_sid)
 
     # get all other sessions
     # since invalidation is just setting the active to false, we can just omit any already disabled sessions
-    dbmanager.write(query_str="""
+    db.write(query_str="""
         UPDATE sessions_table
         SET active = FALSE
         WHERE user_id = %s AND sid != %s AND active = TRUE

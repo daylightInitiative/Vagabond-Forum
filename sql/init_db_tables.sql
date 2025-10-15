@@ -50,6 +50,33 @@ CREATE TABLE IF NOT EXISTS users (
 );
 -- using TIMESTAMPZ to account for different timezones
 
+CREATE TABLE IF NOT EXISTS message_recipient_group (
+    groupid SERIAL PRIMARY KEY,
+    creation_date TIMESTAMPTZ DEFAULT NOW(),
+    last_message TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS user_messages (
+    id SERIAL PRIMARY KEY,
+    contents VARCHAR(300) NOT NULL,
+    creator_id BIGINT NOT NULL REFERENCES users(id),
+    -- msg_group is a way of mass messaging, but also the ability for one to one messaging
+    msg_group_id BIGINT NOT NULL REFERENCES message_recipient_group(groupid),
+    creation_date TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ -- soft deletion
+);
+
+CREATE TABLE IF NOT EXISTS message_group_users (
+    group_id BIGINT NOT NULL REFERENCES message_recipient_group(groupid) ON DELETE CASCADE,
+     -- users are never deleted, so we dont have to worry about this
+    user_id BIGINT NOT NULL REFERENCES users(id),
+    added_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- this is called a composite primary key
+    -- it keeps a user from going into the group twice
+    PRIMARY KEY (group_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS temp_session_data (
     tempid SERIAL PRIMARY KEY,
     draft_text VARCHAR(2000) DEFAULT '' NOT NULL,

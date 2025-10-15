@@ -1,9 +1,9 @@
-from vagabond.constants import RouteError
+from vagabond.constants import RouteStatus
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.queries import *
 from flask import jsonify, request, abort, redirect, url_for
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 from ua_parser import parse_os, parse_user_agent, parse_device
 from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv, find_dotenv
@@ -97,16 +97,16 @@ def redirect_if_already_logged_in(page="index"):
 # mainly for security and analytics
 def associate_fingerprint_to_session(fingerprint: str, sessionID: str) -> None:
     log.warning("associating fingerprint to session id")
-    dbmanager.write(query_str="""
+    db.write(query_str="""
         UPDATE sessions_table
         SET fingerprint_id = %s
         WHERE sid = %s
     """, params=(fingerprint, sessionID,))
 
 def get_fingerprint() -> str:
-    user_agent = request.headers.get("User-Agent")
-    accepted_languages = request.headers.get("Accept-Language")
-    ip_address = request.remote_addr
+    user_agent = request.headers.get("User-Agent") or ""
+    accepted_languages = request.headers.get("Accept-Language") or ""
+    ip_address = request.remote_addr # is per basis of connection so never missing
 
     combined_fingerprint = ip_address + user_agent + accepted_languages
 
@@ -124,7 +124,7 @@ def get_tsid(sessionID: str) -> str | None:
     if not is_valid_session(sessionID=sessionID):
         return None
 
-    get_tsid = dbmanager.read(query_str="""
+    get_tsid = db.read(query_str="""
         SELECT temp_data_sid
         FROM sessions_table
         WHERE sid = %s
@@ -132,7 +132,7 @@ def get_tsid(sessionID: str) -> str | None:
 
     if get_tsid == DBStatus.FAILURE:
         log.critical("Failure to fetch tsid")
-        return jsonify({"error": RouteError.INTERNAL_SERVER_ERROR}), 500
+        return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
 
     tsid = deep_get(get_tsid, 0, 0)
     return tsid if tsid else None
@@ -149,13 +149,13 @@ def generate_sid() -> str:
 def create_session(userid: str, request_obj) -> str | None:
     
     # create the supplementory temporary data sid
-    temp_session_data_id = dbmanager.write(query_str=CREATE_TEMP_SESSION_DATA, fetch=True)[0][0]
+    temp_session_data_id = db.write(query_str=CREATE_TEMP_SESSION_DATA, fetch=True)[0][0]
 
     sid = generate_sid()
 
     while True:
         try:
-            response = dbmanager.read(query_str="""
+            response = db.read(query_str="""
             SELECT EXISTS (
                 SELECT 1 FROM sessions_table WHERE sid = %s
             );
@@ -182,7 +182,7 @@ def create_session(userid: str, request_obj) -> str | None:
     expires_at = datetime.now(timezone.utc) + session_duration
 
     # lets create a new session in the sessions_table
-    success = dbmanager.write(query_str="""
+    success = db.write(query_str="""
         INSERT INTO sessions_table (sid, ipaddr, user_id, display_user_agent, raw_user_agent, temp_data_sid, active, expires_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, params=(sid, ipaddr, userid, combined_ua, raw_user_agent, temp_session_data_id, True, expires_at))
@@ -201,7 +201,7 @@ def is_valid_session(sessionID: str) -> bool:
     # get the device fingerprint
     fingerprint = get_fingerprint()
 
-    is_session_valid = dbmanager.read(query_str="""
+    is_session_valid = db.read(query_str="""
         SELECT 1
         FROM sessions_table
         WHERE sid = %s AND active = TRUE AND (expires_at IS NULL OR expires_at > NOW())
@@ -211,7 +211,7 @@ def is_valid_session(sessionID: str) -> bool:
     return is_session_valid or False # it wasnt found or something wrong is going on
 
 def get_userid_from_session(sessionID: str) -> str | None:
-    get_userid = dbmanager.read(query_str="""
+    get_userid = db.read(query_str="""
             SELECT user_id
             FROM sessions_table
             WHERE sid = %s
@@ -229,7 +229,7 @@ def invalidate_session(sessionID: str) -> None:
 
     # retry until success
     while invalidate_session != DBStatus.SUCCESS and n_retries < 3:
-        invalidate_session = dbmanager.write(query_str="""
+        invalidate_session = db.write(query_str="""
             UPDATE sessions_table
             SET active = FALSE
             WHERE sid = %s

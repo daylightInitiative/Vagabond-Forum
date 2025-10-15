@@ -1,11 +1,11 @@
 from vagabond.utility import deep_get
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 import logging
 
 log = logging.getLogger(__name__)
 
 def get_is_category_locked(categoryID: str) -> bool:
-    get_locked = dbmanager.read(query_str="""
+    get_locked = db.read(query_str="""
         SELECT category_locked
         FROM categories
         WHERE id = %s
@@ -13,7 +13,7 @@ def get_is_category_locked(categoryID: str) -> bool:
     return deep_get(get_locked, 0, 0) or False
 
 def get_is_post_deleted(post_num: str) -> bool:
-    get_deleted = dbmanager.read(query_str="""
+    get_deleted = db.read(query_str="""
         SELECT deleted_at IS NOT NULL
         FROM posts
         WHERE id = %s
@@ -21,7 +21,7 @@ def get_is_post_deleted(post_num: str) -> bool:
     return deep_get(get_deleted, 0, 0) or False
 
 def get_is_post_locked(post_num: str) -> bool:
-    get_locked = dbmanager.read(query_str="""
+    get_locked = db.read(query_str="""
         SELECT post_locked
         FROM posts
         WHERE id = %s
@@ -46,6 +46,6 @@ def is_user_content_owner(post_type:str, userid: str, postid: str) -> bool:
     """
     
 
-    get_is_owner = dbmanager.read(query_str=check_owner, fetch=True, params=(userid, postid,))
+    get_is_owner = db.read(query_str=check_owner, fetch=True, params=(userid, postid,))
     log.debug("check owner: %s", get_is_owner)
     return deep_get(get_is_owner, 0, 0) or False

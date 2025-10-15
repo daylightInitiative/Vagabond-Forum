@@ -1,8 +1,8 @@
-from vagabond.constants import RouteError
+from vagabond.constants import RouteStatus
 from vagabond.sessions.module import (
     get_session_id, is_user_logged_in, get_userid_from_session, abort_if_not_signed_in
 )
-from vagabond.services import limiter, dbmanager
+from vagabond.services import limiter, dbmanager as db
 from vagabond.profile import profile_bp
 from vagabond.email import generate_token, confirm_token, send_2fa_code, generate_2FA_code, confirm_2FA_code
 from vagabond.utility import deep_get, get_censored_email, get_email_from_userid
@@ -38,9 +38,9 @@ def toggle_2fa():
         confirm_code = data.get("confirm_code")
 
         if not confirm_code:
-            return jsonify({"error": RouteError.INVALID_FORM_DATA}), 422
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 422
 
-        is_2fa_enabled = dbmanager.read(query_str="""
+        is_2fa_enabled = db.read(query_str="""
             SELECT is_2fa_enabled
             FROM users
             WHERE id = %s
@@ -50,13 +50,13 @@ def toggle_2fa():
         
         # bools are super iffy, so we're just going to compare using a number
         if not isinstance(should_2fa_be_enabled, bool):
-            return jsonify({"error": RouteError.INVALID_REQUEST}), 422
+            return jsonify({"error": RouteStatus.INVALID_REQUEST}), 422
         
         is_enabled = not should_2fa_be_enabled
 
         action = ModerationAction.ENABLE_2FA if is_enabled else ModerationAction.DISABLE_2FA
 
-        dbmanager.write(query_str="""
+        db.write(query_str="""
             INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
                 VALUES (%s, %s, %s, %s, NOW())
         """, params=(
@@ -67,9 +67,9 @@ def toggle_2fa():
         ))
 
         if not confirm_2FA_code(sessionID=sid, code=confirm_code):
-            return jsonify({"error": RouteError.BAD_TOKEN}), 422 # somehow display/handle this on the frontend
+            return jsonify({"error": RouteStatus.BAD_TOKEN}), 422 # somehow display/handle this on the frontend
 
-        dbmanager.write(query_str="""
+        db.write(query_str="""
             UPDATE users
             SET is_2fa_enabled = %s
             WHERE id = %s
@@ -89,7 +89,7 @@ def serve_profile():
 
     if request.method == "GET":
         
-        get_info = dbmanager.read(query_str="""
+        get_info = db.read(query_str="""
             SELECT email, username, join_date, avatar_hash, is_2fa_enabled
             FROM users
             WHERE id = %s
@@ -113,7 +113,7 @@ def serve_profile():
         )
 
         # get the session profiles to be displayed in the profile file (for right now)
-        get_list = dbmanager.read(query_str="""
+        get_list = db.read(query_str="""
             SELECT active, lastLogin, display_user_agent, ipaddr
             FROM sessions_table
             WHERE user_id = %s
@@ -131,7 +131,7 @@ def serve_profile():
             ))
 
         # if the data exists, we just load it in the about me
-        get_about_me = dbmanager.read(query_str="""
+        get_about_me = db.read(query_str="""
             SELECT description
             FROM profiles
             WHERE profile_id = %s
@@ -149,7 +149,7 @@ def serve_profile():
         
         truncated_str = about_me[:500] # cannot go past 500 if the javascript fails or they are automating
 
-        dbmanager.write(query_str="""
+        db.write(query_str="""
             UPDATE profiles
             SET description = %s
             WHERE profile_id = %s

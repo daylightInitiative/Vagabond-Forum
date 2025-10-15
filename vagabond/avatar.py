@@ -2,7 +2,7 @@ from PIL import Image
 from random import randint, choice, seed
 from pathlib import Path
 from hashlib import sha256
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 
 # creates random pixel based avatar similar to github and stackoverflow
 
@@ -12,7 +12,7 @@ AVATARS_FOLDER = STATIC_FOLDER / "avatars"
 
 # update the users.avatar_hash with a hash that is the name of their individual avatar found in /static/avatars/
 def update_user_avatar(userID: int, avatar_hash: str) -> None:
-    dbmanager.write(query_str="""
+    db.write(query_str="""
         UPDATE users
         SET avatar_hash = %s
         WHERE id = %s

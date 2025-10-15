@@ -28,10 +28,11 @@ from vagabond.profile import profile_bp
 from vagabond.users import users_bp
 from vagabond.analytics import analytics_bp
 from vagabond.admin import admin_bp
+from vagabond.messaging import messaging_bp
 
 #services
 from vagabond.dbmanager import DBManager, DBStatus
-from vagabond.services import init_extensions, dbmanager, app_config, moment, limiter
+from vagabond.services import init_extensions, dbmanager as db, app_config, moment, limiter
 from vagabond.flask_wrapper import custom_render_template
 
 load_dotenv(find_dotenv("secrets.env"))
@@ -64,6 +65,7 @@ app.register_blueprint(profile_bp)
 app.register_blueprint(users_bp)
 app.register_blueprint(analytics_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(messaging_bp)
 
 # great tutorial on the usage of templates
 # https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-ii-templates
@@ -98,12 +100,12 @@ def log_request_info():
         return
 
     log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
-    dbmanager.write(query_str='UPDATE webstats SET hits = hits + 1, visited_timestamp = NOW()')
+    db.write(query_str='UPDATE webstats SET hits = hits + 1, visited_timestamp = NOW()')
 
     site_referral = request.headers.get("Referer")
     if site_referral:
 
-        dbmanager.write(query_str="""
+        db.write(query_str="""
             INSERT INTO referrer_links (link_origin, hits)
             VALUES (%s, 1)
             ON CONFLICT (link_origin)
@@ -119,7 +121,7 @@ def log_request_info():
     user_id = get_userid_from_session(sessionID=sid)
 
     if user_id:
-        dbmanager.write(query_str="""
+        db.write(query_str="""
             UPDATE users
             SET lastSeen = NOW(), is_online = TRUE
             WHERE id = %s
@@ -155,7 +157,7 @@ def internal_error(error):
 @app.route("/news.html")
 def news():
 
-    raw_rows, column_names = dbmanager.read(query_str=QUERY_NEWS_POSTS, get_columns=True, fetch=True)
+    raw_rows, column_names = db.read(query_str=QUERY_NEWS_POSTS, get_columns=True, fetch=True)
     news_feed = rows_to_dict(raw_rows, column_names)
 
     return custom_render_template("news.html", news_feed=news_feed or [])
@@ -167,7 +169,7 @@ def reading_list():
 @app.route("/")
 def index():
     random_number = randint(1, 99999)
-    get_hits = dbmanager.read(query_str="SELECT hits FROM webstats;")
+    get_hits = db.read(query_str="SELECT hits FROM webstats;")
 
     num_hits = deep_get(get_hits, 0, 0)
 
@@ -177,7 +179,7 @@ def index():
     named_params = {
         "current_userid": user_id
     }
-    forum_cat_rows, forum_cat_cols = dbmanager.read(query_str=QUERY_FORUM_CATEGORIES, get_columns=True, params=named_params)
+    forum_cat_rows, forum_cat_cols = db.read(query_str=QUERY_FORUM_CATEGORIES, get_columns=True, params=named_params)
     categories_list = rows_to_dict(forum_cat_rows, forum_cat_cols)
 
     log.debug(categories_list)

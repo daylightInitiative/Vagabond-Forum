@@ -2,7 +2,7 @@
 from vagabond.queries import *
 from vagabond.utility import is_valid_email_address, deep_get, get_userid_from_email
 from vagabond.dbmanager import DBManager, DBStatus
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 import logging
 import bcrypt
 
@@ -33,7 +33,7 @@ def signup(email: str, username: str, password: str) -> tuple[bool|int, str]:
         safe_password = hashed_password.decode('utf-8')
         
         # create the salt, save it
-        new_user_id = dbmanager.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
+        new_user_id = db.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
             email, username, False, False, safe_password, safe_salt, False,))
         
         if new_user_id == DBStatus.FAILURE:

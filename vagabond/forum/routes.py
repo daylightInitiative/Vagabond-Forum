@@ -1,4 +1,4 @@
-from vagabond.services import dbmanager, limiter
+from vagabond.services import dbmanager as db, limiter
 from vagabond.utility import rows_to_dict, deep_get, title_to_content_hint
 from vagabond.dbmanager import DBStatus
 from vagabond.queries import *
@@ -32,7 +32,7 @@ def serve_post_by_id(post_num, content_hint):
         user_id = get_userid_from_session(sessionID=sid)
 
         # get the content hint, if the content hint doesnt match, redirect early.
-        view_single, column_names = dbmanager.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
+        view_single, column_names = db.read(query_str=VIEW_POST_BY_ID, fetch=True, get_columns=True, params=(post_num,))
         get_post = rows_to_dict(view_single, column_names)
         single_post = deep_get(get_post, 0)
 
@@ -44,11 +44,11 @@ def serve_post_by_id(post_num, content_hint):
             print("Theres no content hint, redirect")
             return redirect( url_for("forum.serve_post_by_id", post_num=post_num, content_hint=saved_content_hint) )
 
-        dbmanager.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
+        db.write(query_str='UPDATE posts SET views = views + 1 WHERE id = %s;',
             params=(post_num,))
 
         # get all the posts replies
-        replies_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num, user_id,))
+        replies_rows, column_names = db.read(query_str=QUERY_PAGE_REPLIES, get_columns=True, params=(post_num, user_id,))
         replies_list = rows_to_dict(replies_rows, column_names)
 
         log.debug(replies_list)
@@ -70,7 +70,7 @@ def serve_post_by_id(post_num, content_hint):
         post_type = request.form.get('_post_type')
 
         if not post_type:
-            return jsonify({"error": RouteError.INVALID_FORM_DATA}), 400
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 400
         
         # decide if the user is the post owner by the session
         sid = get_session_id()
@@ -82,7 +82,7 @@ def serve_post_by_id(post_num, content_hint):
             post_id = request.form.get('post_id')
 
             if not post_id:
-                return jsonify({"error": RouteError.INVALID_POST_ID}), 422
+                return jsonify({"error": RouteStatus.INVALID_POST_ID}), 422
 
             is_owner = is_user_content_owner(post_type=post_type, userid=user_id, postid=post_id)
 
@@ -103,7 +103,7 @@ def serve_post_by_id(post_num, content_hint):
                 return abort(401)
 
             if not reply_id:
-                return jsonify({"error": RouteError.INVALID_POST_ID}), 422
+                return jsonify({"error": RouteStatus.INVALID_POST_ID}), 422
             
             soft_delete_user_post(post_type=post_type, post_id=reply_id, user_id=user_id)
 
@@ -131,7 +131,7 @@ def serve_post_by_id(post_num, content_hint):
         author = get_userid_from_session(sessionID=sessionID)
 
         log.debug("creating a reply linked to the parent post")
-        dbmanager.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
+        db.write(query_str="INSERT INTO replies (parent_post_id, contents, author) VALUES (%s, %s, %s)",
             params=(post_id, reply, author))
 
         # redirect back to the view_forum to trigger the refresh
@@ -150,10 +150,10 @@ def serve_forum():
         category_id = request.args.get('category')
 
         if not page_num:
-            return jsonify({"error": RouteError.INVALID_PAGE_ID}), 422
+            return jsonify({"error": RouteStatus.INVALID_PAGE_ID}), 422
         
         if not category_id:
-            return jsonify({"error": RouteError.INVALID_CATEGORY_ID}), 422
+            return jsonify({"error": RouteStatus.INVALID_CATEGORY_ID}), 422
         
         log.debug(f"queried post {page_num}")
         try:
@@ -180,7 +180,7 @@ def serve_forum():
             "page_offset": page_offset
         }
 
-        post_rows, column_names = dbmanager.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=named_params)
+        post_rows, column_names = db.read(query_str=QUERY_PAGE_POSTS, get_columns=True, params=named_params)
         posts = rows_to_dict(post_rows, column_names)
 
         log.debug(posts)

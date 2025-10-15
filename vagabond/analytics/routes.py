@@ -1,5 +1,5 @@
 from vagabond.analytics import analytics_bp
-from vagabond.services import dbmanager, limiter
+from vagabond.services import dbmanager as db, limiter
 from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, get_fingerprint, csrf_exempt
 from vagabond.moderation import requires_permission, UserPermission as Perms
 from vagabond.utility import rows_to_dict, deep_get
@@ -15,7 +15,7 @@ def send_analytics_data():
     if request.method == "GET":
         abort_if_not_signed_in()
 
-        data_rows, data_cols = dbmanager.read(query_str="""
+        data_rows, data_cols = db.read(query_str="""
             SELECT pagePath, hits
             FROM exitPages
             WHERE TRUE
@@ -26,7 +26,7 @@ def send_analytics_data():
         # GET COUNT OF ALL USERS THAT ARE UNREGISTERED
         # GET COUNT OF ALL USERS THAT ARE REGISTERED
         # instead of finding it positively we handle it negatively by selecting 1
-        reg_rows, reg_cols = dbmanager.read(query_str="""
+        reg_rows, reg_cols = db.read(query_str="""
             SELECT
                 (SELECT COUNT(*) FROM users) AS num_registered,
                 (
@@ -72,7 +72,7 @@ def acquiesce_exitpage():
         exit_page_path = analytics_data.get("exitpage")
 
         # save exit page data
-        dbmanager.write(query_str="""
+        db.write(query_str="""
             INSERT INTO exitPages (pagePath, hits)
             VALUES (%s, 1)
             ON CONFLICT (pagePath)
@@ -81,7 +81,7 @@ def acquiesce_exitpage():
 
         # update the duration for a session end
         user_fingerprint = get_fingerprint()
-        dbmanager.write(query_str="""
+        db.write(query_str="""
             UPDATE impression_durations
             SET impression_end = NOW()
             WHERE id = (
@@ -97,7 +97,7 @@ def acquiesce_exitpage():
         # if a session is present, update is_online to false
         sid = get_session_id()
         if sid:
-            dbmanager.write(query_str="""
+            db.write(query_str="""
                 UPDATE users 
                 SET is_online = FALSE
                 FROM sessions_table st

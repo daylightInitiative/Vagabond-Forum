@@ -1,5 +1,5 @@
 
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 from flask import request
 import logging
 

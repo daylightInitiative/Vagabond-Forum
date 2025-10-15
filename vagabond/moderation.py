@@ -1,4 +1,4 @@
-from vagabond.services import dbmanager
+from vagabond.services import dbmanager as db
 from vagabond.utility import deep_get
 from vagabond.sessions.module import get_session_id, get_userid_from_session
 from flask import abort, redirect, url_for, jsonify
@@ -19,7 +19,7 @@ def get_role_from_userid(userid: str) -> UserPermission | None:
     if not userid:
         return None
 
-    has_role = dbmanager.read(query_str="""
+    has_role = db.read(query_str="""
         SELECT user_role
         FROM users
         WHERE id = %s
@@ -98,7 +98,7 @@ def hellban_user(userid: str, admin_userid: str | None = None, reason: str | Non
         return None
 
     # hellban user
-    dbmanager.write(query_str="""
+    db.write(query_str="""
         INSERT INTO shadow_bans (userid)
             VALUES (%s) ON CONFLICT (userid) DO NOTHING
     """, params=(userid,))
@@ -114,7 +114,7 @@ def hellban_user(userid: str, admin_userid: str | None = None, reason: str | Non
     # reverted_by INTEGER,
     # reverted_at TIMESTAMP,
 
-    dbmanager.write(query_str="""
+    db.write(query_str="""
         INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
             VALUES (%s, %s, %s, %s, NOW())
     """, params=(
@@ -141,7 +141,7 @@ def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
         RETURNING author
     """ # if we return the author from this it makes it easier to call
 
-    result = dbmanager.write(query_str=update_query, fetch=True, params=(post_id,))
+    result = db.write(query_str=update_query, fetch=True, params=(post_id,))
     target_user_id = deep_get(result, 0, 0)
 
     user_is_admin = is_admin(userid=user_id)
@@ -155,7 +155,7 @@ def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
     elif user_is_admin == False: deletion_reason = f"User deleted {post_type}"
 
     # now lets log the action
-    log_action = dbmanager.write(query_str="""
+    log_action = db.write(query_str="""
         INSERT INTO moderation_actions (
             action,
             target_user_id,

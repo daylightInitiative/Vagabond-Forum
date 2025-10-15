@@ -19,18 +19,18 @@ with open(config_path, "r") as f:
     config_data = json.load(f)
 
 app_config = Config(data=config_data)
-dbmanager = DBManager(app_config)
+db = DBManager(app_config)
 
 # this is idiot safe (the tables only create if they IF NOT EXISTS)
 # just used in development
 
 if __name__ == '__main__':
-    db_version = dbmanager.write(query_str=SHOW_SERVER_VERSION, fetch=True)
+    db_version = db.write(query_str=SHOW_SERVER_VERSION, fetch=True)
     print("Running: ", db_version[0][0])
     confirm = input("Are you sure you want to wipe all tables in the db (development purposes only): (y/yes)").lower()
 
     if confirm == "y" or confirm == "yes":
-        dbmanager.write(query_str="""
+        db.write(query_str="""
                 DO $$ 
             DECLARE 
                 r RECORD;
