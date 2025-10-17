@@ -37,7 +37,7 @@ def is_user_message_owner(userID: str, messageID: str) -> bool:
     is_user_msg_owner = db.read(query_str="""
         SELECT 1
         FROM user_messages
-        WHERE id = %s AND creator_id = %s
+        WHERE id = %s AND author = %s
     """, params=(messageID, userID,))
 
     is_user_owner = deep_get(is_user_msg_owner, 0, 0) or False

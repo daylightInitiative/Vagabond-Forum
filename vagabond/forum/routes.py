@@ -90,7 +90,7 @@ def serve_post_by_id(post_num, content_hint):
                 return abort(401)
             
             # set the post as soft deleted
-            soft_delete_user_post(post_type=post_type, post_id=post_id, user_id=user_id)
+            soft_delete_user_post(PostType.POST, post_id=post_id, user_id=user_id)
 
             log.debug("Post has been soft marked for deletion")
             return redirect(url_for("index"))
@@ -105,7 +105,7 @@ def serve_post_by_id(post_num, content_hint):
             if not reply_id:
                 return jsonify({"error": RouteStatus.INVALID_POST_ID.value}), 422
             
-            soft_delete_user_post(post_type=post_type, post_id=reply_id, user_id=user_id)
+            soft_delete_user_post(post_type=PostType.REPLY, post_id=reply_id, user_id=user_id)
 
             log.info("Reply has been soft marked for deletion")
 
@@ -164,7 +164,7 @@ def serve_forum():
             # redirect to the first page if page_num is invalid (postgres id starts at 1)
             return redirect(url_for("index"))
 
-        page_offset = str((page_num - 1) * PAGE_LIMIT)
+        page_offset = str((page_num - 1) * FORUM_PAGE_LIMIT)
 
         # query the response as json, page the query, include nested replies table
 
@@ -176,7 +176,7 @@ def serve_forum():
         named_params = {
             "current_userid": userid,
             "category_id": category_id,
-            "page_limit": str(PAGE_LIMIT),
+            "page_limit": str(FORUM_PAGE_LIMIT),
             "page_offset": page_offset
         }
 

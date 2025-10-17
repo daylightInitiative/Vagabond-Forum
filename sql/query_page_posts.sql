@@ -6,7 +6,7 @@ SELECT
 FROM (
     SELECT *
     FROM posts
-    WHERE posts.category_id = %(category_id)s AND posts.deleted_at is NULL AND NOT EXISTS (
+    WHERE posts.category_id = %(category_id)s AND posts.deleted_at IS NULL AND NOT EXISTS (
         SELECT 1 FROM shadow_bans
         WHERE userid = posts.author AND posts.author IS DISTINCT FROM %(current_userid)s
     ) -- when comparing null values use IS DISTINCT FROM
@@ -25,7 +25,7 @@ LEFT JOIN (
 LEFT JOIN (
     SELECT MAX(creation_date) AS newest_post_date
     FROM posts
-    WHERE posts.category_id = %(category_id)s and posts.deleted_at is NULL AND NOT EXISTS (
+    WHERE posts.category_id = %(category_id)s and posts.deleted_at IS NULL AND NOT EXISTS (
         SELECT 1 FROM shadow_bans
         WHERE userid = posts.author AND posts.author IS DISTINCT FROM %(current_userid)s
     )

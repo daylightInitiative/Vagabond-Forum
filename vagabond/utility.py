@@ -110,6 +110,14 @@ def get_email_from_userid(userid: str) -> str | bool:
         """, fetch=True, params=(userid,))
     return deep_get(get_email, 0, 0) or False
 
+def get_groupid_from_message(messageID: str) -> str | None:
+    get_groupid = db.read(query_str="""
+            SELECT msg_group_id
+            FROM user_messages
+            WHERE id = %s
+        """, fetch=True, params=(messageID,))
+    return deep_get(get_groupid, 0, 0) or None
+
 def get_userid_from_email(email: str) -> str | bool:
     get_userid = db.read(query_str="""
             SELECT id

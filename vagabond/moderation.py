@@ -1,5 +1,6 @@
+from vagabond.constants import PostType, UserPermission, ModerationAction
 from vagabond.services import dbmanager as db
-from vagabond.utility import deep_get
+from vagabond.utility import deep_get, get_groupid_from_message
 from vagabond.sessions.module import get_session_id, get_userid_from_session
 from flask import abort, redirect, url_for, jsonify
 
@@ -8,11 +9,6 @@ from enum import Enum, auto, StrEnum
 import logging
 
 log = logging.getLogger(__name__)
-
-class UserPermission(StrEnum):
-    USER = "user"               # normal registered user
-    MODERATOR = "moderator"     # forum moderator
-    ADMIN = "admin"             # site admins who moderate, well..moderators
 
 def get_role_from_userid(userid: str) -> UserPermission | None:
 
@@ -64,27 +60,7 @@ def requires_permission(roles: list[UserPermission]):
         return wrapped
     return decorator
 
-# these actions can also be performed by a special user named "SYSTEM" which is automated
-# TODO: move over ban data to another table specifically for it
-class ModerationAction(Enum):
-    BAN_USER = 'ban_user'
-    UNBAN_USER = 'unban_user'
-    SHADOWBAN_USER = 'shadowban_user' # i see no upside of adding a "unshadowban" if you have this, you've earned it
-    MUTE_USER = 'mute_user'
-    DELETE_POST = 'delete_post'
-    UNDELETE_POST = 'undelete_post'
-    DELETE_REPLY = 'delete_reply' # undeleting a reply also seems kind of useless
-    WARN_USER = 'warn_user'
-    EDIT_POST = 'edit_post'
-    LOCK_POST = 'lock_post'
-    PIN_POST = 'pin_post'
-    CHANGE_USERNAME = 'change_username'
-    ASSIGN_ROLE = 'assign_role'
-    UNASSIGN_ROLE = 'unassign_role'
-    SUSPEND_USER = 'suspend_user'
-    ENABLE_2FA = 'enable_2fa'
-    DISABLE_2FA = 'disable_2fa'
-    REVERT_ACTION = 'revert_action'
+
 
 
 def is_admin(userid: str) -> bool:
@@ -126,13 +102,9 @@ def hellban_user(userid: str, admin_userid: str | None = None, reason: str | Non
 
     return None
 
-def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
-    table_to_search = ""
-    if post_type == "post": table_to_search = "posts"
-    elif post_type == "reply": table_to_search = "replies"
-    else:
-        log.error("Invalid post type: passed to soft_delete_user_post")
-        return None
+
+def soft_delete_user_post(post_type: PostType, post_id: str, user_id: str) -> None:
+    table_to_search = post_type.value
     
     update_query = f"""
         UPDATE {table_to_search}
@@ -146,25 +118,32 @@ def soft_delete_user_post(post_type: str, post_id: str, user_id: str) -> None:
 
     user_is_admin = is_admin(userid=user_id)
 
+    deletion_reason = f"Admin deleted {post_type}" if user_is_admin else f"User deleted {post_type}"
     modaction = ""
-    if post_type == "post": modaction = ModerationAction.DELETE_POST.value
-    elif post_type == "reply": modaction = ModerationAction.DELETE_REPLY.value
-
-    deletion_reason = ""
-    if user_is_admin == True: deletion_reason = f"Admin deleted {post_type}"
-    elif user_is_admin == False: deletion_reason = f"User deleted {post_type}"
-
-    # now lets log the action
-    log_action = db.write(query_str="""
+    query_str = """
         INSERT INTO moderation_actions (
             action,
             target_user_id,
-            target_post_id,
+            {},
             performed_by,
             reason,
             created_at   
         ) VALUES (%s, %s, %s, %s, %s, NOW())
-    """, params=(modaction, target_user_id, post_id, user_id, deletion_reason))
+    """
+
+
+    match post_type:
+        case PostType.MESSAGE:
+            modaction = ModerationAction.DELETE_MESSAGE.value
+            query_str = query_str.format("target_message_id")
+            
+        case PostType.POST | PostType.REPLY:
+            modaction = ModerationAction.DELETE_POST.value if post_type == PostType.POST else ModerationAction.DELETE_REPLY.value
+            query_str = query_str.format("target_post_id")
+        case _:
+            log.error("Invalid modaction passed: %s", modaction)
+
+    log_action = db.write(query_str=query_str, params=(modaction, target_user_id, post_id, user_id, deletion_reason))
 
     return None
 

@@ -2,15 +2,16 @@
 # instead of hardcoding a route, lets create a messaging api that requires authentication
 
 from click import group
+from vagabond.moderation import soft_delete_user_post
 from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
 )
 from vagabond.messaging import messaging_bp
 from vagabond.messaging.module import can_user_access_group, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect
-from vagabond.constants import RouteStatus
+from vagabond.constants import MESSAGE_PAGE_LIMIT, PostType, RouteStatus
 from vagabond.services import dbmanager as db
-from vagabond.utility import deep_get
+from vagabond.utility import deep_get, rows_to_dict
 import logging
 
 log = logging.getLogger(__name__)
@@ -36,7 +37,30 @@ def serve_messages(group_id):
     data = request.get_json()
 
     if request.method == "GET":
-        pass
+        
+        page_offset = data.get("page_offset")
+        if not isinstance(page_offset, int):
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+
+        # get the page index for our pagination
+        param_dict = {
+            "message_page_limit": MESSAGE_PAGE_LIMIT,
+            "message_group_id": group_id,
+            "page_offset": page_offset # note to frontend: starts at index 0
+        }
+        get_rows, get_cols = db.read(query_str="""
+            SELECT *
+            FROM user_messages
+            WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL
+            ORDER BY creation_date DESC
+            LIMIT %(message_page_limit)s OFFSET %(page_offset)s
+        """, get_columns=True, params=param_dict)
+
+        paginated_messages_dict = rows_to_dict(get_rows, get_cols)
+
+        log.debug(paginated_messages_dict)
+        return jsonify(paginated_messages_dict), 200
+
     elif request.method == "POST":
         # creation of a new message
 
@@ -57,9 +81,16 @@ def serve_messages(group_id):
             return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
         
         db.write(query_str="""
-            INSERT INTO user_messages (contents, creator_id, msg_group_id)
+            INSERT INTO user_messages (contents, author, msg_group_id)
                  VALUES (%s, %s, %s)
         """, params=(msg_contents, msg_creator_id, msg_group_id,))
+
+        # update the last message timestamp
+        db.write(query_str="""
+            UPDATE message_recipient_group
+            SET last_message = NOW()
+            WHERE groupid = %s
+        """, params=(group_id,))
 
         log.debug("created new message in (user_id=%s, group_id=%s)", msg_creator_id, msg_group_id)
 
@@ -77,13 +108,13 @@ def serve_edit_message(group_id, message_id):
     sid = get_session_id()
     userID = "1" #get_userid_from_session(sessionID=sid)
 
-    data = request.get_json()
+    
 
     if not can_user_access_group(userID=userID, groupID=group_id):
         return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
 
     if request.method == "PATCH":
-        
+        data = request.get_json()
         new_contents = data.get("edited_message")
         if not new_contents:
             return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
@@ -110,7 +141,12 @@ def serve_edit_message(group_id, message_id):
         log.debug("edited message (message_id=%s, group_id=%s)", message_id, group_id)
 
     elif request.method == "DELETE":
-        pass
+        
+        log.debug("Deleting message of id: %s", message_id)
+
+        soft_delete_user_post(PostType.MESSAGE, message_id, userID)
+
+
 
 
     return '', 200

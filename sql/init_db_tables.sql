@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS message_recipient_group (
     groupid SERIAL PRIMARY KEY,
+    group_owner BIGINT NULL, -- we can use this later to prune groups with no owner, but keep messages
     creation_date TIMESTAMPTZ DEFAULT NOW(),
     last_message TIMESTAMPTZ
 );
@@ -59,7 +60,7 @@ CREATE TABLE IF NOT EXISTS message_recipient_group (
 CREATE TABLE IF NOT EXISTS user_messages (
     id SERIAL PRIMARY KEY,
     contents VARCHAR(500) NOT NULL,
-    creator_id BIGINT NOT NULL REFERENCES users(id),
+    author BIGINT NOT NULL REFERENCES users(id),
     -- msg_group is a way of mass messaging, but also the ability for one to one messaging
     msg_group_id BIGINT NOT NULL REFERENCES message_recipient_group(groupid),
     reply_id BIGINT REFERENCES user_messages(id),
@@ -106,7 +107,7 @@ CREATE TABLE IF NOT EXISTS verification_codes (
 
 CREATE TABLE IF NOT EXISTS profiles (
     id SERIAL PRIMARY KEY,
-    profile_id INT NOT NULL,
+    profile_id BIGINT NOT NULL,
     FOREIGN KEY (profile_id) REFERENCES users(id),
     description VARCHAR(500) NOT NULL DEFAULT ''
 );
@@ -117,11 +118,11 @@ CREATE TABLE IF NOT EXISTS sessions_table (
     id SERIAL PRIMARY KEY,
     sid VARCHAR(32) UNIQUE NOT NULL,
     ipaddr inet NOT NULL,
-    user_id INT NOT NULL,
+    user_id BIGINT NOT NULL,
     display_user_agent VARCHAR(255) NOT NULL DEFAULT 'Unknown, Unknown',
     raw_user_agent VARCHAR(2048) NOT NULL DEFAULT 'Unknown', -- increasing the raw ua size so we get all of it
     fingerprint_id VARCHAR(64), -- the sha-256 hash of the fingerprint
-    temp_data_sid INT NOT NULL,
+    temp_data_sid BIGINT NOT NULL,
     lastLogin TIMESTAMPTZ DEFAULT NOW(),
     active BOOLEAN NOT NULL DEFAULT TRUE,
     expires_at TIMESTAMPTZ NOT NULL,
@@ -192,13 +193,15 @@ CREATE TABLE IF NOT EXISTS shadow_bans (
 CREATE TABLE IF NOT EXISTS moderation_actions (
     id SERIAL PRIMARY KEY,
     action VARCHAR(255) NOT NULL,
-    target_user_id INTEGER NOT NULL,
-    target_post_id INTEGER,
-    performed_by INTEGER NOT NULL,
+    target_user_id BIGINT NOT NULL,
+    target_post_id BIGINT,
+    target_group_id BIGINT, -- both for different types of posts, it doesnt matter if its null
+    target_message_id BIGINT,
+    performed_by BIGINT NOT NULL,
     reason VARCHAR(2048) DEFAULT 'No reason specified.',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP,
-    reverted_by INTEGER,
+    reverted_by BIGINT,
     reverted_at TIMESTAMP,
 
     FOREIGN KEY (performed_by) REFERENCES users(id),
