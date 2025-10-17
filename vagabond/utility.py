@@ -110,6 +110,22 @@ def get_email_from_userid(userid: str) -> str | bool:
         """, fetch=True, params=(userid,))
     return deep_get(get_email, 0, 0) or False
 
+def get_group_owner(groupID: str) -> str | None:
+    get_group_owner = db.read(query_str="""
+        SELECT group_owner
+        FROM message_recipient_group
+        WHERE groupid = %s
+    """, params=(groupID,))
+    return deep_get(get_group_owner, 0, 0) or None
+
+def get_group_members(groupID: str) -> tuple[int] | None:
+    get_member_ids = db.read(query_str="""
+        SELECT *
+        FROM message_group_users
+        WHERE group_id = %s      
+    """, params=(groupID,))
+    return deep_get(get_member_ids, 0) or None
+
 def get_groupid_from_message(messageID: str) -> str | None:
     get_groupid = db.read(query_str="""
             SELECT msg_group_id

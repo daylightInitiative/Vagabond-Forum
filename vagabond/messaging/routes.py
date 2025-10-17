@@ -1,7 +1,7 @@
 
 # instead of hardcoding a route, lets create a messaging api that requires authentication
 
-from click import group
+import json
 from vagabond.moderation import soft_delete_user_post
 from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
@@ -9,9 +9,9 @@ from vagabond.sessions.module import (
 from vagabond.messaging import messaging_bp
 from vagabond.messaging.module import can_user_access_group, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect
-from vagabond.constants import MESSAGE_PAGE_LIMIT, PostType, RouteStatus
+from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, RouteStatus
 from vagabond.services import dbmanager as db
-from vagabond.utility import deep_get, rows_to_dict
+from vagabond.utility import deep_get, get_group_owner, is_valid_userid, rows_to_dict
 import logging
 
 log = logging.getLogger(__name__)
@@ -19,34 +19,104 @@ log = logging.getLogger(__name__)
 
 # change group owner, delete group
 @messaging_bp.route("/api/v1/messages/groups/<group_id>", methods=["PATCH", "DELETE"])
-def serve_group():
-    pass
+def serve_group(group_id):
+
+    if not is_user_logged_in():
+        return jsonify({"error": RouteStatus.INVALID_PERMISSIONS}), 401
+
+    
+    sid = get_session_id()
+    userID = get_userid_from_session(sessionID=sid)
+
+    if not can_user_access_group(userID=userID, groupID=group_id):
+        return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
+
+    if request.method == "PATCH":
+
+        data = request.get_json()
+
+        new_owner = data.get("new_owner")
+        if not new_owner or not is_valid_userid(userID=new_owner):
+            return jsonify({"error": RouteStatus.INVALID_FORM_DATA}), 422
+
+        # change the group owner only if the invoker is already equal to the owner
+        group_owner = get_group_owner(groupID=group_id)
+        assert(group_owner, "Unable to get group owner information")
+
+        if not group_owner:
+            log.error("Group of id: %s does not have an owner.", group_id)
+            return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR}), 500
+        
+        if userID != group_owner:
+            return jsonify({"error": RouteStatus.INVALID_PERMISSIONS}), 401
+        
+        db.write(query_str="""
+            UPDATE message_recipient_group
+                SET group_owner = %s
+            WHERE groupid = %s
+            ORDER BY added_at DESC
+        """, params=(new_owner, group_id,))
+
+    elif request.method == "DELETE":
+
+        group_owner = get_group_owner(groupID=group_id)
+        assert(group_owner, "Unable to get group owner information")
+
+        if group_owner != userID:
+            return jsonify({"error": RouteStatus.INVALID_PERMISSIONS}), 401
+        
+        db.write(query_str="""
+            UPDATE message_recipient_group
+                SET deleted_at = NOW()
+            WHERE groupid = %s
+        """, params=(group_id,))
+
+        # add to audit log this action,
+        modaction = ModerationAction.DELETE_GROUP
+        query_str = """
+            INSERT INTO moderation_actions (
+                action,
+                target_user_id,
+                target_group_id,
+                performed_by,
+                reason,
+                created_at   
+            ) VALUES (%s, %s, %s, %s, %s, NOW())
+        """
+
+        log_action = db.write(query_str=query_str, params=(modaction, userID, group_id, userID, "User deleted group"))
+
+    return '', 200
+
 
 # when getting the paginated output we should filter by date ASC
 # for getting paginated output, creating a new message returning the postid for the javascript (that way its easier to reply to it)
 @messaging_bp.route("/api/v1/messages/groups/<group_id>/messages", methods=["GET", "POST"])
-@csrf_exempt
 def serve_messages(group_id):
 
-    # if not is_user_logged_in():
-    #     return jsonify({"error": RouteError.INVALID_PERMISSIONS}), 401
+    if not is_user_logged_in():
+        return jsonify({"error": RouteStatus.INVALID_PERMISSIONS}), 401
 
+    
     sid = get_session_id()
-    userID = "1"
+    userID = get_userid_from_session(sessionID=sid)
+
+    if not can_user_access_group(userID=userID, groupID=group_id):
+        return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
 
     data = request.get_json()
 
     if request.method == "GET":
         
         page_offset = data.get("page_offset")
-        if not isinstance(page_offset, int):
+        if not isinstance(page_offset, int) and page_offset >= 1:
             return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
 
         # get the page index for our pagination
         param_dict = {
             "message_page_limit": MESSAGE_PAGE_LIMIT,
             "message_group_id": group_id,
-            "page_offset": page_offset # note to frontend: starts at index 0
+            "page_offset": ((page_offset - 1) * MESSAGE_PAGE_LIMIT) # note to frontend: starts at index 1
         }
         get_rows, get_cols = db.read(query_str="""
             SELECT *
@@ -99,14 +169,13 @@ def serve_messages(group_id):
 
 # for deleting and editing messages of a particular group id,
 @messaging_bp.route("/api/v1/messages/groups/<group_id>/messages/<message_id>", methods=["PATCH", "DELETE"])
-@csrf_exempt
 def serve_edit_message(group_id, message_id):
 
-    # if not is_user_logged_in():
-    #     return jsonify({"error": RouteError.INVALID_PERMISSIONS}), 401
+    if not is_user_logged_in():
+        return jsonify({"error": RouteStatus.INVALID_PERMISSIONS}), 401
 
     sid = get_session_id()
-    userID = "1" #get_userid_from_session(sessionID=sid)
+    userID = get_userid_from_session(sessionID=sid)
 
     
 
@@ -153,14 +222,14 @@ def serve_edit_message(group_id, message_id):
 
 # its critical we dont really delete messages for later investigation, etc.
 @messaging_bp.route("/api/v1/messages/groups/create", methods=["POST"])
-@csrf_exempt
 def serve_create_group():
     
-    # if not is_user_logged_in():
-    #     return jsonify({"error": RouteError.INVALID_PERMISSIONS}), 401
+    if not is_user_logged_in():
+        return jsonify({"error": RouteStatus.INVALID_PERMISSIONS}), 401
 
     data = request.get_json()
-    userID = "1"
+    sid = get_session_id()
+    userID = get_userid_from_session(sessionID=sid)
 
     if request.method == "POST":
         # create a new group
@@ -188,7 +257,7 @@ def serve_create_group():
 
         for user_id in users_to_add:
             log.debug(f"creating entry to group_users, (group_id={group_id}, user_id={user_id})")
-            db.write(query_str=f"""
+            db.write(query_str="""
                 INSERT INTO message_group_users (group_id, user_id)
                     VALUES (%s, %s)
             """, params=(group_id, user_id,))

@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS message_recipient_group (
     groupid SERIAL PRIMARY KEY,
     group_owner BIGINT NULL, -- we can use this later to prune groups with no owner, but keep messages
     creation_date TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
     last_message TIMESTAMPTZ
 );
 

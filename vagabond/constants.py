@@ -3,8 +3,6 @@ MAX_URL_TITLE = 40
 FORUM_PAGE_LIMIT = 10
 MESSAGE_PAGE_LIMIT = 65
 
-import json
-from flask import jsonify
 from enum import Enum, auto, StrEnum
 # errors (consistency is important with our api)
 
