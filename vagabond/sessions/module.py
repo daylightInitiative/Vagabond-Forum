@@ -2,7 +2,7 @@ from vagabond.constants import RouteStatus
 from vagabond.utility import rows_to_dict, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.queries import *
-from flask import jsonify, request, abort, redirect, url_for
+from flask import Response, jsonify, make_response, request, abort, redirect, url_for
 from vagabond.services import dbmanager as db
 from ua_parser import parse_os, parse_user_agent, parse_device
 from itsdangerous import URLSafeTimedSerializer
@@ -196,6 +196,15 @@ def create_session(userid: str, request_obj) -> str | None:
     
     return sid
 
+def get_auth_user_response(sessionID: str) -> Response:
+    log.debug("Sending session to client from signup")
+    response = make_response(redirect(url_for("index")))
+    response.set_cookie(key="sessionID", value=sessionID, max_age=7200, samesite="Lax")
+
+    user_fingerprint = get_fingerprint()
+    associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sessionID)
+    return response
+
 def is_valid_session(sessionID: str) -> bool:
     # check if the session is valid (just checking the active variable and this userid)
     # get the device fingerprint
@@ -204,8 +213,8 @@ def is_valid_session(sessionID: str) -> bool:
     is_session_valid = db.read(query_str="""
         SELECT 1
         FROM sessions_table
-        WHERE sid = %s AND active = TRUE AND (expires_at IS NULL OR expires_at > NOW())
-    """, fetch=True, params=(sessionID,))
+        WHERE sid = %s AND active = TRUE""", fetch=True, params=(sessionID,))
+    # AND (expires_at IS NULL OR expires_at > NOW()) currently unimplemented, causing bugs
     # #  removing this for now until we can get a better solution
 
     return is_session_valid or False # it wasnt found or something wrong is going on

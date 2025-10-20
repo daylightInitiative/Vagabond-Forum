@@ -34,7 +34,7 @@ def signup(email: str, username: str, password: str) -> tuple[bool|int, str]:
         
         # create the salt, save it
         new_user_id = db.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
-            email, username, False, False, safe_password, safe_salt, False,))
+            email, username, False, False, safe_password, safe_salt, "user"))
         
         if new_user_id == DBStatus.FAILURE:
             return False, "Unable to fetch"

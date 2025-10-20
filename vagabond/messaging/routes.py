@@ -41,7 +41,6 @@ def serve_group(group_id):
 
         # change the group owner only if the invoker is already equal to the owner
         group_owner = get_group_owner(groupID=group_id)
-        assert(group_owner, "Unable to get group owner information")
 
         if not group_owner:
             log.error("Group of id: %s does not have an owner.", group_id)
@@ -60,7 +59,6 @@ def serve_group(group_id):
     elif request.method == "DELETE":
 
         group_owner = get_group_owner(groupID=group_id)
-        assert(group_owner, "Unable to get group owner information")
 
         if group_owner != userID:
             return jsonify({"error": RouteStatus.INVALID_PERMISSIONS}), 401

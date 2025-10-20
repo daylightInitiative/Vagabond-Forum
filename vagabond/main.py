@@ -93,7 +93,7 @@ def log_request_info():
     
     sid = get_session_id()
     if not sid:
-        return  # no session to refresh
+        return
         
     if not is_valid_session(sessionID=sid):
         invalidate_session(sessionID=sid)
@@ -182,7 +182,7 @@ def index():
     forum_cat_rows, forum_cat_cols = db.read(query_str=QUERY_FORUM_CATEGORIES, get_columns=True, params=named_params)
     categories_list = rows_to_dict(forum_cat_rows, forum_cat_cols)
 
-    log.debug(categories_list)
+    #log.debug(categories_list)
 
     return custom_render_template("index.html", number=random_number, num_hits=num_hits, forum_categories=categories_list or {})
 

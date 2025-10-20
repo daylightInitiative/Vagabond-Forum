@@ -2,6 +2,7 @@ from vagabond.constants import RouteStatus
 from vagabond.signup import signup_bp
 from flask import request, jsonify, redirect, abort, make_response, url_for
 from vagabond.sessions.module import (
+    get_auth_user_response,
     redirect_if_already_logged_in,
     associate_fingerprint_to_session,
     get_fingerprint,
@@ -11,7 +12,7 @@ from vagabond.sessions.module import (
 from vagabond.services import limiter
 from vagabond.profile.module import create_profile
 from vagabond.signup.module import signup
-from vagabond.email import generate_token, confirm_token, send_confirmation_code
+from vagabond.email import generate_token, confirm_token, send_signup_code
 from vagabond.avatar import update_user_avatar, create_user_avatar
 from vagabond.flask_wrapper import custom_render_template
 from vagabond.utility import get_userid_from_email
@@ -46,22 +47,29 @@ def signup_page():
             return custom_render_template("signup.html", errmsg=errmsg)
         
         email_token = generate_token(email=email)
-        send_confirmation_code(email=email, code=email_token)
+        send_signup_code(email=email, code=email_token)
         
-        return custom_render_template("confirm_email.html", email=email)
+        return custom_render_template("confirm_email.html", text="""
+            A temporary sign up link has been sent to the email above, it will expire in one hour.
+        """, email=email)
 
         
-    
+
 
 @signup_bp.route("/confirm", methods=["GET"])
-def confirm_signup_code():
+@csrf_exempt
+def confirm_email_code():
     
-    signup_code = request.args.get("token")
+    email_code = request.args.get("token")
+    code_type = request.args.get("token_type")
 
-    if not signup_code:
+    if not code_type:
+        return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+
+    if not email_code:
         return jsonify({"error": RouteStatus.BAD_TOKEN.value}), 422
     
-    decoded_email = confirm_token(token=signup_code)
+    decoded_email = confirm_token(token=email_code)
 
     if not decoded_email:
         return jsonify({"error": RouteStatus.EXPIRED_TOKEN.value}), 422
@@ -76,21 +84,17 @@ def confirm_signup_code():
     if not sid:
         return custom_render_template("signup.html", errmsg="Internal server error: Unable to acquire session ID")
 
-    # lets create the users randomly generated avatar (we dont have a cdn yet so... just in static)
-    # this returns the md5 hash of the image
-    avatar_url = create_user_avatar(userid)
+    if code_type == "Signup":
 
-    # update the avatar
-    update_user_avatar(userID=userid, avatar_hash=avatar_url)
+        # lets create the users randomly generated avatar (we dont have a cdn yet so... just in static)
+        # this returns the md5 hash of the image
+        avatar_url = create_user_avatar(userid)
 
-    # create a profile for the user
-    create_profile(userID=userid)
+        # update the avatar
+        update_user_avatar(userID=userid, avatar_hash=avatar_url)
 
-    log.debug("Sending session to client from signup")
-    response = make_response(redirect(url_for("index")))
-    response.set_cookie(key="sessionID", value=sid, max_age=7200, samesite="Strict")
+        # create a profile for the user
+        create_profile(userID=userid)
 
-    user_fingerprint = get_fingerprint()
-    associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sid)
-    
-    return response
+    auth_response = get_auth_user_response(sessionID=sid)
+    return auth_response

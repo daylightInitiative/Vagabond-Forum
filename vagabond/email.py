@@ -60,6 +60,7 @@ def generate_2FA_code(sessionID: str) -> str:
     tsid = get_tsid(sessionID=sessionID)
 
     # only one code, on conflict update the code
+    # we store this by its temp_session_id so it guarentees no collisions with other users codes, but in case we have a fallback that overwrites
     db.write(query_str="""
         INSERT INTO verification_codes (temp_session_id, code)
         VALUES (%s, %s)
@@ -71,6 +72,14 @@ def generate_2FA_code(sessionID: str) -> str:
     """, params=(tsid, new_2fa_code,))
 
     return new_2fa_code
+
+def is_2fa_enabled(userID: str) -> bool:
+    get_is_2fa_enabled = db.read(query_str="""
+        SELECT is_2fa_enabled
+        FROM users
+        WHERE id = %s
+    """, params=(userID,))
+    return deep_get(get_is_2fa_enabled, 0, 0) or False
 
 def confirm_2FA_code(sessionID: str, code: str) -> bool:
     tsid = get_tsid(sessionID=sessionID)
@@ -101,8 +110,19 @@ def send_2fa_code(email: str, code: str) -> None:
     })
     return None
 
-def send_confirmation_code(email: str, code: str) -> None:
-    confirmation_url = url_for("signup.confirm_signup_code", token=code, _external=True)
+def send_2auth_login_code(email: str, code: str) -> None:
+    confirmation_url = url_for("signup.confirm_email_code", token=code, token_type="2Auth", _external=True)
+    send_email(receiver_email=email, email_dict={
+        "subject": "Your temporary signup code",
+        "body": f"""
+            <b>Hello user, use this temporary link to complete your account setup.</b><br><br>
+            <a href="{confirmation_url}">Click this link<a> to finalize your account setup: 
+        """
+    })
+    return None
+
+def send_signup_code(email: str, code: str) -> None:
+    confirmation_url = url_for("signup.confirm_email_code", token=code, token_type="Signup", _external=True)
     send_email(receiver_email=email, email_dict={
         "subject": "Your temporary signup code",
         "body": f"""
