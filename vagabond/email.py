@@ -115,8 +115,8 @@ def send_2auth_login_code(email: str, code: str) -> None:
     send_email(receiver_email=email, email_dict={
         "subject": "Your temporary signup code",
         "body": f"""
-            <b>Hello user, use this temporary link to complete your account setup.</b><br><br>
-            <a href="{confirmation_url}">Click this link<a> to finalize your account setup: 
+            <b>Hello user, use this 2FA temporary link to sign in</b><br><br>
+            <a href="{confirmation_url}">Click this link<a>
         """
     })
     return None

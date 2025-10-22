@@ -2,7 +2,6 @@ from vagabond.constants import RouteStatus
 from vagabond.signup import signup_bp
 from flask import request, jsonify, redirect, abort, make_response, url_for
 from vagabond.sessions.module import (
-    get_auth_user_response,
     redirect_if_already_logged_in,
     associate_fingerprint_to_session,
     get_fingerprint,
@@ -96,5 +95,5 @@ def confirm_email_code():
         # create a profile for the user
         create_profile(userID=userid)
 
-    auth_response = get_auth_user_response(sessionID=sid)
+    auth_response = redirect(url_for('session.setup_session', sid=sid))
     return auth_response

@@ -7,7 +7,7 @@ from vagabond.constants import *
 from vagabond.sessions.module import (
     get_userid_from_session, is_user_logged_in, get_session_id, get_fingerprint, is_valid_csrf_or_abort, CSRF, is_valid_session, invalidate_session
 )
-from vagabond.utility import rows_to_dict, deep_get, get_email_from_userid, get_current_TIMESTAMPZ, get_email_subject_date
+from vagabond.utility import get_username_from_userid, rows_to_dict, deep_get, get_email_from_userid, get_current_TIMESTAMPZ, get_email_subject_date
 from vagabond.utility import included_reload_files
 from vagabond.moderation import is_admin, hellban_user
 from vagabond.email import send_email
@@ -80,6 +80,7 @@ def inject_jinja_variables():
     return {
         "is_authenticated": is_user_logged_in(),
         "current_userid": user_id,
+        "current_username": get_username_from_userid(user_id) or None,
         "is_superuser": is_admin(userid=user_id),
         "get_csrf_token": get_csrf_token
     }

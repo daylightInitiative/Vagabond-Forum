@@ -19,7 +19,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
 
-                <form id="reportForm">
+                <form id="twofactorForm">
                     <!-- <input type="hidden" name="csrf_token" value="{{ get_csrf_token() }}"/> -->
                     <div class="modal-header">
                     <h5 class="modal-title" id="authMenuLabel">Authenticate to toggle 2FA for user: <i>{{ userinfo.username }}</i></h5>
@@ -35,7 +35,7 @@
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Submit Report</button>
+                        <button type="submit" class="btn btn-primary">Toggle 2FA</button>
                     </div>
                 </form>
 
@@ -71,7 +71,7 @@
                 get_data("/account/settings/2fa"); // this will send email for a new code if authenticated
             });
 
-            document.getElementById('reportForm').addEventListener('submit', function (e) {
+            document.getElementById('twofactorForm').addEventListener('submit', function (e) {
                 e.preventDefault();
 
                 const verification_code = document.getElementById('verification_code').value;
@@ -96,11 +96,11 @@
                         const modal = bootstrap.Modal.getInstance(document.getElementById('authMenu'));
                         modal.hide();
                     } else {
-                        console.log("Failed to submit report");
+                        console.log("Failed to submit confirmation code");
                     }
                 })
             .catch(error => {
-                console.error("Error submitting report:", error);
+                console.error("Error submitting", error);
             });
         });
         });

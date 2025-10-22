@@ -15,7 +15,7 @@
             {% if is_superuser == True %}
                 <p>You are an admin!</p>
             {% else %}
-                <p>Welcome user!</p>
+                <p>Welcome {{ 'user' if not current_username else current_username }}!!</p>
                 <p>Dont have an account yet? <a href="/signup">Sign Up</a></p>
             {% endif %}
         </div>

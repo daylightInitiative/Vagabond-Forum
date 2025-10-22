@@ -50,6 +50,7 @@ class RouteStatus(Enum):
     INVALID_PAGE_ID = "Invalid page ID"
     INVALID_USER_ID = "Invalid user ID"
     INVALID_REQUEST = "Invalid request"
+    INVALID_SESSION = "Invalid session"
 
 
     INVALID_PERMISSIONS = "Invalid permissions"

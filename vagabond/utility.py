@@ -110,6 +110,14 @@ def get_email_from_userid(userid: str) -> str | bool:
         """, fetch=True, params=(userid,))
     return deep_get(get_email, 0, 0) or False
 
+def get_username_from_userid(userid: str) -> str | None:
+    get_username = db.read(query_str="""
+            SELECT username
+            FROM users
+            WHERE id = %s
+        """, fetch=True, params=(userid,))
+    return deep_get(get_username, 0, 0) or None
+
 def get_group_owner(groupID: str) -> str | None:
     get_group_owner = db.read(query_str="""
         SELECT group_owner

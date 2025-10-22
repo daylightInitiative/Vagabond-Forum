@@ -9,14 +9,9 @@ from vagabond.admin import admin_bp
 from vagabond.services import dbmanager as db, limiter
 import logging
 
-log = logging.getLogger(__name__)
+from vagabond.utility import contains_json_key_or_error, is_valid_userid
 
-def contains_json_key_or_error(dictionary: dict, keydict: dict) -> None:
-    for key, value in keydict.items():
-        key_exists = dictionary.get(key)
-        if not key_exists or not type(key_exists) == value:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
-    return None
+log = logging.getLogger(__name__)
 
 @admin_bp.route("/moderation/ticket", methods=['POST'])
 def create_ticket():
@@ -56,5 +51,10 @@ def serve_admin_panel():
 
     user_to_moderate = request.args.get("userid")
     log.debug(user_to_moderate)
+
+    if not is_valid_userid(userID=user_to_moderate):
+        return jsonify({"error": RouteStatus.INVALID_USER_ID}), 422
+    
+    
 
     return custom_render_template("admin_panel.html")

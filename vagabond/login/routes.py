@@ -1,7 +1,6 @@
 from vagabond.constants import RouteStatus
 from vagabond.email import confirm_2FA_code, generate_2FA_code, generate_token, is_2fa_enabled, send_2auth_login_code, send_2fa_code, send_signup_code
 from vagabond.sessions.module import (
-    get_auth_user_response,
     redirect_if_already_logged_in,
     create_session, invalidate_session,
     get_session_id, get_fingerprint,
@@ -68,8 +67,7 @@ def serve_login():
             if not sid:
                 return custom_render_template("login.html", errmsg="Internal server error: Unable to acquire session ID")
 
-            auth_response = get_auth_user_response(sessionID=sid)
-
+            auth_response = redirect(url_for('session.setup_session', sid=sid))
             return auth_response
         else:
             return custom_render_template("login.html", errormsg=errmsg)
@@ -83,7 +81,5 @@ def logout():
 
     response = make_response(redirect(url_for('login.serve_login')))
     response.delete_cookie('sessionID')
-    #del session['sessionID']
-    # i found that i had never deleted the cookie even after signout
 
     return response

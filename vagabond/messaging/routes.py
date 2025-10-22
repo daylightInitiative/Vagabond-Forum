@@ -1,7 +1,6 @@
 
 # instead of hardcoding a route, lets create a messaging api that requires authentication
 
-import json
 from vagabond.moderation import soft_delete_user_post
 from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
@@ -175,8 +174,6 @@ def serve_edit_message(group_id, message_id):
     sid = get_session_id()
     userID = get_userid_from_session(sessionID=sid)
 
-    
-
     if not can_user_access_group(userID=userID, groupID=group_id):
         return jsonify({"error": RouteStatus.INVALID_PERMISSIONS.value}), 401
 
@@ -212,9 +209,6 @@ def serve_edit_message(group_id, message_id):
         log.debug("Deleting message of id: %s", message_id)
 
         soft_delete_user_post(PostType.MESSAGE, message_id, userID)
-
-
-
 
     return '', 200
 
@@ -260,11 +254,4 @@ def serve_create_group():
                     VALUES (%s, %s)
             """, params=(group_id, user_id,))
                 
-
-
         return '', 200
-
-
-# send messages
-# create message group
-# receieve messages paginated, into the scroll

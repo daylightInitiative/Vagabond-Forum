@@ -9,10 +9,6 @@ import bcrypt
 log = logging.getLogger(__name__)
 
 # TODO: Add send email on new ip address login here,
-
-def increment_wrong_login_attempts():
-    pass
-
 # returns true upon a successful authentication, false upon incorrect credentials
 def is_valid_login(email: str, password: str) -> tuple[bool, str]:
     try:
@@ -52,6 +48,14 @@ def is_valid_login(email: str, password: str) -> tuple[bool, str]:
         result = bcrypt.checkpw(provided_password, hashed_password)
 
         if result == False:
+            # increment the incorrect login attempts to this account
+
+            db.write(query_str="""
+                UPDATE users
+                SET loginAttempts = loginAttempts + 1
+                WHERE id = %s
+            """, params=(userid,))
+
             return False, "Incorrect email or password"
     except Exception as e:
         log.error("Unexpected error during login", exc_info=e)

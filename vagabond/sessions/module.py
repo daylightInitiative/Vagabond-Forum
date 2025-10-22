@@ -195,15 +195,8 @@ def create_session(userid: str, request_obj) -> str | None:
 
     
     return sid
+    
 
-def get_auth_user_response(sessionID: str) -> Response:
-    log.debug("Sending session to client from signup")
-    response = make_response(redirect(url_for("index")))
-    response.set_cookie(key="sessionID", value=sessionID, max_age=7200, samesite="Lax")
-
-    user_fingerprint = get_fingerprint()
-    associate_fingerprint_to_session(fingerprint=user_fingerprint, sessionID=sessionID)
-    return response
 
 def is_valid_session(sessionID: str) -> bool:
     # check if the session is valid (just checking the active variable and this userid)
