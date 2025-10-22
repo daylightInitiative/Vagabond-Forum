@@ -42,6 +42,20 @@ class ModerationAction(Enum):
     DISABLE_2FA = 'disable_2fa'
     REVERT_ACTION = 'revert_action'
 
+# later we can localize these constants with a translator function
+class ResponseMessage(Enum):
+    CREATED_TICKET = 'Created new ticket'
+    CREATED_NEW_GROUP = 'Created new group'
+    CREATED_MESSAGE = 'Created group message'
+    CHANGED_GROUP_OWNER = 'Changed group owner'
+    SENT_VERIFICATION_CODE = 'Sent verification code to email'
+    SIGNED_OUT_ALL_SESSIONS = 'Signed out of all other sessions'
+    SAVED_ANALYTICS = 'Saved analytics'
+    DELETED_MESSAGE = 'Deleted message'
+    DELETED_GROUP = 'Deleted group'
+    SAVED_DRAFT_DATA = 'Saved draft data'
+    EDITED_MESSAGE = 'Edited message'
+
 class RouteStatus(Enum):
 
     INVALID_FORM_DATA = "Invalid form data"

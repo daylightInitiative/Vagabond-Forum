@@ -4,7 +4,7 @@ from vagabond.services import dbmanager as db, limiter
 
 from vagabond.utility import deep_get, rows_to_dict
 from flask import jsonify, url_for
-from vagabond.flask_wrapper import custom_render_template
+from vagabond.flask_wrapper import custom_render_template, error_response
 import logging
 
 # the idea is that each user has their own profile
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 def serve_userpage(userid):
 
     if not userid:
-        return jsonify({"error": RouteStatus.INVALID_USER_ID.value}), 422
+        return error_response(RouteStatus.INVALID_USER_ID, 422)
     
     user_rows, user_cols = db.read(query_str="""
         SELECT p.description, users.id, username, is_online, lastSeen, join_date, avatar_hash

@@ -13,7 +13,7 @@ from vagabond.profile.module import create_profile
 from vagabond.signup.module import signup
 from vagabond.email import generate_token, confirm_token, send_signup_code
 from vagabond.avatar import update_user_avatar, create_user_avatar
-from vagabond.flask_wrapper import custom_render_template
+from vagabond.flask_wrapper import custom_render_template, error_response
 from vagabond.utility import get_userid_from_email
 
 import logging
@@ -38,7 +38,7 @@ def signup_page():
         password = request.form.get('password', type=str)
         
         if not email or not username or not password:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
         
         userid, errmsg = signup(email=email, username=username, password=password)
 
@@ -63,20 +63,20 @@ def confirm_email_code():
     code_type = request.args.get("token_type")
 
     if not code_type:
-        return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+        return error_response(RouteStatus.INVALID_FORM_DATA, 422)
 
     if not email_code:
-        return jsonify({"error": RouteStatus.BAD_TOKEN.value}), 422
+        return error_response(RouteStatus.BAD_TOKEN, 422)
     
     decoded_email = confirm_token(token=email_code)
 
     if not decoded_email:
-        return jsonify({"error": RouteStatus.EXPIRED_TOKEN.value}), 422
+        return error_response(RouteStatus.EXPIRED_TOKEN, 422)
 
     userid = get_userid_from_email(email=decoded_email)
 
     if not userid:
-        return jsonify({"error": RouteStatus.INVALID_USER_ID.value}), 404
+        return error_response(RouteStatus.INVALID_USER_ID, 422)
 
     sid = create_session(userid=userid, request_obj=request)
 

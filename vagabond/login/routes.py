@@ -13,7 +13,7 @@ from vagabond.login.module import is_valid_login
 from vagabond.moderation import is_admin
 from vagabond.services import limiter, dbmanager as db
 from flask import request, make_response, redirect, url_for, jsonify, session
-from vagabond.flask_wrapper import custom_render_template
+from vagabond.flask_wrapper import custom_render_template, error_response
 
 import logging
 
@@ -35,7 +35,7 @@ def serve_login():
         password = request.form.get('password')
 
         if not email or not password:
-            return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
         
         is_authenticated, errmsg = is_valid_login(email=email, password=password)
         

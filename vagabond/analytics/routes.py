@@ -1,10 +1,11 @@
 from vagabond.analytics import analytics_bp
+from vagabond.constants import ResponseMessage
 from vagabond.services import dbmanager as db, limiter
 from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, get_fingerprint, csrf_exempt
 from vagabond.moderation import requires_permission, UserPermission as Perms
 from vagabond.utility import rows_to_dict, deep_get
 from flask import abort, redirect, jsonify, request
-from vagabond.flask_wrapper import custom_render_template
+from vagabond.flask_wrapper import custom_render_template, success_response
 import logging
 
 log = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ def send_analytics_data():
             "registry_data": registry_data
         }
 
-        return jsonify(data_dict), 200
+        return jsonify(data_dict) 
     elif request.method == "POST":
         return '', 401
 
@@ -106,4 +107,4 @@ def acquiesce_exitpage():
 
         log.warning("Saved analytics data for viewing of SID: %s", sid)
 
-        return '', 200
+        return success_response(ResponseMessage.SAVED_ANALYTICS)

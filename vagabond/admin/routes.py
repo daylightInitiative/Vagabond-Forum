@@ -1,5 +1,5 @@
-from vagabond.constants import RouteStatus
-from vagabond.flask_wrapper import custom_render_template
+from vagabond.constants import ResponseMessage, RouteStatus
+from vagabond.flask_wrapper import custom_render_template, error_response, success_response
 from flask import request, redirect, abort, jsonify
 
 from vagabond.moderation import is_admin, requires_permission
@@ -34,8 +34,7 @@ def create_ticket():
             VALUES (%s, %s, %s, %s, %s)
     """, params=(ticket_data.get("ticket_type"), "needs_investigation", ticket_data.get("title"), ticket_data.get("contents"), userid,))
 
-
-    return '', 200
+    return success_response(ResponseMessage.CREATED_TICKET )
 
 @admin_bp.route("/admin", methods=['GET', 'POST'])
 @requires_permission([Perms.ADMIN, Perms.MODERATOR])
@@ -53,8 +52,8 @@ def serve_admin_panel():
     log.debug(user_to_moderate)
 
     if not is_valid_userid(userID=user_to_moderate):
-        return jsonify({"error": RouteStatus.INVALID_USER_ID}), 422
+        return error_response(RouteStatus.INVALID_USER_ID, 422)
     
-    
+
 
     return custom_render_template("admin_panel.html")

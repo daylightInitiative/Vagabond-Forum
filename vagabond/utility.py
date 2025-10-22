@@ -2,7 +2,9 @@ import logging as log
 from pathlib import Path
 from datetime import datetime
 import re
-from vagabond.constants import MAX_URL_TITLE
+
+from flask import Response, jsonify
+from vagabond.constants import MAX_URL_TITLE, RouteStatus
 from vagabond.services import dbmanager as db
 import secrets
 import string
@@ -109,6 +111,14 @@ def get_email_from_userid(userid: str) -> str | bool:
             WHERE id = %s
         """, fetch=True, params=(userid,))
     return deep_get(get_email, 0, 0) or False
+
+def contains_json_key_or_error(dictionary: dict, keydict: dict) -> None:
+    from flask_wrapper import error_response
+    for key, value in keydict.items():
+        key_exists = dictionary.get(key)
+        if not key_exists or not type(key_exists) == value:
+            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+    return None
 
 def get_username_from_userid(userid: str) -> str | None:
     get_username = db.read(query_str="""

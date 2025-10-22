@@ -1,5 +1,5 @@
 from flask import current_app as app, make_response, redirect, url_for
-from vagabond.constants import RouteStatus
+from vagabond.constants import ResponseMessage, RouteStatus
 from vagabond.sessions.module import abort_if_not_signed_in, get_session_id, get_userid_from_session, csrf_exempt, is_valid_session, get_csrf_token
 from vagabond.sessions import session_bp
 from vagabond.services import dbmanager as db
@@ -22,10 +22,10 @@ def get_new_csrf_token():
 def setup_session():
     sid = request.args.get("sid")
     if not sid:
-        return jsonify({"error": RouteStatus.INVALID_FORM_DATA.value}), 422
+        return error_response(RouteStatus.INVALID_FORM_DATA, 422)
     
     if not is_valid_session(sessionID=sid):
-        return jsonify({"error": RouteStatus.INVALID_SESSION}), 401
+        return error_response(RouteStatus.INVALID_SESSION, 401)
 
     response = make_response(redirect(url_for("index")))
     response.set_cookie("sessionID", value=sid, max_age=7200, samesite="Strict")
@@ -41,7 +41,7 @@ def sign_out_other_sessions():
 
     if not current_sid:
         log.critical("Failed to grab sid while trying to invalidate all other sessions")
-        return jsonify({"error": RouteStatus.INTERNAL_SERVER_ERROR.value}), 500
+        return error_response(RouteStatus.INTERNAL_SERVER_ERROR, 500)
     
     user_id = get_userid_from_session(sessionID=current_sid)
 
@@ -55,4 +55,4 @@ def sign_out_other_sessions():
 
     log.debug("signed out of sessions")
 
-    return '', 200
+    return success_response(ResponseMessage.SIGNED_OUT_ALL_SESSIONS )
