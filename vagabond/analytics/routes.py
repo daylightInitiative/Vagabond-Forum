@@ -1,8 +1,8 @@
 from vagabond.analytics import analytics_bp
-from vagabond.constants import ResponseMessage
+from vagabond.constants import SuccessMessage
 from vagabond.services import dbmanager as db, limiter
 from vagabond.sessions.module import get_session_id, abort_if_not_signed_in, get_userid_from_session, get_fingerprint, csrf_exempt
-from vagabond.moderation import requires_permission, UserPermission as Perms
+from vagabond.moderation import requires_permission, UserRole as Perms
 from vagabond.utility import rows_to_dict, deep_get
 from flask import abort, redirect, jsonify, request
 from vagabond.flask_wrapper import custom_render_template, success_response
@@ -107,4 +107,4 @@ def acquiesce_exitpage():
 
         log.warning("Saved analytics data for viewing of SID: %s", sid)
 
-        return success_response(ResponseMessage.SAVED_ANALYTICS)
+        return success_response(SuccessMessage.SAVED_ANALYTICS)

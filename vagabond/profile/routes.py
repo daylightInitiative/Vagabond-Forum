@@ -1,4 +1,4 @@
-from vagabond.constants import ResponseMessage, RouteStatus
+from vagabond.constants import SuccessMessage, RouteError
 from vagabond.sessions.module import (
     get_session_id, is_user_logged_in, get_userid_from_session, abort_if_not_signed_in
 )
@@ -31,14 +31,14 @@ def toggle_2fa():
         send_2fa_code(email=user_email, code=new_2FA_code)
         log.warning("sending verification code to email....")
 
-        return success_response(ResponseMessage.SENT_VERIFICATION_CODE )
+        return success_response(SuccessMessage.SENT_VERIFICATION_CODE )
     elif request.method == "POST":
 
         data = request.get_json()
         confirm_code = data.get("confirm_code")
 
         if not confirm_code:
-            return error_response(RouteStatus.BAD_TOKEN, 422)
+            return error_response(RouteError.BAD_TOKEN, 422)
 
         is_2fa_enabled = db.read(query_str="""
             SELECT is_2fa_enabled
@@ -50,7 +50,7 @@ def toggle_2fa():
         
         # bools are super iffy, so we're just going to compare using a number
         if not isinstance(should_2fa_be_enabled, bool):
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
         
         is_enabled = not should_2fa_be_enabled
 
@@ -67,7 +67,7 @@ def toggle_2fa():
         ))
 
         if not confirm_2FA_code(sessionID=sid, code=confirm_code):
-            return error_response(RouteStatus.BAD_TOKEN, 422) # somehow display/handle this on the frontend
+            return error_response(RouteError.BAD_TOKEN, 422) # somehow display/handle this on the frontend
 
         db.write(query_str="""
             UPDATE users
@@ -145,7 +145,7 @@ def serve_profile():
         about_me = request.form.get("description")
 
         if not about_me:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
         
         truncated_str = about_me[:500] # cannot go past 500 if the javascript fails or they are automating
 

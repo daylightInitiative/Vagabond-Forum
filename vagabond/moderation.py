@@ -1,6 +1,7 @@
-from vagabond.constants import PostType, UserPermission, ModerationAction
+from multiprocessing import Value
+from vagabond.constants import SYSTEM_ACCOUNT_ID, PostType, UserRole, ModerationAction
 from vagabond.services import dbmanager as db
-from vagabond.utility import deep_get, get_groupid_from_message
+from vagabond.utility import deep_get, get_groupid_from_message, is_valid_userid
 from vagabond.sessions.module import get_session_id, get_userid_from_session
 from flask import abort, redirect, url_for, jsonify
 
@@ -10,7 +11,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def get_role_from_userid(userid: str) -> UserPermission | None:
+def get_role_from_userid(userid: str) -> UserRole | None:
 
     if not userid:
         return None
@@ -28,20 +29,20 @@ def get_role_from_userid(userid: str) -> UserPermission | None:
 
     role_to_return = None
     try:
-        role_to_return = UserPermission(current_role)
+        role_to_return = UserRole(current_role)
     except ValueError as e:
         log.error("Failure converting user role into a UserPermission")
         return None
 
     return role_to_return
 
-def has_permission(userid: str, roles:list[UserPermission]) -> bool:
+def has_permission(userid: str, roles:list[UserRole]) -> bool:
     return True if get_role_from_userid(userid) in roles else False
 
 """ Decorator that checks if a user has authentication for a given route, with the new roles system
     @requires_permission([UserPermission.ADMIN, ...])
       Note: It is recomended to alias the user permissions for readability """
-def requires_permission(roles: list[UserPermission]):
+def requires_permission(roles: list[UserRole]):
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -64,13 +65,81 @@ def requires_permission(roles: list[UserPermission]):
 
 
 def is_admin(userid: str) -> bool:
-    return has_permission(userid=userid, roles=[UserPermission.ADMIN, UserPermission.MODERATOR])
+    return has_permission(userid=userid, roles=[UserRole.ADMIN, UserRole.MODERATOR])
+
+def manage_user_ban(userid: str, is_banned: bool, admin_userid: str | None = None, reason: str | None = None) -> None:
+    admin_userid = admin_userid or SYSTEM_ACCOUNT_ID
+        
+    is_banned = not is_banned
+
+    if not userid or not is_valid_userid(userID=userid):
+        log.warning("Invalid userid")
+        return None
+    
+    if not is_admin(userid=admin_userid):
+        log.warning("Invalid permissions for admin_userid")
+        return None
+    
+    db.write(query_str="""
+        UPDATE users
+        SET account_locked = %s
+        WHERE id = %s
+    """, params=(is_banned, userid,))
+
+    modaction = ModerationAction.BAN_USER.value if is_banned else ModerationAction.UNBAN_USER.value
+
+    db.write(query_str="""
+        INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+    """, params=(
+        modaction,
+        userid,
+        admin_userid, # "SYSTEM" user
+        reason
+    ))
+
+def is_valid_user_role(user_role: str) -> bool:
+    try:
+        exists = UserRole(user_role)
+    except ValueError:
+        return False
+    
+    return True
+
+def change_role(userid: str, user_role: UserRole, admin_userid: str | None = None) -> None:
+    admin_userid = admin_userid or SYSTEM_ACCOUNT_ID
+
+    if not is_valid_user_role(user_role):
+        log.warning("Invalid role %s passed to is_valid_role", user_role)
+        return None
+
+    db.write(query_str="""
+        INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+    """, params=(
+        ModerationAction.CHANGE_ROLE,
+        userid,
+        admin_userid
+    ))
+
+    db.write(query_str="""
+        UPDATE users
+        SET user_role = %s
+        WHERE id = %s
+    """, params=(user_role, userid,))
+
+    return None
 
 # i dont see any reason to "unhellban someone"
 def hellban_user(userid: str, admin_userid: str | None = None, reason: str | None = None) -> None: # interesting way of optional arguments with type checking
+    admin_userid = admin_userid or SYSTEM_ACCOUNT_ID
 
-    if not userid:
-        log.warning("hellban was given a null userid")
+    if not userid or not is_valid_userid(userID=userid):
+        log.warning("Invalid userid")
+        return None
+    
+    if not is_admin(userid=admin_userid):
+        log.warning("Invalid permissions for admin_userid")
         return None
 
     # hellban user
@@ -96,7 +165,7 @@ def hellban_user(userid: str, admin_userid: str | None = None, reason: str | Non
     """, params=(
         ModerationAction.SHADOWBAN_USER.value,
         userid,
-        admin_userid or 1, # "SYSTEM" user
+        admin_userid, # "SYSTEM" user
         reason
     ))
 

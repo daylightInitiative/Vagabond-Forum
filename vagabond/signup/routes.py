@@ -1,4 +1,4 @@
-from vagabond.constants import RouteStatus
+from vagabond.constants import RouteError
 from vagabond.signup import signup_bp
 from flask import request, jsonify, redirect, abort, make_response, url_for
 from vagabond.sessions.module import (
@@ -38,7 +38,7 @@ def signup_page():
         password = request.form.get('password', type=str)
         
         if not email or not username or not password:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
         
         userid, errmsg = signup(email=email, username=username, password=password)
 
@@ -63,20 +63,20 @@ def confirm_email_code():
     code_type = request.args.get("token_type")
 
     if not code_type:
-        return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+        return error_response(RouteError.INVALID_FORM_DATA, 422)
 
     if not email_code:
-        return error_response(RouteStatus.BAD_TOKEN, 422)
+        return error_response(RouteError.BAD_TOKEN, 422)
     
     decoded_email = confirm_token(token=email_code)
 
     if not decoded_email:
-        return error_response(RouteStatus.EXPIRED_TOKEN, 422)
+        return error_response(RouteError.EXPIRED_TOKEN, 422)
 
     userid = get_userid_from_email(email=decoded_email)
 
     if not userid:
-        return error_response(RouteStatus.INVALID_USER_ID, 422)
+        return error_response(RouteError.INVALID_USER_ID, 422)
 
     sid = create_session(userid=userid, request_obj=request)
 

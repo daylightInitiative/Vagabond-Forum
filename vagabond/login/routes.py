@@ -1,4 +1,4 @@
-from vagabond.constants import RouteStatus
+from vagabond.constants import RouteError
 from vagabond.email import confirm_2FA_code, generate_2FA_code, generate_token, is_2fa_enabled, send_2auth_login_code, send_2fa_code, send_signup_code
 from vagabond.sessions.module import (
     redirect_if_already_logged_in,
@@ -35,7 +35,7 @@ def serve_login():
         password = request.form.get('password')
 
         if not email or not password:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
         
         is_authenticated, errmsg = is_valid_login(email=email, password=password)
         

@@ -2,5 +2,61 @@
 
 {% block content %}
     
+    <div style="width: 250px; align-self: center; padding: 25px;">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+        <br><br>
+        <button id="lookup_username" class="btn btn-primary" type="button">Lookup</button>
+    </div>
+    <div id="admin-panel" style="display: none; width: 250px; align-self: center; padding: 25px;">
+        <p id="username-display"></p>
+        <br><br>
+        <button id="ban_button" class="btn btn-primary" type="button">Ban</button>
+        <button class="btn btn-primary" type="button">Hellban</button>
+        <br><br>
+        <select class="form-select" aria-label="Default select example">
+            <option selected>Choose a role to give</option>
+            <option value="user">User</option>
+            <option value="moderator">Moderator</option>
+            <option value="admin">Admin</option>
+        </select>
+        <br>
+        <button class="btn btn-primary" type="button">Change</button>
+    </div>
+
+    <script type="module">
+        import { easyfetch } from '/static/js/easyfetch.js';
+
+        async function onSubmitUsername(username) {
+
+
+            const response = await easyfetch('/admin', {
+                method: "POST",
+                body: {
+                    username: username
+                }
+            });
+
+            console.log(response);
+
+            const admin_panel = document.getElementById('admin-panel');
+            admin_panel.style.display = 'block';
+        }
+
+        document.addEventListener("DOMContentLoaded", (event) => {
+
+            const username = document.getElementById('username');
+            const display_username = document.getElementById('username-display');
+            const submit_username = document.getElementById('lookup_username');
+
+            submit_username.addEventListener('click', () => onSubmitUsername(username.value));
+
+            // const response = await easyfetch('/api/data', {
+            //     method: 'GET'
+            // });
+
+        });
+    </script>
+
     <link rel="stylesheet" href="/static/css/page_style.css">
 {% endblock %}

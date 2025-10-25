@@ -9,7 +9,7 @@ from vagabond.sessions.module import (
 from vagabond.messaging import messaging_bp
 from vagabond.messaging.module import can_user_access_group, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect
-from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, ResponseMessage, RouteStatus
+from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, SuccessMessage, RouteError
 from vagabond.services import dbmanager as db
 from vagabond.utility import deep_get, get_group_owner, is_valid_userid, rows_to_dict
 import logging
@@ -22,13 +22,13 @@ log = logging.getLogger(__name__)
 def serve_group(group_id):
 
     if not is_user_logged_in():
-        return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
     
     sid = get_session_id()
     userID = get_userid_from_session(sessionID=sid)
 
     if not can_user_access_group(userID=userID, groupID=group_id):
-        return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     if request.method == "PATCH":
 
@@ -36,17 +36,17 @@ def serve_group(group_id):
 
         new_owner = data.get("new_owner")
         if not new_owner or not is_valid_userid(userID=new_owner):
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         # change the group owner only if the invoker is already equal to the owner
         group_owner = get_group_owner(groupID=group_id)
 
         if not group_owner:
             log.error("Group of id: %s does not have an owner.", group_id)
-            return error_response(RouteStatus.INTERNAL_SERVER_ERROR, 500)
+            return error_response(RouteError.INTERNAL_SERVER_ERROR, 500)
         
         if userID != group_owner:
-            return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+            return error_response(RouteError.INVALID_PERMISSIONS, 401)
         
         db.write(query_str="""
             UPDATE message_recipient_group
@@ -55,14 +55,14 @@ def serve_group(group_id):
             ORDER BY added_at DESC
         """, params=(new_owner, group_id,))
 
-        return success_response(ResponseMessage.CHANGED_GROUP_OWNER )
+        return success_response(SuccessMessage.CHANGED_GROUP_OWNER )
 
     elif request.method == "DELETE":
 
         group_owner = get_group_owner(groupID=group_id)
 
         if group_owner != userID:
-            return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+            return error_response(RouteError.INVALID_PERMISSIONS, 401)
         
         db.write(query_str="""
             UPDATE message_recipient_group
@@ -85,7 +85,7 @@ def serve_group(group_id):
 
         log_action = db.write(query_str=query_str, params=(modaction, userID, group_id, userID, "User deleted group"))
 
-        return success_response(ResponseMessage.DELETED_GROUP) 
+        return success_response(SuccessMessage.DELETED_GROUP) 
 
 
 # when getting the paginated output we should filter by date ASC
@@ -94,13 +94,13 @@ def serve_group(group_id):
 def serve_messages(group_id):
 
     if not is_user_logged_in():
-        return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     sid = get_session_id()
     userID = get_userid_from_session(sessionID=sid)
 
     if not can_user_access_group(userID=userID, groupID=group_id):
-        return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     data = request.get_json()
 
@@ -108,7 +108,7 @@ def serve_messages(group_id):
         
         page_offset = data.get("page_offset")
         if not isinstance(page_offset, int) and page_offset >= 1:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         # get the page index for our pagination
         param_dict = {
@@ -135,18 +135,18 @@ def serve_messages(group_id):
         msg_contents = data.get("contents")
 
         if not msg_contents:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         msg_group_id = group_id
 
         if not msg_group_id:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         msg_creator_id = userID
 
         if not can_user_access_group(userID=msg_creator_id, groupID=msg_group_id):
             log.warning("(user_id=%s, group_id=%s) cannot access group upon creating message", msg_creator_id, msg_group_id)
-            return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+            return error_response(RouteError.INVALID_PERMISSIONS, 401)
         
         db.write(query_str="""
             INSERT INTO user_messages (contents, author, msg_group_id)
@@ -162,7 +162,7 @@ def serve_messages(group_id):
 
         log.debug("created new message in (user_id=%s, group_id=%s)", msg_creator_id, msg_group_id)
 
-        return success_response(ResponseMessage.CREATED_MESSAGE)
+        return success_response(SuccessMessage.CREATED_MESSAGE)
 
 
 # for deleting and editing messages of a particular group id,
@@ -170,23 +170,23 @@ def serve_messages(group_id):
 def serve_edit_message(group_id, message_id):
 
     if not is_user_logged_in():
-        return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     sid = get_session_id()
     userID = get_userid_from_session(sessionID=sid)
 
     if not can_user_access_group(userID=userID, groupID=group_id):
-        return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     if request.method == "PATCH":
         data = request.get_json()
         new_contents = data.get("edited_message")
         if not new_contents:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         if not is_user_message_owner(userID=userID, messageID=message_id):
             log.warning("User %s tried to modify an existing message that was not owned by them")
-            return error_response(RouteStatus.INVALID_PERMISSIONS, 422)
+            return error_response(RouteError.INVALID_PERMISSIONS, 422)
 
         # before we edit, lets take a shadow log of all edits
         db.write(query_str="""
@@ -205,7 +205,7 @@ def serve_edit_message(group_id, message_id):
 
         log.debug("edited message (message_id=%s, group_id=%s)", message_id, group_id)
 
-        return success_response(ResponseMessage.EDITED_MESSAGE )
+        return success_response(SuccessMessage.EDITED_MESSAGE )
 
     elif request.method == "DELETE":
         
@@ -213,7 +213,7 @@ def serve_edit_message(group_id, message_id):
 
         soft_delete_user_post(PostType.MESSAGE, message_id, userID)
 
-        return success_response(ResponseMessage.DELETED_MESSAGE )
+        return success_response(SuccessMessage.DELETED_MESSAGE )
 
     
 
@@ -222,7 +222,7 @@ def serve_edit_message(group_id, message_id):
 def serve_create_group():
     
     if not is_user_logged_in():
-        return error_response(RouteStatus.INVALID_PERMISSIONS, 401)
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     data = request.get_json()
     sid = get_session_id()
@@ -233,7 +233,7 @@ def serve_create_group():
         # get the userid we are trying to message, its a json list
         users_to_add = data.get("recipient_list")
         if not users_to_add or len(users_to_add) <= 0:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         log.debug(users_to_add)
 
@@ -246,7 +246,7 @@ def serve_create_group():
         group_id = deep_get(get_group_id, 0, 0) or -1
         if group_id < 0:
             log.error("Failure to create message group")
-            return error_response(RouteStatus.INTERNAL_SERVER_ERROR, 500)
+            return error_response(RouteError.INTERNAL_SERVER_ERROR, 500)
         
         log.debug(f"created group_id={group_id}")
 
@@ -259,4 +259,4 @@ def serve_create_group():
                     VALUES (%s, %s)
             """, params=(group_id, user_id,))
                 
-        return success_response(ResponseMessage.CREATED_NEW_GROUP )
+        return success_response(SuccessMessage.CREATED_NEW_GROUP )

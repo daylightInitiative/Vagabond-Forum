@@ -3,10 +3,12 @@ MAX_URL_TITLE = 40
 FORUM_PAGE_LIMIT = 10
 MESSAGE_PAGE_LIMIT = 65
 
+SYSTEM_ACCOUNT_ID = "1"
+
 from enum import Enum, auto, StrEnum
 # errors (consistency is important with our api)
 
-class UserPermission(StrEnum):
+class UserRole(StrEnum):
     USER = "user"               # normal registered user
     MODERATOR = "moderator"     # forum moderator
     ADMIN = "admin"             # site admins who moderate, well..moderators
@@ -35,15 +37,14 @@ class ModerationAction(Enum):
     LOCK_POST = 'lock_post'
     PIN_POST = 'pin_post'
     CHANGE_USERNAME = 'change_username'
-    ASSIGN_ROLE = 'assign_role'
-    UNASSIGN_ROLE = 'unassign_role'
+    CHANGE_ROLE = 'change_role'
     SUSPEND_USER = 'suspend_user'
     ENABLE_2FA = 'enable_2fa'
     DISABLE_2FA = 'disable_2fa'
     REVERT_ACTION = 'revert_action'
 
 # later we can localize these constants with a translator function
-class ResponseMessage(Enum):
+class SuccessMessage(Enum):
     CREATED_TICKET = 'Created new ticket'
     CREATED_NEW_GROUP = 'Created new group'
     CREATED_MESSAGE = 'Created group message'
@@ -55,8 +56,9 @@ class ResponseMessage(Enum):
     DELETED_GROUP = 'Deleted group'
     SAVED_DRAFT_DATA = 'Saved draft data'
     EDITED_MESSAGE = 'Edited message'
+    COMPLETED_MODACTION = 'Completed moderation action'
 
-class RouteStatus(Enum):
+class RouteError(Enum):
 
     INVALID_FORM_DATA = "Invalid form data"
     INVALID_CATEGORY_ID = "Invalid category ID"

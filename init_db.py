@@ -2,6 +2,7 @@
 import base64
 import json
 import os
+from vagabond.constants import SYSTEM_ACCOUNT_ID, ModerationAction
 from vagabond.dbmanager import DBManager
 from vagabond.config import Config
 from vagabond.queries import *
@@ -66,11 +67,24 @@ if __name__ == '__main__':
 
             # email, username, account_locked, loginAttempts, is_online, hashed_password, user_role
             
+            
+
             get_userid = db.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
                 email, username, False, False, hashstr, saltstr, user_role,))
             
             new_user_id = int(deep_get(get_userid, 0, 0))
-            # create admins avatar
+
+            db.write(query_str="""
+                INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+            """, params=(
+                ModerationAction.CHANGE_ROLE,
+                new_user_id,
+                SYSTEM_ACCOUNT_ID, # "SYSTEM" user
+                "Automated action upon signup"
+            ))
+
+            # create users avatar
             new_avatar = create_user_avatar(userid=new_user_id)
             update_user_avatar(userID=new_user_id, avatar_hash=new_avatar)
             create_profile(userID=new_user_id)

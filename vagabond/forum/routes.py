@@ -70,7 +70,7 @@ def serve_post_by_id(post_num, content_hint):
         post_type = request.form.get('_post_type')
 
         if not post_type:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
         
         # decide if the user is the post owner by the session
         sid = get_session_id()
@@ -82,7 +82,7 @@ def serve_post_by_id(post_num, content_hint):
             post_id = request.form.get('post_id')
 
             if not post_id:
-                return error_response(RouteStatus.INVALID_POST_ID, 422)
+                return error_response(RouteError.INVALID_POST_ID, 422)
 
             is_owner = is_user_content_owner(post_type=post_type, userid=user_id, postid=post_id)
 
@@ -103,7 +103,7 @@ def serve_post_by_id(post_num, content_hint):
                 return abort(401)
 
             if not reply_id:
-                return error_response(RouteStatus.INVALID_POST_ID, 422)
+                return error_response(RouteError.INVALID_POST_ID, 422)
             
             soft_delete_user_post(post_type=PostType.REPLY, post_id=reply_id, user_id=user_id)
 
@@ -150,10 +150,10 @@ def serve_forum():
         category_id = request.args.get('category')
 
         if not page_num:
-            return error_response(RouteStatus.INVALID_PAGE_ID, 422)
+            return error_response(RouteError.INVALID_PAGE_ID, 422)
         
         if not category_id:
-            return error_response(RouteStatus.INVALID_CATEGORY_ID, 422)
+            return error_response(RouteError.INVALID_CATEGORY_ID, 422)
         
         log.debug(f"queried post {page_num}")
         try:

@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 
 from flask import Response, jsonify
-from vagabond.constants import MAX_URL_TITLE, RouteStatus
+from vagabond.constants import MAX_URL_TITLE, RouteError
 from vagabond.services import dbmanager as db
 import secrets
 import string
@@ -104,6 +104,14 @@ def is_valid_userid(userID: str) -> bool:
     """, params=(userID,))
     return deep_get(userid_exists, 0, 0) or False
 
+def get_userid_from_username(username: str) -> str | None:
+    get_userid = db.read(query_str="""
+        SELECT id
+        FROM users
+        WHERE username = %s
+    """, fetch=True, params=(username,))
+    return deep_get(get_userid, 0, 0) or False
+
 def get_email_from_userid(userid: str) -> str | bool:
     get_email = db.read(query_str="""
             SELECT email
@@ -117,7 +125,7 @@ def contains_json_key_or_error(dictionary: dict, keydict: dict) -> None:
     for key, value in keydict.items():
         key_exists = dictionary.get(key)
         if not key_exists or not type(key_exists) == value:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
     return None
 
 def get_username_from_userid(userid: str) -> str | None:

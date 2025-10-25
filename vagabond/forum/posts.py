@@ -45,7 +45,7 @@ def save_draft():
         saved_draft_text = deep_get(get_draft, 0, 0)
 
         if not saved_draft_text:
-            return error_response(RouteStatus.FETCH_NO_CONTENT, 204)
+            return error_response(RouteError.FETCH_NO_CONTENT, 204)
         
         draft = {
             "contents": saved_draft_text
@@ -71,9 +71,9 @@ def save_draft():
 
         if save_draft == DBStatus.FAILURE:
             log.critical("Failed to save draft data for tsid: %s", tsid)
-            return error_response(RouteStatus.INTERNAL_SERVER_ERROR, 500)
+            return error_response(RouteError.INTERNAL_SERVER_ERROR, 500)
 
-        return success_response(ResponseMessage.SAVED_DRAFT_DATA) 
+        return success_response(SuccessMessage.SAVED_DRAFT_DATA) 
 
 # for posting we can just reuse this route
 @forum_bp.route('/post', methods=['GET', 'POST'])
@@ -90,7 +90,7 @@ def submit_new_post():
     if request.method == "GET":
         
         if not category_id:
-            return error_response(RouteStatus.INVALID_CATEGORY_ID, 422)
+            return error_response(RouteError.INVALID_CATEGORY_ID, 422)
         
         category_locked = get_is_category_locked(categoryID=category_id)
 
@@ -110,11 +110,11 @@ def submit_new_post():
         description = request.form.get('description', type=str)
         
         if not title or not description:
-            return error_response(RouteStatus.INVALID_FORM_DATA, 422)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
         
         category_id = request.args.get('category')
         if not category_id:
-            return error_response(RouteStatus.INVALID_CATEGORY_ID, 422)
+            return error_response(RouteError.INVALID_CATEGORY_ID, 422)
 
         # now, instead of having to create this every time, lets save it to the db (auto truncates)
         url_safe_title = title_to_content_hint(title)
@@ -129,4 +129,4 @@ def submit_new_post():
         if new_post_id:
             return redirect(url_for("forum.serve_post_by_id", post_num=new_post_id, content_hint=url_safe_title))
 
-    return error_response(RouteStatus.INTERNAL_SERVER_ERROR, 500)
+    return error_response(RouteError.INTERNAL_SERVER_ERROR, 500)

@@ -47,5 +47,4 @@ def is_user_content_owner(post_type:str, userid: str, postid: str) -> bool:
     
 
     get_is_owner = db.read(query_str=check_owner, fetch=True, params=(userid, postid,))
-    log.debug("check owner: %s", get_is_owner)
     return deep_get(get_is_owner, 0, 0) or False

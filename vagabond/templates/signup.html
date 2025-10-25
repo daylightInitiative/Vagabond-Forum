@@ -6,6 +6,7 @@
             <b>Error during signup: {{ errormsg }}</b>
         {% endif %}
         <p>Join us! in this <b>epic</b> repository of survival tips, information and wonderful community.</p>
+        <p>Already have an account? <a href="/login">Login</a></p>
         <form class="login-form" action="/signup" method="POST">
             <input type="hidden" name="csrf_token" value="{{ get_csrf_token() }}"/>
             <h1>Signup</h1>
