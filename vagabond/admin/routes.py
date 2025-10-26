@@ -10,7 +10,7 @@ from vagabond.admin import admin_bp
 from vagabond.services import dbmanager as db, limiter
 import logging
 
-from vagabond.utility import contains_json_key_or_error, get_username_from_userid, is_valid_userid
+from vagabond.utility import contains_json_key_or_error, get_userid_from_username, get_username_from_userid, is_valid_userid
 
 log = logging.getLogger(__name__)
 
@@ -44,24 +44,34 @@ def serve_admin_panel():
     abort_if_not_signed_in()
 
     sid = get_session_id()
-    admin_user_id = get_userid_from_session(sessionID=sid)
+    admin_user_id = str(get_userid_from_session(sessionID=sid))
 
     if not is_admin(userid=admin_user_id):
         abort(401)
 
     log.debug(admin_user_id)
 
-    if not is_valid_userid(userID=str(admin_user_id)):
+    if not is_valid_userid(userID=admin_user_id):
+        log.debug("Invalid admin user id, %s", admin_user_id)
         return error_response(RouteError.INVALID_USER_ID, 422)
     
     if request.method == "GET":
         return render_template("admin_panel.html")
     elif request.method == "POST":
-        
-        username = request.args.get("username")
-        target_user_id = get_username_from_userid(username)
-
         data = request.get_json()
+        
+        username = data.get("username")
+        if not username:
+            log.warning("Username %s was not found.", username)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
+
+        target_user_id = str(get_userid_from_username(username))
+
+        log.debug("checking username %s: %s", username, target_user_id)
+
+        if not target_user_id:
+            log.warning("Username %s was not found.", username)
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         modaction = data.get("modaction")
         provided_reason = data.get("reason", None)
@@ -73,12 +83,14 @@ def serve_admin_panel():
                 case "unban":
                     manage_user_ban(userid=target_user_id, is_banned=False, admin_userid=admin_user_id, reason=provided_reason)
                 case "shadowban":
-                    hellban_user(userid=target_user_id, reason=provided_reason)
+                    hellban_user(userid=target_user_id, admin_userid=admin_user_id, reason=provided_reason)
                 case "changerole":
                     user_role = data.get("new_user_role")
                     if not user_role:
                         return error_response(RouteError.INVALID_FORM_DATA, 422)
                     
+                    log.warning(target_user_id)
+
                     change_role(userid=target_user_id, user_role=user_role, admin_userid=admin_user_id)
                 case _:
                     pass

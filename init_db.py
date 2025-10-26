@@ -78,7 +78,7 @@ if __name__ == '__main__':
                 INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
                     VALUES (%s, %s, %s, %s, NOW())
             """, params=(
-                ModerationAction.CHANGE_ROLE,
+                ModerationAction.CHANGE_ROLE.value,
                 new_user_id,
                 SYSTEM_ACCOUNT_ID, # "SYSTEM" user
                 "Automated action upon signup"

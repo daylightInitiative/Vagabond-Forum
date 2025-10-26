@@ -221,7 +221,7 @@ def get_userid_from_session(sessionID: str) -> str | None:
         """, fetch=True, params=(sessionID,))
     if not get_userid:
         return None
-    return deep_get(get_userid, 0, 0)
+    return deep_get(get_userid, 0, 0) or None
 
 # invalidation of a session is important
 def invalidate_session(sessionID: str) -> None:

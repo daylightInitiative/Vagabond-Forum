@@ -110,15 +110,15 @@ def get_userid_from_username(username: str) -> str | None:
         FROM users
         WHERE username = %s
     """, fetch=True, params=(username,))
-    return deep_get(get_userid, 0, 0) or False
+    return deep_get(get_userid, 0, 0) or None
 
-def get_email_from_userid(userid: str) -> str | bool:
+def get_email_from_userid(userid: str) -> str | None:
     get_email = db.read(query_str="""
             SELECT email
             FROM users
             WHERE id = %s
         """, fetch=True, params=(userid,))
-    return deep_get(get_email, 0, 0) or False
+    return deep_get(get_email, 0, 0) or None
 
 def contains_json_key_or_error(dictionary: dict, keydict: dict) -> None:
     from flask_wrapper import error_response
@@ -129,12 +129,12 @@ def contains_json_key_or_error(dictionary: dict, keydict: dict) -> None:
     return None
 
 def get_username_from_userid(userid: str) -> str | None:
-    get_username = db.read(query_str="""
+    get_userid = db.read(query_str="""
             SELECT username
             FROM users
             WHERE id = %s
         """, fetch=True, params=(userid,))
-    return deep_get(get_username, 0, 0) or None
+    return deep_get(get_userid, 0, 0) or None
 
 def get_group_owner(groupID: str) -> str | None:
     get_group_owner = db.read(query_str="""
@@ -160,10 +160,10 @@ def get_groupid_from_message(messageID: str) -> str | None:
         """, fetch=True, params=(messageID,))
     return deep_get(get_groupid, 0, 0) or None
 
-def get_userid_from_email(email: str) -> str | bool:
+def get_userid_from_email(email: str) -> str | None:
     get_userid = db.read(query_str="""
             SELECT id
             FROM users
             WHERE email = %s
         """, fetch=True, params=(email,))
-    return deep_get(get_userid, 0, 0) or False
+    return deep_get(get_userid, 0, 0) or None

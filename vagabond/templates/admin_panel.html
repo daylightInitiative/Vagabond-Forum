@@ -12,16 +12,16 @@
         <p id="username-display"></p>
         <br><br>
         <button id="ban_button" class="btn btn-primary" type="button">Ban</button>
-        <button class="btn btn-primary" type="button">Hellban</button>
+        <button id="unban_button" class="btn btn-primary" type="button">Unban</button>
+        <button id="hellban_button" class="btn btn-primary" type="button">Hellban</button>
         <br><br>
-        <select class="form-select" aria-label="Default select example">
-            <option selected>Choose a role to give</option>
+        <select id="roleselect" class="form-select">
             <option value="user">User</option>
             <option value="moderator">Moderator</option>
             <option value="admin">Admin</option>
         </select>
         <br>
-        <button class="btn btn-primary" type="button">Change</button>
+        <button id="change_role_button" class="btn btn-primary" type="button">Change</button>
     </div>
 
     <script type="module">
@@ -37,10 +37,34 @@
                 }
             });
 
-            console.log(response);
+            if (!response.ok) {
+                console.log(response.error);
+                return;
+            }
 
             const admin_panel = document.getElementById('admin-panel');
             admin_panel.style.display = 'block';
+            document.getElementById('username-display').textContent = username;
+        }
+
+        async function onSendAction(username, actionName, extraInfo = {}) {
+
+            let params = {
+                method: "POST",
+                body: {
+                    username: username,
+                    modaction: actionName
+                }
+            };
+
+            for (const key in extraInfo) {
+                params.body[key] = extraInfo[key];
+            }
+
+            const response = await easyfetch('/admin', params);
+            console.log(response);
+
+            // flash notification TODO
         }
 
         document.addEventListener("DOMContentLoaded", (event) => {
@@ -50,6 +74,20 @@
             const submit_username = document.getElementById('lookup_username');
 
             submit_username.addEventListener('click', () => onSubmitUsername(username.value));
+
+            const ban_button = document.getElementById('ban_button');
+            const unban_button = document.getElementById('unban_button');
+            const hellban_button = document.getElementById('hellban_button');
+            const change_role_button = document.getElementById('change_role_button');
+
+            ban_button.addEventListener('click', () => onSendAction(username.value, "ban"));
+            unban_button.addEventListener('click', () => onSendAction(username.value, "unban"));
+
+            hellban_button.addEventListener('click', () => onSendAction(username.value, "shadowban"));
+            change_role_button.addEventListener('click', () => onSendAction(username.value, "changerole", {
+                new_user_role: document.getElementById('roleselect').value
+            }));
+
 
             // const response = await easyfetch('/api/data', {
             //     method: 'GET'

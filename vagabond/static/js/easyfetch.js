@@ -23,13 +23,19 @@ export async function easyfetch(url, data = {}) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`easyfetch: request failed (${response.status}), ${errorText}`);
+            // no need to break the entire front end on a http error lol
+            return {
+                ok: false,
+                status: response.status,
+                error: errorText || response.statusText
+            };
         }
 
         // it returns if any, json
-        return response.json ? await response.json() : response;
+        const json = response.json ? await response.json() : null;
+        return { ok: true, data: json };
     } catch (error) {
         console.log(`easyfetch failed with error: ${error}`);
-        throw error;
+        return { ok: false, error: error };
     }
 }

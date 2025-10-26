@@ -109,6 +109,10 @@ def is_valid_user_role(user_role: str) -> bool:
 def change_role(userid: str, user_role: UserRole, admin_userid: str | None = None) -> None:
     admin_userid = admin_userid or SYSTEM_ACCOUNT_ID
 
+    if not userid or admin_userid:
+        log.warning("Invalid username(s) passed, [admin=%s, user=%s]", admin_userid, userid)
+        return None
+
     if not is_valid_user_role(user_role):
         log.warning("Invalid role %s passed to is_valid_role", user_role)
         return None
@@ -117,9 +121,10 @@ def change_role(userid: str, user_role: UserRole, admin_userid: str | None = Non
         INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
             VALUES (%s, %s, %s, %s, NOW())
     """, params=(
-        ModerationAction.CHANGE_ROLE,
+        ModerationAction.CHANGE_ROLE.value,
         userid,
-        admin_userid
+        admin_userid,
+        "System automated action"
     ))
 
     db.write(query_str="""
