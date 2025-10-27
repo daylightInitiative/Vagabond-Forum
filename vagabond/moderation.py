@@ -1,7 +1,7 @@
 from multiprocessing import Value
 from vagabond.constants import SYSTEM_ACCOUNT_ID, PostType, UserRole, ModerationAction
 from vagabond.services import dbmanager as db
-from vagabond.utility import deep_get, get_groupid_from_message, is_valid_userid
+from vagabond.utility import deep_get, deep_get_as_type, get_groupid_from_message, is_valid_userid
 from vagabond.sessions.module import get_session_id, get_userid_from_session
 from flask import abort, redirect, url_for, jsonify
 
@@ -21,7 +21,7 @@ def get_role_from_userid(userid: str) -> UserRole | None:
         FROM users
         WHERE id = %s
     """, params=(userid,))
-    current_role = deep_get(has_role, 0, 0)
+    current_role = deep_get_as_type(has_role, str, 0, 0)
 
     if not current_role:
         log.warning("Failure to fetch user role '%s' info for userid: %s", current_role, userid)
@@ -69,10 +69,8 @@ def is_admin(userid: str) -> bool:
 
 def manage_user_ban(userid: str, is_banned: bool, admin_userid: str | None = None, reason: str | None = None) -> None:
     admin_userid = admin_userid or SYSTEM_ACCOUNT_ID
-        
-    is_banned = not is_banned
 
-    if not userid or not is_valid_userid(userID=userid):
+    if not userid:
         log.warning("Invalid userid")
         return None
     
@@ -109,7 +107,7 @@ def is_valid_user_role(user_role: str) -> bool:
 def change_role(userid: str, user_role: UserRole, admin_userid: str | None = None) -> None:
     admin_userid = admin_userid or SYSTEM_ACCOUNT_ID
 
-    if not userid or admin_userid:
+    if not userid or not admin_userid:
         log.warning("Invalid username(s) passed, [admin=%s, user=%s]", admin_userid, userid)
         return None
 
@@ -133,6 +131,8 @@ def change_role(userid: str, user_role: UserRole, admin_userid: str | None = Non
         WHERE id = %s
     """, params=(user_role, userid,))
 
+    log.info("Changing user role to %s, [By %s => %s]", user_role, admin_userid, userid)
+
     return None
 
 # i dont see any reason to "unhellban someone"
@@ -152,6 +152,8 @@ def hellban_user(userid: str, admin_userid: str | None = None, reason: str | Non
         INSERT INTO shadow_bans (userid)
             VALUES (%s) ON CONFLICT (userid) DO NOTHING
     """, params=(userid,))
+
+    log.info("Hellbanning user [By %s => %s]", admin_userid, userid)
 
     # add to moderation actions
     # action VARCHAR(255) NOT NULL,

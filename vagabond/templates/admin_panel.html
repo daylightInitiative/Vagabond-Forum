@@ -9,7 +9,8 @@
         <button id="lookup_username" class="btn btn-primary" type="button">Lookup</button>
     </div>
     <div id="admin-panel" style="display: none; width: 250px; align-self: center; padding: 25px;">
-        <p id="username-display"></p>
+        <img id="profile-picture" style="width: 200px; height: 200px;" src="">
+        <div id="profile-info"></div>
         <br><br>
         <button id="ban_button" class="btn btn-primary" type="button">Ban</button>
         <button id="unban_button" class="btn btn-primary" type="button">Unban</button>
@@ -28,23 +29,53 @@
         import { easyfetch } from '/static/js/easyfetch.js';
 
         async function onSubmitUsername(username) {
-
+            const profile_info = document.getElementById('profile-info');
 
             const response = await easyfetch('/admin', {
                 method: "POST",
                 body: {
-                    username: username
+                    username: username,
+                    modaction: "data"
                 }
             });
 
             if (!response.ok) {
                 console.log(response.error);
+                admin_panel.style.display = 'none';
                 return;
+            }
+
+            profile_info.querySelectorAll("p").forEach(element => {
+                element.remove();
+            });
+
+            const userinfo = response.data;
+
+            console.log(userinfo);
+            const profile_picture = document.getElementById('profile-picture');
+
+            if (userinfo.avatar_hash && profile_picture) {
+                profile_picture.src = userinfo.avatar_hash;
             }
 
             const admin_panel = document.getElementById('admin-panel');
             admin_panel.style.display = 'block';
-            document.getElementById('username-display').textContent = username;
+
+            const display_dict = {
+                "Username": username,
+                "UserID": userinfo.user_id,
+                "Account Locked": userinfo.account_locked,
+                "Permission Level": userinfo.user_role,
+                "Joined": userinfo.join_date,
+                "Last Seen": userinfo.lastseen,
+                "Is Online": userinfo.is_online
+            };
+
+            Object.keys(display_dict).forEach(key => {
+                let new_text = document.createElement("p");
+                new_text.textContent = `${key}: ` + display_dict[key];
+                profile_info.appendChild(new_text);
+            });
         }
 
         async function onSendAction(username, actionName, extraInfo = {}) {

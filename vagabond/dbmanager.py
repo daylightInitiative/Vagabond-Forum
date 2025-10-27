@@ -1,4 +1,4 @@
-from vagabond.constants import MAX_URL_TITLE
+
 import psycopg2 as post
 import logging as log
 from enum import Enum
@@ -70,7 +70,7 @@ class DBManager:
                         return results
                     return DBStatus.EXECUTED_NO_FETCH
         except Exception as e:
-            log.exception("Database query failed: %s", e)
+            log.critical("Database query failed: %s", e)
             traceback.print_exc()
             raise
         return DBStatus.FAILURE

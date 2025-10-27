@@ -75,6 +75,15 @@ def is_valid_email_address(email: str) -> bool:
     pattern = r"\"?([-a-zA-Z0-9.`?{}]+@\w+\.\w+)\"?"
     return re.match(pattern, email)
 
+# I didn't think about strict types on retrieval, so heres a function that will do that
+def deep_get_as_type(data, classtype, *indices):
+    try:
+        for i in indices:
+            data = data[i]
+        return classtype(data)
+    except (IndexError, KeyError, TypeError) as e:
+        return None
+
 def deep_get(data, *indices):
     try:
         for i in indices:
@@ -90,6 +99,17 @@ def deep_get(data, *indices):
 
 # when you need state, error handling but also functions I find that using a class here works nice
 
+def get_user_info(userID: str) -> dict | None:
+
+    # get the username, profile picture, role and is_online
+    rows, columns = db.read(query_str="""
+        SELECT id as user_id, username, account_locked, is_online, lastseen, join_date, user_role, avatar_hash
+        FROM users
+        WHERE id = %s
+    """, get_columns=True, params=(userID,))
+
+    return deep_get(rows_to_dict(rows=rows, columns=columns), 0) or None
+
 def is_valid_userid(userID: str) -> bool:
     if not userID.isdigit():
         log.warning("%s failed a digit userid check.", userID)
@@ -102,7 +122,7 @@ def is_valid_userid(userID: str) -> bool:
             WHERE id = %s AND account_locked = FALSE
         );
     """, params=(userID,))
-    return deep_get(userid_exists, 0, 0) or False
+    return deep_get_as_type(userid_exists, bool, 0, 0) or False
 
 def get_userid_from_username(username: str) -> str | None:
     get_userid = db.read(query_str="""
@@ -110,7 +130,7 @@ def get_userid_from_username(username: str) -> str | None:
         FROM users
         WHERE username = %s
     """, fetch=True, params=(username,))
-    return deep_get(get_userid, 0, 0) or None
+    return deep_get_as_type(get_userid, str, 0, 0) or None
 
 def get_email_from_userid(userid: str) -> str | None:
     get_email = db.read(query_str="""
@@ -118,14 +138,21 @@ def get_email_from_userid(userid: str) -> str | None:
             FROM users
             WHERE id = %s
         """, fetch=True, params=(userid,))
-    return deep_get(get_email, 0, 0) or None
+    return deep_get_as_type(get_email, str, 0, 0) or None
 
-def contains_json_key_or_error(dictionary: dict, keydict: dict) -> None:
-    from flask_wrapper import error_response
-    for key, value in keydict.items():
-        key_exists = dictionary.get(key)
+def contains_key_value_pairs(dictToCompare: dict, keyvalues: dict) -> bool:
+    for key, value in keyvalues.items():
+        key_exists = dictToCompare.get(key)
         if not key_exists or not type(key_exists) == value:
-            return error_response(RouteError.INVALID_FORM_DATA, 422)
+            return False
+    return True
+
+def contains_dict_or_error(dictionary: dict, keydict: dict) -> None:
+    from flask_wrapper import error_response
+    
+    if not contains_key_value_pairs(dictToCompare=dictionary, keyvalues=keydict):
+        error_response(RouteError.INVALID_FORM_DATA, 422)
+
     return None
 
 def get_username_from_userid(userid: str) -> str | None:
@@ -134,7 +161,7 @@ def get_username_from_userid(userid: str) -> str | None:
             FROM users
             WHERE id = %s
         """, fetch=True, params=(userid,))
-    return deep_get(get_userid, 0, 0) or None
+    return deep_get_as_type(get_userid, str, 0, 0) or None
 
 def get_group_owner(groupID: str) -> str | None:
     get_group_owner = db.read(query_str="""
@@ -166,4 +193,4 @@ def get_userid_from_email(email: str) -> str | None:
             FROM users
             WHERE email = %s
         """, fetch=True, params=(email,))
-    return deep_get(get_userid, 0, 0) or None
+    return deep_get_as_type(get_userid, str, 0, 0) or None

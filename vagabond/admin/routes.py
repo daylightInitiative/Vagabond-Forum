@@ -1,4 +1,4 @@
-from email.policy import default
+
 from vagabond.constants import SuccessMessage, RouteError
 from vagabond.flask_wrapper import custom_render_template, error_response, success_response
 from flask import render_template, request, redirect, abort, jsonify
@@ -10,7 +10,7 @@ from vagabond.admin import admin_bp
 from vagabond.services import dbmanager as db, limiter
 import logging
 
-from vagabond.utility import contains_json_key_or_error, get_userid_from_username, get_username_from_userid, is_valid_userid
+from vagabond.utility import contains_dict_or_error, get_user_info, get_userid_from_username, get_username_from_userid, is_valid_userid
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 def create_ticket():
     ticket_data = request.get_json()
     log.info("Received a new ticket from user support")
-    contains_json_key_or_error(dictionary=ticket_data, keydict={
+    contains_dict_or_error(dictionary=ticket_data, keydict={
         "ticket_type": str,
         "title": str,
         "contents": str
@@ -49,8 +49,6 @@ def serve_admin_panel():
     if not is_admin(userid=admin_user_id):
         abort(401)
 
-    log.debug(admin_user_id)
-
     if not is_valid_userid(userID=admin_user_id):
         log.debug("Invalid admin user id, %s", admin_user_id)
         return error_response(RouteError.INVALID_USER_ID, 422)
@@ -65,11 +63,11 @@ def serve_admin_panel():
             log.warning("Username %s was not found.", username)
             return error_response(RouteError.INVALID_FORM_DATA, 422)
 
-        target_user_id = str(get_userid_from_username(username))
+        target_user_id = get_userid_from_username(username)
 
         log.debug("checking username %s: %s", username, target_user_id)
-
-        if not target_user_id:
+ 
+        if target_user_id is None:
             log.warning("Username %s was not found.", username)
             return error_response(RouteError.INVALID_FORM_DATA, 422)
 
@@ -88,11 +86,10 @@ def serve_admin_panel():
                     user_role = data.get("new_user_role")
                     if not user_role:
                         return error_response(RouteError.INVALID_FORM_DATA, 422)
-                    
-                    log.warning(target_user_id)
 
                     change_role(userid=target_user_id, user_role=user_role, admin_userid=admin_user_id)
                 case _:
-                    pass
+                    user_info = get_user_info(target_user_id)
+                    return jsonify(user_info)
         
         return success_response(SuccessMessage.COMPLETED_MODACTION, 200)

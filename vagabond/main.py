@@ -2,6 +2,7 @@
 import logging
 import os
 
+from vagabond.analytics.module import update_fingerprint_impressions
 from vagabond.queries import *
 from vagabond.constants import *
 from vagabond.sessions.module import (
@@ -101,7 +102,13 @@ def log_request_info():
         return
 
     log.info(f"[ACCESS] {request.method} {request.path} from {request.remote_addr}")
-    db.write(query_str='UPDATE webstats SET hits = hits + 1, visited_timestamp = NOW()')
+
+    # individual impression hits are handled internally, this is total website hits
+    
+    if request.method == "GET":
+        db.write(query_str='UPDATE webstats SET hits = hits + 1')
+
+    user_fingerprint = get_fingerprint()
 
     site_referral = request.headers.get("Referer")
     if site_referral:
@@ -112,9 +119,6 @@ def log_request_info():
             ON CONFLICT (link_origin)
             DO UPDATE SET hits = referrer_links.hits + 1
         """, params=(site_referral,))
-
-    # create the fingerprint hash
-    user_fingerprint = get_fingerprint()
 
     # add the fingerprint to the database if it hasnt already
     # record the fingerprint, the number of times they've visited and the first time they visited (first seen the in wild)
