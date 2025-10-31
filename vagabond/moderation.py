@@ -61,7 +61,45 @@ def requires_permission(roles: list[UserRole]):
         return wrapped
     return decorator
 
+def manage_user_mute(userToMuteID: str, muterID: str, is_muted: bool) -> None:
 
+    # mute the user depending on the is_muted
+    # log the moderation action
+    # hook up this action in the admin panel
+    # possibly create a javascript button that is only rendered if you are an admin, to do this more effectively
+
+    log.debug("managing user mute for [userToMute=%s, muterID=%s], action: %s", userToMuteID, muterID, "mute" if is_muted else "unmute")
+
+    if not is_valid_userid(userID=userToMuteID) or not is_valid_userid(userID=muterID):
+        log.warning("Invalid userIDs [userToMute=%s, muterID=%s] passed to manage_user_mute", userToMuteID, muterID)
+        return None
+
+    # upsert pattern here
+    if is_muted:
+        db.write(query_str="""
+            INSERT INTO muted_users_table (userid, muterid)
+            VALUES (%s, %s)
+            ON CONFLICT (userid, muterid) DO NOTHING;
+        """, params=(userToMuteID, muterID,))
+    else:
+        db.write(query_str="""
+            DELETE FROM muted_users_table
+            WHERE userid = %s AND muterid = %s
+        """, params=(userToMuteID, muterID,))
+
+    modaction = ModerationAction.MUTE_USER.value if is_muted else ModerationAction.UNMUTE_USER.value
+
+    db.write(query_str="""
+        INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+    """, params=(
+        modaction,
+        userToMuteID,
+        muterID, # "SYSTEM" user
+        "User locally muted another user"
+    ))
+
+    return None
 
 
 def is_admin(userid: str) -> bool:
@@ -95,6 +133,8 @@ def manage_user_ban(userid: str, is_banned: bool, admin_userid: str | None = Non
         admin_userid, # "SYSTEM" user
         reason
     ))
+
+    return None
 
 def is_valid_user_role(user_role: str) -> bool:
     try:

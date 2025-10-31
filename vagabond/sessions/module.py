@@ -1,6 +1,6 @@
 from vagabond.constants import RouteError
 from vagabond.flask_wrapper import error_response
-from vagabond.utility import rows_to_dict, deep_get
+from vagabond.utility import deep_get_as_type, rows_to_dict, deep_get
 from vagabond.dbmanager import DBManager, DBStatus
 from vagabond.queries import *
 from flask import Response, jsonify, make_response, request, abort, redirect, url_for
@@ -221,7 +221,7 @@ def get_userid_from_session(sessionID: str) -> str | None:
         """, fetch=True, params=(sessionID,))
     if not get_userid:
         return None
-    return deep_get(get_userid, 0, 0) or None
+    return deep_get_as_type(get_userid, str, 0, 0) or None
 
 # invalidation of a session is important
 def invalidate_session(sessionID: str) -> None:

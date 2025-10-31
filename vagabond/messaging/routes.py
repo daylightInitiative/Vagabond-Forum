@@ -114,12 +114,13 @@ def serve_messages(group_id):
         param_dict = {
             "message_page_limit": MESSAGE_PAGE_LIMIT,
             "message_group_id": group_id,
-            "page_offset": ((page_offset - 1) * MESSAGE_PAGE_LIMIT) # note to frontend: starts at index 1
+            "page_offset": ((page_offset - 1) * MESSAGE_PAGE_LIMIT), # note to frontend: starts at index 1
+            "requester_id": userID
         }
         get_rows, get_cols = db.read(query_str="""
             SELECT *
             FROM user_messages
-            WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL
+            WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM muted_users_table mu WHERE mu.muterid = %(requester_id)s AND mu.userid = author)
             ORDER BY creation_date DESC
             LIMIT %(message_page_limit)s OFFSET %(page_offset)s
         """, get_columns=True, params=param_dict)

@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS exitPages (
     hits BIGINT NOT NULL DEFAULT 0
 );
 
+
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
@@ -49,6 +51,15 @@ CREATE TABLE IF NOT EXISTS users (
     join_date TIMESTAMPTZ DEFAULT NOW()
 );
 -- using TIMESTAMPZ to account for different timezones
+
+CREATE TABLE IF NOT EXISTS muted_users_table (
+    userid INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    muterid INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    muted_at TIMESTAMPTZ DEFAULT NOW(),
+    
+-- composite key here so we can only mute another user once
+    PRIMARY KEY (userid, muterid)
+);
 
 CREATE TABLE IF NOT EXISTS message_recipient_group (
     groupid SERIAL PRIMARY KEY,

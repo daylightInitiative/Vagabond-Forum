@@ -1,4 +1,4 @@
-from vagabond.analytics.module import update_fingerprint_impressions
+
 from vagabond.constants import SuccessMessage, RouteError
 from flask import Response, jsonify, render_template
 import logging
@@ -24,6 +24,7 @@ def error_response(status: RouteError, http_code: int = 400, extra_info: dict = 
     return jsonify(payload), http_code
 
 def custom_render_template(template_name: str, **context):
+    from vagabond.analytics.module import update_fingerprint_impressions
 
     update_fingerprint_impressions(page_name=template_name)
     

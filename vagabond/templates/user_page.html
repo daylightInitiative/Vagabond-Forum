@@ -14,8 +14,13 @@
             <p>About Me: {{ userinfo.description or '' }}</p>
 
             <!-- We dont want users to be able to report themselves lol -->
-            {% if current_userid != userinfo.id %}
+            <!-- <p>{{current_userid is number}}</p>
+            <p>{{userinfo.id is number}}</p> -->
+
+            <!-- until we can enforce the different type casting to tables to expect, we're going to cast userinfo.id to a string -->
+            {% if current_userid != userinfo.id|string and is_authenticated == True %}
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportMenu">Report User</button>
+                <button id="muteUserButton" type="button" class="btn btn-primary">Mute User</button>
 
                 <!-- Modal -->
                 <div class="modal fade" id="reportMenu" tabindex="-1" aria-labelledby="reportMenuLabel" aria-hidden="true">
@@ -57,13 +62,46 @@
                     </div>
                 </div>
 
-            {% endif %}
+                <meta name="page_userid" content="{{ userinfo.id }}">
 
-            <script>
+            <script type="module">
+                import { easyfetch } from '/static/js/easyfetch.js';
+
+                async function toggleUserMute(is_muted) {
+                    let should_mute = is_muted ? "unmute" : "mute";
+                    console.log(should_mute);
+                    const response = await easyfetch('/users/{{ userinfo.id }}/', {
+                        method: "POST",
+                        body: {
+                            userid: "{{ userinfo.id }}",
+                            action: should_mute.toString()
+                        }
+                    });
+
+                    if (!response.ok) {
+                        console.log("Failed to toggle mute: " + response.error);
+                    }
+
+                    window.location.reload();
+                }
+
                 // Must include a DOMContentLoaded if accessing the csrf token, as it is not always immediately available
                 document.addEventListener('DOMContentLoaded', function () {
+
+                    // mute button toggling
+                    // update the button with the is user_muted tag
+                    let is_muted = ("{{ userinfo.is_muted }}" == "True");
+                    const muted_button = document.getElementById("muteUserButton");
+
+                    muted_button.textContent = (is_muted) ? "Unmute user" : "Mute user";
+                    muted_button.addEventListener('click', function() {
+                        let is_muted = ("{{ userinfo.is_muted }}" == "True");
+                        toggleUserMute(is_muted);
+                    });
+
+
                     document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(function(item) {
-                        item.addEventListener('click', function() {
+                        item.addEventListener('click', function(e) {
                             const dropdownButton = document.getElementById('dropdownMenuButton1');
                             dropdownButton.textContent = this.textContent;
                         });
@@ -109,6 +147,7 @@
                 }); 
                 });
             </script>
+            {% endif %}
         </div>
         <div class="posts-container">
             <div class="posts-bar">

@@ -26,6 +26,7 @@ class ModerationAction(Enum):
     UNBAN_USER = 'unban_user'
     SHADOWBAN_USER = 'shadowban_user' # i see no upside of adding a "unshadowban" if you have this, you've earned it
     MUTE_USER = 'mute_user'
+    UNMUTE_USER = 'unmute_user'
     DELETE_POST = 'delete_post'
     UNDELETE_POST = 'undelete_post'
     DELETE_MESSAGE = 'delete_message' # direct messaging logging

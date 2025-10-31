@@ -111,6 +111,7 @@ def get_user_info(userID: str) -> dict | None:
     return deep_get(rows_to_dict(rows=rows, columns=columns), 0) or None
 
 def is_valid_userid(userID: str) -> bool:
+    log.debug("%s, type: %s", userID, type(userID))
     if not userID.isdigit():
         log.warning("%s failed a digit userid check.", userID)
         return False
