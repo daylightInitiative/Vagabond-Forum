@@ -4,7 +4,7 @@
 - [x] basic routes and cleanup sql requests
 - [x] basic ticket system for user reporting
 - [x] add sending emails externally
-- [ ] add muting foreign key to users table
+- [x] add muting foreign key to users table
 - [x] add a ticket system for admins and moderators
 - [x] add moderator as a less capability version of an admin
 - [x] added session and non session fingerprinting
@@ -25,4 +25,4 @@
 - [x] add deletion of replies
 - [ ] website facelift (rework css)
 - [x] Add email verification as a required account setup step, (send the email a code)
-- [ ] Add internal messaging to the forum
+- [x] Add internal messaging to the forum

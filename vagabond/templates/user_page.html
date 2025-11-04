@@ -21,6 +21,8 @@
             {% if current_userid != userinfo.id|string and is_authenticated == True %}
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportMenu">Report User</button>
                 <button id="muteUserButton" type="button" class="btn btn-primary">Mute User</button>
+                <br>
+                <button id="messageUserButton" type="button" class="btn btn-primary">Message User</button>
 
                 <!-- Modal -->
                 <div class="modal fade" id="reportMenu" tabindex="-1" aria-labelledby="reportMenuLabel" aria-hidden="true">
@@ -67,6 +69,23 @@
             <script type="module">
                 import { easyfetch } from '/static/js/easyfetch.js';
 
+                async function createMessageGroup(userids_array) {
+
+                    // create if doesnt exist endpoint
+                    const enterGroupResponse = await easyfetch('/api/v1/messages/groups/create', {
+                        method: 'POST',
+                        body: {
+                            recipient_list: userids_array
+                        }
+                    });
+
+                    if (!enterGroupResponse.ok) {
+                        console.log("Failed to send enter group response: " + enterGroupResponse.error);
+                    }
+
+                    console.log(enterGroupResponse.data);
+                }
+
                 async function toggleUserMute(is_muted) {
                     let should_mute = is_muted ? "unmute" : "mute";
                     console.log(should_mute);
@@ -87,6 +106,12 @@
 
                 // Must include a DOMContentLoaded if accessing the csrf token, as it is not always immediately available
                 document.addEventListener('DOMContentLoaded', function () {
+
+                    const message_button = document.getElementById('messageUserButton');
+                    message_button.addEventListener('click', function () {
+                        console.log('messaging user');
+                        createMessageGroup([1, 4]);
+                    });
 
                     // mute button toggling
                     // update the button with the is user_muted tag

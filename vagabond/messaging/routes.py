@@ -1,20 +1,33 @@
 
 # instead of hardcoding a route, lets create a messaging api that requires authentication
 
-from vagabond.flask_wrapper import error_response, success_response
+import json
+from vagabond.flask_wrapper import custom_render_template, error_response, success_response
 from vagabond.moderation import soft_delete_user_post
 from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
 )
 from vagabond.messaging import messaging_bp
 from vagabond.messaging.module import can_user_access_group, is_user_in_group, is_user_message_owner
-from flask import abort, jsonify, request, redirect
+from flask import abort, jsonify, request, redirect, url_for
 from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, SuccessMessage, RouteError
 from vagabond.services import dbmanager as db
-from vagabond.utility import deep_get, get_group_owner, is_valid_userid, rows_to_dict
+from vagabond.utility import deep_get, deep_get_as_type, get_group_owner, is_valid_userid, rows_to_dict
 import logging
 
 log = logging.getLogger(__name__)
+
+
+@messaging_bp.route("/chat")
+def serve_chat(groupID):
+
+    if not is_user_logged_in():
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
+    
+    sid = get_session_id()
+
+    if request.method == "GET":
+        return custom_render_template("chat_page.html")
 
 
 # change group owner, delete group
@@ -238,13 +251,15 @@ def serve_create_group():
 
         log.debug(users_to_add)
 
+        # so lets change this to an upsert pattern
         # create group, return its id
+        # this is a multipurpose query and its negligible to use
         get_group_id = db.write(query_str="""
             INSERT INTO message_recipient_group
                 DEFAULT VALUES
             RETURNING groupid
         """, fetch=True)
-        group_id = deep_get(get_group_id, 0, 0) or -1
+        group_id = deep_get_as_type(get_group_id, int, 0, 0) or -1
         if group_id < 0:
             log.error("Failure to create message group")
             return error_response(RouteError.INTERNAL_SERVER_ERROR, 500)
@@ -258,6 +273,7 @@ def serve_create_group():
             db.write(query_str="""
                 INSERT INTO message_group_users (group_id, user_id)
                     VALUES (%s, %s)
+                ON CONFLICT (group_id, user_id) DO NOTHING
             """, params=(group_id, user_id,))
                 
-        return success_response(SuccessMessage.CREATED_NEW_GROUP )
+        return redirect(url_for("/chat", groupID=group_id))
