@@ -8,7 +8,7 @@ from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
 )
 from vagabond.messaging import messaging_bp
-from vagabond.messaging.module import can_user_access_group, is_user_in_group, is_user_message_owner
+from vagabond.messaging.module import can_user_access_group, get_groups_for_userid, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect, url_for
 from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, SuccessMessage, RouteError
 from vagabond.services import dbmanager as db
@@ -17,9 +17,35 @@ import logging
 
 log = logging.getLogger(__name__)
 
+"""
+The idea is to seperate each DM, channel by an id which then can be permission checked
+"""
 
-@messaging_bp.route("/chat")
-def serve_chat(groupID):
+@messaging_bp.route("/chat/<group_id>", methods=["GET"])
+def serve_chat_channel(group_id):
+
+    if not is_user_logged_in():
+        return error_response(RouteError.INVALID_PERMISSIONS, 401)
+    
+    sid = get_session_id()
+    userid = get_userid_from_session(sessionID=sid)
+
+    if request.method == "GET":
+
+        if not can_user_access_group(userID=userid, groupID=group_id):
+            return error_response(RouteError.INVALID_PERMISSIONS, 401)
+
+        # get all contacts
+        contacts = get_groups_for_userid(userID=userid, groupID=group_id)
+
+        # will need to get the user profile information. probably from a project wide utility
+        # and make profile and users page use this utility
+
+        return custom_render_template("chat_page.html", contacts_list=contacts)
+
+# in /chat is like a home page, but we probably want to pass the contacts here too at least
+@messaging_bp.route("/chat", methods=["GET"])
+def serve_chat_home():
 
     if not is_user_logged_in():
         return error_response(RouteError.INVALID_PERMISSIONS, 401)
@@ -32,7 +58,7 @@ def serve_chat(groupID):
 
 # change group owner, delete group
 @messaging_bp.route("/api/v1/messages/groups/<group_id>", methods=["PATCH", "DELETE"])
-def serve_group(group_id):
+def api_group(group_id):
 
     if not is_user_logged_in():
         return error_response(RouteError.INVALID_PERMISSIONS, 401)
@@ -104,7 +130,7 @@ def serve_group(group_id):
 # when getting the paginated output we should filter by date ASC
 # for getting paginated output, creating a new message returning the postid for the javascript (that way its easier to reply to it)
 @messaging_bp.route("/api/v1/messages/groups/<group_id>/messages", methods=["GET", "POST"])
-def serve_messages(group_id):
+def api_messages(group_id):
 
     if not is_user_logged_in():
         return error_response(RouteError.INVALID_PERMISSIONS, 401)
@@ -181,7 +207,7 @@ def serve_messages(group_id):
 
 # for deleting and editing messages of a particular group id,
 @messaging_bp.route("/api/v1/messages/groups/<group_id>/messages/<message_id>", methods=["PATCH", "DELETE"])
-def serve_edit_message(group_id, message_id):
+def api_edit_message(group_id, message_id):
 
     if not is_user_logged_in():
         return error_response(RouteError.INVALID_PERMISSIONS, 401)
@@ -219,7 +245,7 @@ def serve_edit_message(group_id, message_id):
 
         log.debug("edited message (message_id=%s, group_id=%s)", message_id, group_id)
 
-        return success_response(SuccessMessage.EDITED_MESSAGE )
+        return success_response(SuccessMessage.EDITED_MESSAGE)
 
     elif request.method == "DELETE":
         
@@ -227,13 +253,13 @@ def serve_edit_message(group_id, message_id):
 
         soft_delete_user_post(PostType.MESSAGE, message_id, userID)
 
-        return success_response(SuccessMessage.DELETED_MESSAGE )
-
+        return success_response(SuccessMessage.DELETED_MESSAGE)
+ 
     
 
 # its critical we dont really delete messages for later investigation, etc.
 @messaging_bp.route("/api/v1/messages/groups/create", methods=["POST"])
-def serve_create_group():
+def api_create_group():
     
     if not is_user_logged_in():
         return error_response(RouteError.INVALID_PERMISSIONS, 401)
@@ -276,4 +302,7 @@ def serve_create_group():
                 ON CONFLICT (group_id, user_id) DO NOTHING
             """, params=(group_id, user_id,))
                 
-        return redirect(url_for("/chat", groupID=group_id))
+        return jsonify({
+            "success": SuccessMessage.CREATED_NEW_GROUP.value,
+            "group_id": group_id
+        })

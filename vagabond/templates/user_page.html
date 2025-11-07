@@ -109,8 +109,7 @@
 
                     const message_button = document.getElementById('messageUserButton');
                     message_button.addEventListener('click', function () {
-                        console.log('messaging user');
-                        createMessageGroup([1, 4]);
+                        window.location.href = "{{ url_for('messaging.serve_chat') }}";
                     });
 
                     // mute button toggling

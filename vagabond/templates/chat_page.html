@@ -2,6 +2,11 @@
 
 {% block content %}
 
+    
+
+    <!-- making this on a seperate page temporarily so its not only portable
+     but easier than the hell of the users page of complexity -->
+
     <p>Welcome to the chat page
 
         In order for someone to chat, they should probably
@@ -9,6 +14,36 @@
         2. be able to submit a message to that group chat
         3. display the group chat to all people in the group
     </p>
+
+    <div style="display: flex; align-items: center; justify-content: flex-start; height: 100vh; overflow: hidden;">
+        <div id="contacts-list" style="overflow-y: auto; height: 100%;" class="scrolling-frame">
+            {% if contacts_list %}
+                {% for group in contacts_list %}
+                    <div style="display: flex; align-items: center; justify-content: center; background-color: rgb(103, 103, 103); width: 200px; height: 50px; padding: 0 10px; gap: 10px;">
+                        <p style="margin: 0; color: white;">{{ group }}</p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <!-- awesome way to learn how to use css better, external spread sheets make it more complex than it needs to be
+                refactor later -->
+            
+        </div>
+        <div id="messages-frame" style="flex-grow: 1; height: 100vh; background-color: rgb(103, 103, 103); overflow-y: auto;">
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+            <p style="color: white; padding-top: 3%; margin-left: 2%;">Example message here</p>
+        </div>
+    </div>
+
+    
     
 
 {% endblock %}

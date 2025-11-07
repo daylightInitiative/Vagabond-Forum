@@ -5,6 +5,20 @@ import logging
 
 log = logging.getLogger(__name__)
 
+def get_groups_for_userid(userID: str, groupID: str):
+    
+    get_groups_by_id = db.read(query_str="""
+        SELECT DISTINCT group_id FROM message_group_users
+        WHERE user_id = %s AND group_id = %s
+    """, params=(userID, groupID,))
+
+    available_groups = deep_get(get_groups_by_id, 0)
+    log.debug(available_groups)
+
+    return available_groups
+
+
+
 def is_user_in_group(userID: str, groupID: str) -> bool:
     if not is_valid_userid(userID=userID):
         log.warning("is_user_in_group passed an invalid userid: %s", userID)
