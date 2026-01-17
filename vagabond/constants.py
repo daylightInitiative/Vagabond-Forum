@@ -8,6 +8,7 @@ SYSTEM_ACCOUNT_ID = "1"
 from enum import Enum, auto, StrEnum
 # errors (consistency is important with our api)
 
+
 class UserRole(StrEnum):
     USER = "user"               # normal registered user
     MODERATOR = "moderator"     # forum moderator

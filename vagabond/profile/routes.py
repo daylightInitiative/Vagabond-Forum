@@ -1,4 +1,5 @@
 from vagabond.constants import SuccessMessage, RouteError
+from vagabond.profile.module import get_profile_info
 from vagabond.sessions.module import (
     get_session_id, is_user_logged_in, get_userid_from_session, abort_if_not_signed_in
 )
@@ -89,6 +90,7 @@ def serve_profile():
 
     if request.method == "GET":
         
+        extraprofinfo = get_profile_info(userID=userid)
         get_info = db.read(query_str="""
             SELECT email, username, join_date, avatar_hash, is_2fa_enabled
             FROM users

@@ -8,7 +8,7 @@ from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
 )
 from vagabond.messaging import messaging_bp
-from vagabond.messaging.module import can_user_access_group, get_groups_for_userid, is_user_in_group, is_user_message_owner
+from vagabond.messaging.module import can_user_access_group, get_contacts_from_gids, get_groups_for_userid, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect, url_for
 from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, SuccessMessage, RouteError
 from vagabond.services import dbmanager as db
@@ -51,9 +51,21 @@ def serve_chat_home():
         return error_response(RouteError.INVALID_PERMISSIONS, 401)
     
     sid = get_session_id()
+    userid = get_userid_from_session(sessionID=sid)
 
     if request.method == "GET":
-        return custom_render_template("chat_page.html")
+        # get all contacts
+        # TODO: paginate the contacts
+        group_ids = get_groups_for_userid(userID=userid)
+        log.debug(group_ids)
+
+        user_profiles = get_contacts_from_gids(gids=group_ids)
+        log.debug(user_profiles)
+
+        # will need to get the user profile information. probably from a project wide utility
+        # and make profile and users page use this utility
+
+        return custom_render_template("chat_page.html", contacts_list=user_profiles)
 
 
 # change group owner, delete group
@@ -274,8 +286,12 @@ def api_create_group():
         users_to_add = data.get("recipient_list")
         if not users_to_add or len(users_to_add) <= 0:
             return error_response(RouteError.INVALID_FORM_DATA, 422)
-
+        
         log.debug(users_to_add)
+
+        # make sure they are valid users
+        # for userid in users_to_add:
+        #     if not is_valid_userid(userID=userid):
 
         # so lets change this to an upsert pattern
         # create group, return its id
