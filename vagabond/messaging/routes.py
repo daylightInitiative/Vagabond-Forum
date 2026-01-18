@@ -8,7 +8,7 @@ from vagabond.sessions.module import (
     get_session_id, get_userid_from_session, is_user_logged_in, csrf_exempt
 )
 from vagabond.messaging import messaging_bp
-from vagabond.messaging.module import can_user_access_group, get_contacts_from_gids, get_groups_for_userid, is_user_in_group, is_user_message_owner
+from vagabond.messaging.module import can_user_access_group, create_group, get_contacts_from_gids, get_groups_for_userid, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect, url_for
 from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, SuccessMessage, RouteError
 from vagabond.services import dbmanager as db
@@ -267,7 +267,7 @@ def api_edit_message(group_id, message_id):
 
         return success_response(SuccessMessage.DELETED_MESSAGE)
  
-    
+
 
 # its critical we dont really delete messages for later investigation, etc.
 @messaging_bp.route("/api/v1/messages/groups/create", methods=["POST"])
@@ -281,44 +281,22 @@ def api_create_group():
     userID = get_userid_from_session(sessionID=sid)
 
     if request.method == "POST":
-        # create a new group
-        # get the userid we are trying to message, its a json list
+
         users_to_add = data.get("recipient_list")
-        if not users_to_add or len(users_to_add) <= 0:
+        if not users_to_add or len(users_to_add) < 2:
             return error_response(RouteError.INVALID_FORM_DATA, 422)
         
         log.debug(users_to_add)
 
-        # make sure they are valid users
-        # for userid in users_to_add:
-        #     if not is_valid_userid(userID=userid):
+        groupType = "dm" if len(users_to_add) == 2 else "group"
 
-        # so lets change this to an upsert pattern
-        # create group, return its id
-        # this is a multipurpose query and its negligible to use
-        get_group_id = db.write(query_str="""
-            INSERT INTO message_recipient_group
-                DEFAULT VALUES
-            RETURNING groupid
-        """, fetch=True)
-        group_id = deep_get_as_type(get_group_id, int, 0, 0) or -1
+        group_id = -1
+        group_id = create_group(groupType, users_to_add, userID)
         if group_id < 0:
-            log.error("Failure to create message group")
-            return error_response(RouteError.INTERNAL_SERVER_ERROR, 500)
+            log.error("Failed to create group")
+            return error_response(RouteError.INTERNAL_SERVER_ERROR, 422)
         
-        log.debug(f"created group_id={group_id}")
-
-        # now that we have the groupid, lets create the group users table and add each user
-
-        for user_id in users_to_add:
-            log.debug(f"creating entry to group_users, (group_id={group_id}, user_id={user_id})")
-            db.write(query_str="""
-                INSERT INTO message_group_users (group_id, user_id)
-                    VALUES (%s, %s)
-                ON CONFLICT (group_id, user_id) DO NOTHING
-            """, params=(group_id, user_id,))
-                
         return jsonify({
             "success": SuccessMessage.CREATED_NEW_GROUP.value,
-            "group_id": group_id
+            "group_id": str(group_id)
         })

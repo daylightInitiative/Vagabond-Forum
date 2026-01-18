@@ -61,16 +61,18 @@ CREATE TABLE IF NOT EXISTS muted_users_table (
     PRIMARY KEY (userid, muterid)
 );
 
+
 CREATE TABLE IF NOT EXISTS message_recipient_group (
     groupid SERIAL PRIMARY KEY,
     group_owner BIGINT DEFAULT NULL, -- we can use this later to prune groups with no owner, but keep messages
-    group_name VARCHAR(32) NOT NULL,
+    group_name VARCHAR(32) NULL,
     group_type VARCHAR(16) NOT NULL DEFAULT 'group', -- can be either "direct" or "dm" or "broadcast" for system messages
     is_group_muted BOOLEAN NOT NULL DEFAULT FALSE, -- muting groups will come later, but its just something we will send for now
-    muted_until DEFAULT NULL,
+    muted_until TIMESTAMPTZ DEFAULT NULL,
     creation_date TIMESTAMPTZ DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
-    last_message TIMESTAMPTZ
+    last_message TIMESTAMPTZ,
+    FOREIGN KEY (group_owner) REFERENCES users(id)
 );
 
 -- making the awesometastic executive decision to seperate group direct messaging and DMs

@@ -1,0 +1,1 @@
+"yes" | pipenv run .\wipe_tables.py && pipenv run .\init_db.py && .\run.ps1

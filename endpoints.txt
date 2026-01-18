@@ -20,3 +20,14 @@
 ./vagabond/signup/routes.py:23:@signup_bp.route('/signup', methods=['GET', 'POST'])
 ./vagabond/signup/routes.py:55:@signup_bp.route("/confirm", methods=["GET"])
 ./vagabond/users/routes.py:13:@users_bp.route("/users/<int:userid>/")
+
+@messaging_bp.route("/chat/<group_id>", methods=["GET"])
+@messaging_bp.route("/chat", methods=["GET"])
+@messaging_bp.route("/api/v1/messages/groups/<group_id>", methods=["PATCH", "DELETE"])
+@messaging_bp.route("/api/v1/messages/groups/<group_id>/messages", methods=["GET", "POST"])
+@messaging_bp.route("/api/v1/messages/groups/<group_id>/messages/<message_id>", methods=["PATCH", "DELETE"])
+@messaging_bp.route("/api/v1/messages/groups/create", methods=["POST"])
+
+
+
+
