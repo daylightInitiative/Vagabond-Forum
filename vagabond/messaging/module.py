@@ -44,20 +44,29 @@ def get_group_type(groupID: str) -> bool:
     gt = deep_get_as_type(get_group_type, str, 0)
     return gt
 
-def get_contacts_from_gids(gids: list):
+def get_contacts_from_gids(userID: str, gids: list):
     # we need to get profile information in one big query using subqueries
 
     #  make sure to add a LIMIT to this, otherwise it should be fine getting all what we're given! ^q^
     contacts_list = []
     for groupid in gids:
 
-        # # I feel like doing it this wya is OK, since we dont know when we are offline when or how things will change, and will only be loaded once likely
-        # group_type = get_group_type(groupID=groupid)
+        # LEFT JOIN message_group_users u ON u.user_id IS DISTINCT FROM %s AND g.group_type = 'dm' AND u.group_id = g.groupid
+        # (we need to use LIMIT so we use a LEFT JOIN LATERAL) they seem to be commonly used when wanting to LIMIT
         rows, cols= db.read(query_str="""
-            SELECT *
-            FROM message_recipient_group
+            SELECT g.groupid, group_owner,
+                COALESCE(ud.username, group_name) as group_name,
+                g.group_type, is_group_muted, muted_until, creation_date, deleted_at, last_message
+            FROM message_recipient_group g
+            LEFT JOIN LATERAL (
+                SELECT u.user_id
+                FROM message_group_users u
+                WHERE u.user_id IS DISTINCT FROM %s AND g.group_type = 'dm' AND u.group_id = g.groupid
+                LIMIT 1
+            ) u ON TRUE
+            LEFT JOIN users ud ON u.user_id IS NOT NULL AND ud.id = u.user_id
             WHERE groupid = %s
-        """, get_columns=True, params=(str(groupid))) # be careful when putting in mismatched types into params
+        """, get_columns=True, params=(userID, str(groupid),)) # be careful when putting in mismatched types into params
 
         # now convert it into a dictionary
         get_info = rows_to_dict(rows=rows, columns=cols)

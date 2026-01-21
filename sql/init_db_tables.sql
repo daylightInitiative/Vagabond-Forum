@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS exitPages (
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
     username VARCHAR(20) UNIQUE NOT NULL CHECK (char_length(username) >= 3),
     account_locked BOOLEAN NOT NULL DEFAULT FALSE,
     loginAttempts INT NOT NULL DEFAULT 0,
@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS message_recipient_group (
     FOREIGN KEY (group_owner) REFERENCES users(id)
 );
 
--- making the awesometastic executive decision to seperate group direct messaging and DMs
-
+-- making the awesometastic executive decision to NOT seperate group direct messaging and DMs
+-- this is different from "replies" which in the future will be renamed "post_replies"
 CREATE TABLE IF NOT EXISTS user_messages (
     id SERIAL PRIMARY KEY,
     contents VARCHAR(2000) NOT NULL,
@@ -206,7 +206,8 @@ CREATE TABLE IF NOT EXISTS replies (
 
 -- we're gonna on conflict do nothing here
 CREATE TABLE IF NOT EXISTS shadow_bans (
-    userid BIGINT PRIMARY KEY
+    userid BIGINT PRIMARY KEY,
+    banned_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- this table is to keep track of deletion of posts by moderators

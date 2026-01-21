@@ -54,12 +54,14 @@ async function save_draft() {
     }
 }
 
-// only call this once
-get_saved_draft();
-const save_draft_interval_id = setInterval(save_draft, 8000);
-text_box.addEventListener("change", function() {
-    console.log("changed");
-    save_draft();
-})
 
 
+document.addEventListener("DOMContentLoaded", (event) => {
+    // only call this once
+    get_saved_draft();
+    const save_draft_interval_id = setInterval(save_draft, 8000);
+    text_box.addEventListener("change", function() {
+        console.log("changed");
+        save_draft();
+    })
+});

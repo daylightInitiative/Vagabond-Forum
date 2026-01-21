@@ -32,16 +32,21 @@ def serve_chat_channel(group_id):
 
     if request.method == "GET":
 
-        if not can_user_access_group(userID=userid, groupID=group_id):
-            return error_response(RouteError.INVALID_PERMISSIONS, 401)
+        # if not can_user_access_group(userID=userid, groupID=group_id):
+        #     return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
         # get all contacts
-        contacts = get_groups_for_userid(userID=userid, groupID=group_id)
+        group_ids = get_groups_for_userid(userID=userid)
 
         # will need to get the user profile information. probably from a project wide utility
         # and make profile and users page use this utility
 
-        return custom_render_template("chat_page.html", contacts_list=contacts)
+        user_profiles = get_contacts_from_gids(userID=userid, gids=group_ids)
+
+        # lets load all the messages for this DM
+
+
+        return custom_render_template("chat_page.html", contacts_list=user_profiles, pageGroupID=group_id)
 
 # in /chat is like a home page, but we probably want to pass the contacts here too at least
 @messaging_bp.route("/chat", methods=["GET"])
@@ -59,7 +64,7 @@ def serve_chat_home():
         group_ids = get_groups_for_userid(userID=userid)
         log.debug(group_ids)
 
-        user_profiles = get_contacts_from_gids(gids=group_ids)
+        user_profiles = get_contacts_from_gids(userID=userid, gids=group_ids)
         log.debug(user_profiles)
 
         # will need to get the user profile information. probably from a project wide utility
@@ -106,7 +111,7 @@ def api_group(group_id):
             ORDER BY added_at DESC
         """, params=(new_owner, group_id,))
 
-        return success_response(SuccessMessage.CHANGED_GROUP_OWNER )
+        return success_response(SuccessMessage.CHANGED_GROUP_OWNER)
 
     elif request.method == "DELETE":
 
@@ -150,22 +155,20 @@ def api_messages(group_id):
     sid = get_session_id()
     userID = get_userid_from_session(sessionID=sid)
 
-    if not can_user_access_group(userID=userID, groupID=group_id):
-        return error_response(RouteError.INVALID_PERMISSIONS, 401)
-
-    data = request.get_json()
+    # if not can_user_access_group(userID=userID, groupID=group_id):
+    #     return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     if request.method == "GET":
         
-        page_offset = data.get("page_offset")
-        if not isinstance(page_offset, int) and page_offset >= 1:
+        page_offset = request.args.get("page_offset")
+        if not page_offset.isdigit() and int(page_offset) >= 1:
             return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         # get the page index for our pagination
         param_dict = {
             "message_page_limit": MESSAGE_PAGE_LIMIT,
             "message_group_id": group_id,
-            "page_offset": ((page_offset - 1) * MESSAGE_PAGE_LIMIT), # note to frontend: starts at index 1
+            "page_offset": ((int(page_offset) - 1) * MESSAGE_PAGE_LIMIT), # note to frontend: starts at index 1
             "requester_id": userID
         }
         get_rows, get_cols = db.read(query_str="""
