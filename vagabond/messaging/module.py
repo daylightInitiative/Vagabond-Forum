@@ -56,6 +56,7 @@ def get_contacts_from_gids(userID: str, gids: list):
         rows, cols= db.read(query_str="""
             SELECT g.groupid, group_owner,
                 COALESCE(ud.username, group_name) as group_name,
+                COALESCE(ud.avatar_hash, group_avatar_hash) as avatar_hash,
                 g.group_type, is_group_muted, muted_until, creation_date, deleted_at, last_message
             FROM message_recipient_group g
             LEFT JOIN LATERAL (

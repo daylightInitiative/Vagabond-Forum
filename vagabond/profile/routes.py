@@ -1,3 +1,4 @@
+from vagabond.avatar import AVATARS_FOLDER
 from vagabond.constants import SuccessMessage, RouteError
 from vagabond.profile.module import get_profile_info
 from vagabond.sessions.module import (
@@ -8,9 +9,10 @@ from vagabond.profile import profile_bp
 from vagabond.email import generate_token, confirm_token, send_2fa_code, generate_2FA_code, confirm_2FA_code
 from vagabond.utility import deep_get, get_censored_email, get_email_from_userid
 from vagabond.flask_wrapper import custom_render_template, error_response, success_response
-from flask import request, redirect, jsonify, url_for, abort
+from flask import request, redirect, jsonify, send_from_directory, url_for, abort, send_file
 from vagabond.moderation import ModerationAction
 import logging
+import os
 
 log = logging.getLogger(__name__)
 
@@ -80,6 +82,27 @@ def toggle_2fa():
 
         return redirect(url_for("profile.serve_profile"))
 
+
+
+@profile_bp.route('/api/v1/avatars/users/<user_id>', methods=["GET"])
+def serve_profile_avatar(user_id):
+
+    if request.method == "GET":
+        profile_info = get_profile_info(user_id)[0]
+        filename, ext = os.path.basename(profile_info["avatar_hash"]).split(".")
+
+        hashbyte1 = filename[:2]
+        hashbyte2 = filename[2:4]
+
+        # seperate each file by its first two bytes so its more organized
+        DIVIDER_FOLDER = AVATARS_FOLDER / hashbyte1 / hashbyte2
+
+        safe_filename = filename + "." + ext
+
+        try:
+            return send_from_directory(DIVIDER_FOLDER, safe_filename, mimetype='image/jpeg')
+        except FileNotFoundError:
+            abort(404)
 
 @profile_bp.route('/profile', methods=["GET", "POST"])
 def serve_profile():

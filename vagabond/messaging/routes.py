@@ -42,6 +42,7 @@ def serve_chat_channel(group_id):
         # and make profile and users page use this utility
 
         user_profiles = get_contacts_from_gids(userID=userid, gids=group_ids)
+        log.debug(user_profiles)
 
         # lets load all the messages for this DM
 
@@ -187,6 +188,7 @@ def api_messages(group_id):
     elif request.method == "POST":
         # creation of a new message
 
+        data = request.get_json()
         msg_contents = data.get("contents")
 
         if not msg_contents:
