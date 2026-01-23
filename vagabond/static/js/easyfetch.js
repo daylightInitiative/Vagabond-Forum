@@ -2,28 +2,50 @@
 
 // a simple wrapper around the fetch function that returns the json from the request
 // automatically passes the csrf token and appropriate headers for json
-export async function easyfetch(url, data = {}) {
+// updated to also support clean URL query parameters
+export async function easyfetch(url, options = {}, queryParams = null) {
     try {
-        data.headers = data.headers || {};
+        // unpacking (copy) additional headers so we dont change the original values
+        const headers = { ...(options.headers || {}) };
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        const csrfToken = csrfMeta?.getAttribute('content');
+
         if (!csrfToken) {
-            console.error("easyfetch: missing <meta name='csrf-token'> tag");
-            return null;
+            console.error("easyfetch: missing <meta name='csrf-token'>");
+            return { ok: false, error: "Missing CSRF token" };
         }
-        data.headers["X-CSRFToken"] = csrfToken;
 
-        const method = (data.method || 'GET').toUpperCase();
-        // hacky way of adjusting for json
-        if (data.body && typeof data.body === "object" && method !== 'GET' && method !== 'HEAD') {
-            data.headers["Content-Type"] = "application/json; charset=UTF-8";
-            data.body = JSON.stringify(data.body);
+        headers["X-CSRFToken"] = csrfToken;
+
+        const method = (options.method || "GET").toUpperCase();
+        let body = options.body;
+
+        if (body && typeof body === "object" && method !== "GET" && method !== "HEAD") {
+            headers["Content-Type"] = "application/json; charset=UTF-8";
+            body = JSON.stringify(body);
         }
-        const response = await fetch(url, data);
+
+        let finalURL = url;
+        if (queryParams && Object.keys(queryParams).length > 0) {
+            const queryURL = new URL(url, window.location.origin);
+
+            // originally was going to do this the easy way, but its better to use the API to handle multiple during dev
+            for (const [k, v] of Object.entries(queryParams)) {
+                queryURL.searchParams.set(k, v);
+            }
+            finalURL = queryURL.toString();
+        }
+
+        const response = await fetch(finalURL, {
+            ...options,
+            method,
+            headers,
+            body
+        });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            // no need to break the entire front end on a http error lol
+            const errorText = await response.text().catch(() => null);
             return {
                 ok: false,
                 status: response.status,
@@ -31,11 +53,15 @@ export async function easyfetch(url, data = {}) {
             };
         }
 
-        // it returns if any, json
-        const json = response.json ? await response.json() : null;
-        return { ok: true, data: json };
+        let data = null;
+        const contentType = response.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+            data = await response.json();
+        }
+
+        return { ok: true, data };
     } catch (error) {
-        console.log(`easyfetch failed with error: ${error}`);
-        return { ok: false, error: error };
+        console.error("easyfetch failed with error:", error);
+        return { ok: false, error };
     }
 }

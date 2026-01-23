@@ -1,6 +1,9 @@
 {
     "file_log_level": "INFO",
     "console_log_level": "DEBUG",
+    "forum_config": {
+        
+    },
     "flask_config": {
         "proxy": false,
         "host": "127.0.0.1",
