@@ -160,36 +160,66 @@ def api_messages(group_id):
     #     return error_response(RouteError.INVALID_PERMISSIONS, 401)
 
     if request.method == "GET":
-        
-        page_offset = request.args.get("page_offset")
-        if not page_offset.isdigit() and int(page_offset) >= 1:
-            return error_response(RouteError.INVALID_FORM_DATA, 422)
 
-        # get the page index for our pagination
-        param_dict = {
-            "message_page_limit": MESSAGE_PAGE_LIMIT,
-            "message_group_id": group_id,
-            "page_offset": ((int(page_offset) - 1) * MESSAGE_PAGE_LIMIT), # note to frontend: starts at index 1
-            "requester_id": userID
-        }
-        get_rows, get_cols = db.read(query_str="""
-            SELECT *
-            FROM user_messages
-            WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM muted_users_table mu WHERE mu.muterid = %(requester_id)s AND mu.userid = author)
-            ORDER BY creation_date DESC
-            LIMIT %(message_page_limit)s OFFSET %(page_offset)s
-        """, get_columns=True, params=param_dict)
+        last_message_id = request.args.get("mid")
 
-        paginated_messages_dict = rows_to_dict(get_rows, get_cols)
+        # get x batch of messages before the last mid
+        if last_message_id:
 
-        log.debug(paginated_messages_dict)
-        return jsonify(paginated_messages_dict) 
+            if not last_message_id.isdigit():
+                return error_response(RouteError.INVALID_FORM_DATA, 422)
+
+            #((int(page_offset) - 1) * MESSAGE_PAGE_LIMIT), # note to frontend: starts at index 1
+
+            param_dict = {
+                "message_page_limit": MESSAGE_PAGE_LIMIT,
+                "message_group_id": group_id,
+                "last_message_id": last_message_id,
+                "requester_id": userID
+            }
+            get_rows, get_cols = db.read(query_str="""
+                SELECT *
+                FROM user_messages
+                WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM muted_users_table mu WHERE mu.muterid = %(requester_id)s AND mu.userid = author)
+                    AND id < %(last_message_id)s
+                ORDER BY id DESC
+                LIMIT %(message_page_limit)s
+            """, get_columns=True, params=param_dict)
+
+            paginated_messages_dict = rows_to_dict(get_rows, get_cols)
+
+            log.debug(paginated_messages_dict)
+            log.debug(len(paginated_messages_dict))
+            return jsonify(paginated_messages_dict)
+
+        # initial load of messages
+        else:
+            param_dict = {
+                "message_page_limit": MESSAGE_PAGE_LIMIT,
+                "message_group_id": group_id,
+                "last_message_id": last_message_id,
+                "requester_id": userID
+            }
+            get_rows, get_cols = db.read(query_str="""
+                SELECT *
+                FROM user_messages
+                WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM muted_users_table mu WHERE mu.muterid = %(requester_id)s AND mu.userid = author)
+                ORDER BY id DESC
+                LIMIT %(message_page_limit)s
+            """, get_columns=True, params=param_dict)
+
+            paginated_messages_dict = rows_to_dict(get_rows, get_cols)
+
+            log.debug(paginated_messages_dict)
+            log.debug(len(paginated_messages_dict))
+            return jsonify(paginated_messages_dict)
 
     elif request.method == "POST":
         # creation of a new message
 
         data = request.get_json()
         msg_contents = data.get("contents")
+        log.debug("created new message")
 
         if not msg_contents:
             return error_response(RouteError.INVALID_FORM_DATA, 422)
@@ -204,11 +234,6 @@ def api_messages(group_id):
         if not can_user_access_group(userID=msg_creator_id, groupID=msg_group_id):
             log.warning("(user_id=%s, group_id=%s) cannot access group upon creating message", msg_creator_id, msg_group_id)
             return error_response(RouteError.INVALID_PERMISSIONS, 401)
-        
-        db.write(query_str="""
-            INSERT INTO user_messages (contents, author, msg_group_id)
-                 VALUES (%s, %s, %s)
-        """, params=(msg_contents, msg_creator_id, msg_group_id,))
 
         # update the last message timestamp
         db.write(query_str="""
@@ -217,9 +242,18 @@ def api_messages(group_id):
             WHERE groupid = %s
         """, params=(group_id,))
 
+        rows, cols = db.write(query_str="""
+            INSERT INTO user_messages (contents, author, msg_group_id)
+                 VALUES (%s, %s, %s)
+            RETURNING id, author, creation_date;
+        """, fetch=True, get_columns=True, params=(msg_contents, msg_creator_id, msg_group_id,))
         log.debug("created new message in (user_id=%s, group_id=%s)", msg_creator_id, msg_group_id)
 
-        return success_response(SuccessMessage.CREATED_MESSAGE)
+        get_msg_dict = rows_to_dict(rows=rows, columns=cols)
+        msg_info = deep_get(get_msg_dict, 0)
+        log.debug(msg_info)
+
+        return jsonify(msg_info)
 
 
 # for deleting and editing messages of a particular group id,

@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS message_recipient_group (
 -- making the awesometastic executive decision to NOT seperate group direct messaging and DMs
 -- this is different from "replies" which in the future will be renamed "post_replies"
 CREATE TABLE IF NOT EXISTS user_messages (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     contents VARCHAR(2000) NOT NULL,
     author BIGINT NOT NULL REFERENCES users(id),
     -- msg_group is a way of mass messaging, but also the ability for one to one messaging
@@ -88,6 +88,14 @@ CREATE TABLE IF NOT EXISTS user_messages (
     creation_date TIMESTAMPTZ DEFAULT NOW(),
     deleted_at TIMESTAMPTZ -- soft deletion
 );
+
+-- important optimization for querying from IDs
+CREATE INDEX messages_group_id_idx
+ON user_messages (msg_group_id, id DESC);
+
+-- we can do the same with our muted users
+CREATE INDEX muted_users_muterid_userid_idx
+ON muted_users_table (muterid, userid);
 
 CREATE TABLE IF NOT EXISTS edited_messages (
     id SERIAL PRIMARY KEY,

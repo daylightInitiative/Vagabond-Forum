@@ -17,13 +17,16 @@
 
     <style>
         #messages-container {
+            
             flex-direction: row;
             overflow-y: auto;
         }
 
         #messages-frame {
+            display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 16px;
+            
 
             flex-grow: 1;
             width: 120vh;
@@ -124,22 +127,41 @@
             </form>
         </div>
         
-        
         {% if pageGroupID %}
             <script type="module">
                 import { easyfetch } from '/static/js/easyfetch.js';
+
+                let lastShownMessageId = 1;
 
                 // only call this once
                 async function get_message_data() {
 
                     const apiEndpoint = "/api/v1/messages/groups/{{pageGroupID}}/messages";
                     const queryParams = {
-                        page_offset: 1
+                        mid: lastShownMessageId
                     };
 
-                    const response = await easyfetch(apiEndpoint, {
-                        method: "GET"
-                    }, queryParams);
+                    // we have to use URL query parameters here because its a GET request
+
+                    let response = null;
+                    if (lastShownMessageId === 1) {
+                        // if we have no cursor, retrieve one
+                        response = await easyfetch(apiEndpoint, {
+                            method: "GET"
+                        });
+                    } else {
+                        response = await easyfetch(apiEndpoint, {
+                            method: "GET"
+                        }, queryParams);
+                    }
+
+                    if (!response || !response.ok) {
+                        console.error("Request failed:", response?.error);
+                        return;
+                    }
+
+                    // this way we are updating the lmid every message batch
+                    console.log("updated the last shown ID: ", lastShownMessageId);
 
                     return response;
                 }
@@ -147,35 +169,43 @@
                 async function send_message(action, message) {
                     
                     if (action && message) {
+                        console.log("sending message");
                         const response = await easyfetch(action, {
-                            method: "GET",
+                            method: "POST",
                             body: { contents: message }
-                        }, queryParams);
+                        });
 
                         if (!response.ok) {
                             console.error("Failure to send message: ", response.error);
                         }
+
+                        const message_data = response.data;
+                        if (message_data.length > 0) {
+                            lastShownMessageId = message_data[message_data.length - 1].id;
+                        }
+
+                        return response;
                     }
                 }
                 
                 
                 document.addEventListener("DOMContentLoaded", async (event) => {
                     // lets get the messages probably with some dummy values
-                    const message_data = await get_message_data();
+                    const message_request = await get_message_data();
+                    const message_data = message_request.data;
 
-                    if (!message_data.ok) {
-                        console.error("Failed to load messages:", message_data.error);
+                    if (!message_request || !message_request.ok) {
+                        console.error("Failed to load messages:", message_request.error);
                         return;
                     }
-                    console.log(message_data.data);
+                    console.log(message_data);
 
                     const msgs_frame = document.getElementById("messages-frame");
 
-                    for (const element of message_data.data) {
+                    for (const element of message_data) {
                         const container = document.createElement("div");
                         container.className = "message-container";
-                        //container.textContent = element.contents;
-                        msgs_frame.appendChild(container);
+                        msgs_frame.prepend(container);
 
                         // create the profile image and text
                         const profileImage = document.createElement("img");
@@ -193,11 +223,12 @@
                     const chatbox = document.getElementById("chat-box");
                     const chatform = document.getElementById("chat-form");
                     chatform.addEventListener("submit", async (e) => {
-                        
                         e.preventDefault();
 
-                        const response = await send_message(chatbox.action, chatform.value);
+                        const action = chatform.action, message = chatbox.value.trim();
+
                         chatbox.value = "";
+                        const response = await send_message(action, message);
                     });
                     chatbox.addEventListener("keydown", (e) => {
                         if (e.key == "Enter" && !e.shiftKey) {

@@ -27,7 +27,7 @@ class DBManager:
 
     # avoids redundant calls to .commit() and fetch
     # https://www.psycopg.org/docs/cursor.html cursor.description gives column objects containing the column names
-    def write(self, query_str, fetch=False, params=None):
+    def write(self, query_str, fetch=False, get_columns=False, params=None):
         """Executes a query on the db, then calls .commit()"""
         with self._get_connection() as conn:
             try:
@@ -40,6 +40,10 @@ class DBManager:
                     conn.commit()
                     if fetch:
                         results = cur.fetchall()
+                        if get_columns and cur.description:
+
+                            column_names = [col.name for col in cur.description]
+                            return results, column_names
                         return results
                 return DBStatus.SUCCESS
             except Exception as e:
