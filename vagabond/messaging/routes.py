@@ -10,7 +10,7 @@ from vagabond.sessions.module import (
 from vagabond.messaging import messaging_bp
 from vagabond.messaging.module import can_user_access_group, create_group, get_contacts_from_gids, get_groups_for_userid, is_user_in_group, is_user_message_owner
 from flask import abort, jsonify, request, redirect, url_for
-from vagabond.constants import MESSAGE_PAGE_LIMIT, ModerationAction, PostType, SuccessMessage, RouteError
+from vagabond.constants import MAX_CHAT_LENGTH, MESSAGE_PAGE_LIMIT, ModerationAction, PostType, SuccessMessage, RouteError
 from vagabond.services import dbmanager as db
 from vagabond.utility import deep_get, deep_get_as_type, get_group_owner, is_valid_userid, rows_to_dict
 import logging
@@ -221,7 +221,7 @@ def api_messages(group_id):
         msg_contents = data.get("contents")
         log.debug("created new message")
 
-        if not msg_contents:
+        if not msg_contents or len(msg_contents) > MAX_CHAT_LENGTH:
             return error_response(RouteError.INVALID_FORM_DATA, 422)
 
         msg_group_id = group_id

@@ -140,16 +140,8 @@
                     if (parts.length === 2) return parts.pop().split(';').shift();
                 }
 
-                var socket = io();
-                socket.on('connect', function() {
-                    console.log("websocket connected");
-                    socket.emit('message', {
-                        data: 'I\'m connected!'
-                    });
-                });
-
                 // only call this once
-                async function get_message_data() {
+                async function get_messages() {
 
                     const apiEndpoint = "/api/v1/messages/groups/{{pageGroupID}}/messages";
                     const queryParams = {
@@ -171,14 +163,24 @@
                     }
 
                     if (!response || !response.ok) {
-                        console.error("Request failed:", response?.error);
+                        console.error("Failed to load messages:", message_request.error);
                         return;
                     }
 
                     // this way we are updating the lmid every message batch
                     console.log("updated the last shown ID: ", lastShownMessageId);
 
-                    return response;
+                    const msgs_frame = document.getElementById("messages-frame");
+                    let children = msgs_frame.children;
+
+                    for (let c of children) {
+                        msgs_frame.removeChild(c);
+                    }
+
+                    const message_data = response.data;
+                    for (const element of message_data) {
+                        createMessage(element.contents, "past", element.author);
+                    }
                 }
 
                 async function send_message(action, message) {
@@ -198,9 +200,12 @@
                         lastShownMessageId = message_data.id;
                         // whenever we send or recv (through websocket) we want to update the lastShownMessageId
                         console.log("Current ID: ", lastShownMessageId);
-                        console.log(message_data.data);
+                        console.log(message_data);
 
                         createMessage(message, "new", message_data.author);
+                        socket.emit('new_message', {
+                            groupID: '{{pageGroupID}}'
+                        });
 
                         return response;
                     }
@@ -240,23 +245,22 @@
                     container.appendChild(messageText);
                 }
                 
+                var socket = io();
+                socket.on('connect', function() {
+                    console.log("websocket connected");
+                    socket.emit('join', {
+                        groupID: '{{pageGroupID}}'
+                    });
+                });
+
+                socket.on('new_message', async function() {
+                    console.log("received a update notifcation");
+                    get_messages();
+                });
                 
                 document.addEventListener("DOMContentLoaded", async (event) => {
                     // lets get the messages probably with some dummy values
-                    const message_request = await get_message_data();
-                    const message_data = message_request.data;
-
-                    if (!message_request || !message_request.ok) {
-                        console.error("Failed to load messages:", message_request.error);
-                        return;
-                    }
-                    console.log(message_data);
-
-                    
-
-                    for (const element of message_data) {
-                        createMessage(element.contents, "new", element.author);
-                    }
+                    get_messages();
 
                     // lets setup the chatbox
                     const chatbox = document.getElementById("chat-box");
