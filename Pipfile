@@ -14,6 +14,7 @@ flask-moment = "*"
 pillow = "*"
 flask-cors = "*"
 flask-wtf = "*"
+flask-socketio = "*"
 
 [dev-packages]
 

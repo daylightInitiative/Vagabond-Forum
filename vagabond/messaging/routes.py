@@ -210,8 +210,8 @@ def api_messages(group_id):
 
             paginated_messages_dict = rows_to_dict(get_rows, get_cols)
 
-            log.debug(paginated_messages_dict)
-            log.debug(len(paginated_messages_dict))
+            #log.debug(paginated_messages_dict)
+            #log.debug(len(paginated_messages_dict))
             return jsonify(paginated_messages_dict)
 
     elif request.method == "POST":

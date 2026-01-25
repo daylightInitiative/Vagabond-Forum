@@ -126,12 +126,27 @@
                 <textarea class="chat-box" name="contents" id="chat-box"></textarea>
             </form>
         </div>
-        
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
         {% if pageGroupID %}
             <script type="module">
                 import { easyfetch } from '/static/js/easyfetch.js';
 
                 let lastShownMessageId = 1;
+
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) return parts.pop().split(';').shift();
+                }
+
+                var socket = io();
+                socket.on('connect', function() {
+                    console.log("websocket connected");
+                    socket.emit('message', {
+                        data: 'I\'m connected!'
+                    });
+                });
 
                 // only call this once
                 async function get_message_data() {
@@ -180,12 +195,49 @@
                         }
 
                         const message_data = response.data;
-                        if (message_data.length > 0) {
-                            lastShownMessageId = message_data[message_data.length - 1].id;
-                        }
+                        lastShownMessageId = message_data.id;
+                        // whenever we send or recv (through websocket) we want to update the lastShownMessageId
+                        console.log("Current ID: ", lastShownMessageId);
+                        console.log(message_data.data);
+
+                        createMessage(message, "new", message_data.author);
 
                         return response;
                     }
+                }
+
+                function createMessage(text, type, authorID) {
+                    if (!text || !authorID) {
+                        console.error("createMessage: Invalid arguments supplied");
+                        return;
+                    }
+
+                    const msgs_frame = document.getElementById("messages-frame");
+                    const container = document.createElement("div");
+                    container.className = "message-container";
+
+                    let isScrolledToBottom = msgs_frame.scrollHeight - msgs_frame.clientHeight <= msgs_frame.scrollTop + 15;
+                    if (isScrolledToBottom) {
+                        msgs_frame.scrollTop = msgs_frame.scrollHeight;
+                    }
+
+                    if (type === "past") {
+                        msgs_frame.prepend(container);
+                    } else if (type === "new") {
+                        msgs_frame.appendChild(container);
+                    }
+
+                    // when we load messages from further up we should prepend otherwise, append
+                    // create the profile image and text
+                    const profileImage = document.createElement("img");
+                    profileImage.className = "message-container";
+                    profileImage.src = `/api/v1/avatars/users/${authorID}`;
+                    container.appendChild(profileImage);
+
+                    const messageText = document.createElement("p");
+                    messageText.textContent = text;
+                    messageText.className = "message-container";
+                    container.appendChild(messageText);
                 }
                 
                 
@@ -200,23 +252,10 @@
                     }
                     console.log(message_data);
 
-                    const msgs_frame = document.getElementById("messages-frame");
+                    
 
                     for (const element of message_data) {
-                        const container = document.createElement("div");
-                        container.className = "message-container";
-                        msgs_frame.prepend(container);
-
-                        // create the profile image and text
-                        const profileImage = document.createElement("img");
-                        profileImage.className = "message-container";
-                        profileImage.src = `/api/v1/avatars/users/${element.author}`;
-                        container.appendChild(profileImage);
-
-                        const messageText = document.createElement("p");
-                        messageText.textContent = element.contents;
-                        messageText.className = "message-container";
-                        container.appendChild(messageText);
+                        createMessage(element.contents, "new", element.author);
                     }
 
                     // lets setup the chatbox

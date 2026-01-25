@@ -1,4 +1,5 @@
 
+import asyncio
 import logging
 import os
 
@@ -197,9 +198,13 @@ def index():
 def serve_static(filename):
     return send_from_directory('static', filename)
 
+from vagabond.services import socketio
+import vagabond.websockets # make sure to setup the handlers
+
 if __name__ == '__main__':
 
     host = app_config.flask_config.get("host")
     lport = app_config.flask_config.get("post")
 
-    app.run(debug=True, host=host, port=lport, extra_files=included_reload_files)
+    #app.run(debug=True, host=host, port=lport, extra_files=included_reload_files)
+    socketio.run(app, debug=True, host=host, port=lport, extra_files=included_reload_files)

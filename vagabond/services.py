@@ -5,9 +5,12 @@ from flask_limiter import Limiter
 from flask import current_app as app # flask stores the global app as current_app automatically
 from flask_limiter.util import get_remote_address
 from flask_moment import Moment
+from flask_socketio import SocketIO
 
 # intstantiate all of our service objects here (to avoid mass passing into functions)
 moment = Moment() # flask_moment does the fluff of handling local timezones.
+socketio = SocketIO() # handles web sockets with flask routes
+# socketio = SocketIO(logger=True, engineio_logger=True)
 
 limiter = Limiter(
     get_remote_address,
@@ -20,5 +23,6 @@ dbmanager = DBManager(app_config)
 
 # init_app is a function all flask extensions have, to keep this approach we call it directly to avoid creating instances in main
 def init_extensions(app):
+    socketio.init_app(app)
     moment.init_app(app)
     limiter.init_app(app)
