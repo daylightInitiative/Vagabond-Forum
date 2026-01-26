@@ -162,6 +162,37 @@ def api_messages(group_id):
     if request.method == "GET":
 
         last_message_id = request.args.get("mid")
+        before_query = request.args.get("before")
+
+        if last_message_id and before_query:
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
+
+        if before_query:
+            if not before_query.isdigit():
+                return error_response(RouteError.INVALID_FORM_DATA, 422)
+
+            #((int(page_offset) - 1) * MESSAGE_PAGE_LIMIT), # note to frontend: starts at index 1
+
+            param_dict = {
+                "message_page_limit": MESSAGE_PAGE_LIMIT,
+                "message_group_id": group_id,
+                "before_message_id": before_query,
+                "requester_id": userID
+            }
+            get_rows, get_cols = db.read(query_str="""
+                SELECT *
+                FROM user_messages
+                WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM muted_users_table mu WHERE mu.muterid = %(requester_id)s AND mu.userid = author)
+                    AND id < %(before_message_id)s
+                ORDER BY id DESC
+                LIMIT %(message_page_limit)s
+            """, get_columns=True, params=param_dict)
+
+            paginated_messages_dict = rows_to_dict(get_rows, get_cols)
+
+            log.debug(paginated_messages_dict)
+            log.debug(len(paginated_messages_dict))
+            return jsonify(paginated_messages_dict)
 
         # get x batch of messages before the last mid
         if last_message_id:
@@ -181,7 +212,7 @@ def api_messages(group_id):
                 SELECT *
                 FROM user_messages
                 WHERE msg_group_id = %(message_group_id)s AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM muted_users_table mu WHERE mu.muterid = %(requester_id)s AND mu.userid = author)
-                    AND id < %(last_message_id)s
+                    AND id > %(last_message_id)s
                 ORDER BY id DESC
                 LIMIT %(message_page_limit)s
             """, get_columns=True, params=param_dict)

@@ -7,14 +7,6 @@
     <!-- making this on a seperate page temporarily so its not only portable
      but easier than the hell of the users page of complexity -->
 
-    <p>Welcome to the chat page
-
-        In order for someone to chat, they should probably
-        1. be able to create a group chat with someone else
-        2. be able to submit a message to that group chat
-        3. display the group chat to all people in the group
-    </p>
-
     <style>
         #messages-container {
             
@@ -131,8 +123,15 @@
         {% if pageGroupID %}
             <script type="module">
                 import { easyfetch } from '/static/js/easyfetch.js';
+                const apiEndpoint = "/api/v1/messages/groups/{{pageGroupID}}/messages";
 
-                let lastShownMessageId = 1;
+                const renderedMessageIds = new Set();
+                // if we keep all the already rendered IDs in a set
+                let newestMessageId = null;
+                let oldestMessageId = null;
+                
+                let loadingMessages = false;
+                let initialLoad = true;
 
                 function getCookie(name) {
                     const value = `; ${document.cookie}`;
@@ -140,18 +139,47 @@
                     if (parts.length === 2) return parts.pop().split(';').shift();
                 }
 
+                async function loadOlderMessages() {
+                    if (!oldestMessageId || loadingMessages) return;
+                    loadingMessages = true;
+
+                    const response = await easyfetch(apiEndpoint, {
+                        method: "GET"
+                    }, {
+                        before: oldestMessageId
+                    });
+
+                    if (!response.ok || response.data.length === 0) return;
+                    const msgs_frame = document.getElementById("messages-frame");
+
+                    // preserve scroll position
+                    const previousScrollHeight = msgs_frame.scrollHeight;
+
+                    for (const element of response.data) {
+                        createMessage(
+                            element.contents,
+                            "past",
+                            element.author,
+                            element.id
+                        );
+                    }
+
+                    oldestMessageId = response.data[0].id;
+                    msgs_frame.scrollTop += msgs_frame.scrollHeight - previousScrollHeight;
+                    loadingMessages = false;
+                }
+
                 // only call this once
                 async function get_messages() {
 
-                    const apiEndpoint = "/api/v1/messages/groups/{{pageGroupID}}/messages";
                     const queryParams = {
-                        mid: lastShownMessageId
+                        mid: newestMessageId
                     };
 
                     // we have to use URL query parameters here because its a GET request
 
                     let response = null;
-                    if (lastShownMessageId === 1) {
+                    if (newestMessageId === null) {
                         // if we have no cursor, retrieve one
                         response = await easyfetch(apiEndpoint, {
                             method: "GET"
@@ -163,24 +191,34 @@
                     }
 
                     if (!response || !response.ok) {
-                        console.error("Failed to load messages:", message_request.error);
+                        console.error("Failed to load messages:", response.error);
                         return;
                     }
 
                     // this way we are updating the lmid every message batch
-                    console.log("updated the last shown ID: ", lastShownMessageId);
+                    console.log("updated the last shown ID: ", newestMessageId);
 
                     const msgs_frame = document.getElementById("messages-frame");
-                    let children = msgs_frame.children;
-
-                    for (let c of children) {
-                        msgs_frame.removeChild(c);
-                    }
 
                     const message_data = response.data;
                     for (const element of message_data) {
-                        createMessage(element.contents, "past", element.author);
+                        createMessage(element.contents, initialLoad ? "past" : "new", element.author, element.id);
                     }
+
+                    if (message_data.length > 0) {
+                        if (newestMessageId === null) {
+                            msgs_frame.scrollTop = msgs_frame.scrollHeight;
+                            newestMessageId = message_data[0].id;
+                        } else {
+                            newestMessageId = Math.max(newestMessageId, message_data[0].id);
+                        }
+
+                        if (oldestMessageId === null) {
+                            oldestMessageId = message_data[message_data.length - 1].id;
+                        }
+                    }
+
+                    initialLoad = false;
                 }
 
                 async function send_message(action, message) {
@@ -197,32 +235,31 @@
                         }
 
                         const message_data = response.data;
-                        lastShownMessageId = message_data.id;
-                        // whenever we send or recv (through websocket) we want to update the lastShownMessageId
-                        console.log("Current ID: ", lastShownMessageId);
-                        console.log(message_data);
+                        // whenever we send or recv (through websocket) we want to update the lastShownMessageID
 
-                        createMessage(message, "new", message_data.author);
+                        createMessage(message, "new", message_data.author, message_data.id);
                         socket.emit('new_message', {
                             groupID: '{{pageGroupID}}'
                         });
+
+                        console.log("Current ID: ", newestMessageId);
 
                         return response;
                     }
                 }
 
-                function createMessage(text, type, authorID) {
-                    if (!text || !authorID) {
-                        console.error("createMessage: Invalid arguments supplied");
-                        return;
-                    }
+                function createMessage(text, type, authorID, messageID) {
+                    if (!text || !authorID || !messageID) return;
+
+                    if (renderedMessageIds.has(messageID)) return;
+                    renderedMessageIds.add(messageID);
 
                     const msgs_frame = document.getElementById("messages-frame");
                     const container = document.createElement("div");
                     container.className = "message-container";
 
                     let isScrolledToBottom = msgs_frame.scrollHeight - msgs_frame.clientHeight <= msgs_frame.scrollTop + 15;
-                    if (isScrolledToBottom) {
+                    if (type === "new" && shouldStickToBottom) {
                         msgs_frame.scrollTop = msgs_frame.scrollHeight;
                     }
 
@@ -257,10 +294,23 @@
                     console.log("received a update notifcation");
                     get_messages();
                 });
+
+                window.addEventListener("beforeunload", () => {
+                    if (socket && socket.connected) {
+                        socket.disconnect();
+                    }
+                });
                 
                 document.addEventListener("DOMContentLoaded", async (event) => {
                     // lets get the messages probably with some dummy values
                     get_messages();
+
+                    const msgs_frame = document.getElementById("messages-frame");
+                    msgs_frame.addEventListener("scroll", () => {
+                        if (msgs_frame.scrollTop === 0) {
+                            loadOlderMessages();
+                        }
+                    });
 
                     // lets setup the chatbox
                     const chatbox = document.getElementById("chat-box");
