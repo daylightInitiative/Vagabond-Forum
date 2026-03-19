@@ -16,15 +16,9 @@ async function display_status_msg(element, text) {
 async function sign_out_of_all_other_sessions() {
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const response = await fetch('/invalidate_other_sessions', {
-            method: "POST",
-            body: JSON.stringify({
-            }),
-            headers: {
-                "Content-type": "application/json; charset=UTF-8",
-                "X-CSRFToken": csrfToken
-            }
-        })
+        const response = await easyfetch('/invalidate_other_sessions', {
+            method: "POST"
+        });
 
         if (!response.ok) {
             display_status_msg(status, "Error: There was an error signing out other sessions");

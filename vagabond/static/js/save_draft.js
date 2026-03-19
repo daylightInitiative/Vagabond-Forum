@@ -5,11 +5,13 @@ let old_content = "";
 async function get_saved_draft() {
     try {
 
-        const response = await fetch("/save_draft");
+        const response = await easyfetch("/save_draft", {
+            method: "GET"
+        });
         if(!response.ok) {
             throw new Error(`Reponse status: ${response.status}`);
         }
-        const data = await response.json();
+        const data = response.data;
 
         // get the "contents" from the returned json
         console.log("received data from the server!");
@@ -31,17 +33,12 @@ async function save_draft() {
         if((old_content === current_contents) || current_contents === "") {
             return; // um dont send a request when nothing has changed
         }
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const response = await fetch('/save_draft', {
+        const response = await easyfetch('/save_draft', {
             method: "POST",
-            headers: {
-                "Content-type": "application/json; charset=UTF-8",
-                "X-CSRFToken": csrfToken
-            },
-            body: JSON.stringify({
-                "contents": current_contents
-            })
-        })
+            body: {
+                contents: current_contents
+            }
+        });
 
         if (!response.ok) {
             throw new Error(`Reponse status: ${response.status}`);

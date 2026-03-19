@@ -25,6 +25,10 @@ def setup_session():
     if not sid:
         return error_response(RouteError.INVALID_FORM_DATA, 422)
     
+    # if the cookie already exists no sense in making a new one.
+    if request.cookies.get("sessionID") != None:
+        return error_response(RouteError.INVALID_SESSION, 401)
+
     if not is_valid_session(sessionID=sid):
         return error_response(RouteError.INVALID_SESSION, 401)
 

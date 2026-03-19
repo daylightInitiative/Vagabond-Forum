@@ -1,21 +1,16 @@
+import { easyfetch } from '/static/js/easyfetch.js';
 
 async function send_exit_page_analytics() {
     try {
 
         const url = window.location.pathname;
         // in an ideal world, we would want to contact an analytics subdomain or microservice, but we're poor so...
-        // and adding this would be the equilvilant of google analytics
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const response = await fetch('/analytics', {
+        const response = await easyfetch('/analytics', {
             method: "POST",
-            headers: {
-                "Content-type": "application/json; charset=UTF-8",
-                "X-CSRFToken": csrfToken
-            },
-            body: JSON.stringify({
-                "exitpage": url
-            })
-        })
+            body: {
+                exitpage: url
+            }
+        });
 
         if (!response.ok) {
             console.log(status, "Error: There was an error sending analytics");

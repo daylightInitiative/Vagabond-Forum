@@ -27,9 +27,8 @@ for file in SQL_FOLDER.iterdir():
     if 'sql' in file.suffix:
         included_reload_files.append(file.absolute())
 
-password_alphabet = string.ascii_letters + string.digits + '#*?'
-
 def generate_random_password(length: int) -> str:
+    password_alphabet = string.ascii_letters + string.digits + '#*?'
     return ''.join(secrets.choice(password_alphabet) for i in range(length))
 
 """

@@ -20,7 +20,7 @@ def connect_event(auth):
     if not sid and is_valid_session(sessionID=sid):
         raise ConnectionRefusedError('Unauthorized: Invalid SessionID')
     log.warning("websocket auth validated")
-    emit('my response', {'data': 'Connected'})
+    # emit('my response', {'data': 'Connected'})
     
 
 @socketio.on('disconnect')

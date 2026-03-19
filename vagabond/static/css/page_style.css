@@ -10,6 +10,10 @@ table {
   color: #dadada;
 }
 
+a {
+  color: #dadada;
+}
+
 th,
 td {
   border: 1px solid #424242; /* inner column and row borders */
@@ -29,4 +33,9 @@ td a:hover {
 body {
   text-align: center;
   color: #161616;
+  /* background-color: var(--bg-color); */
+}
+
+footer {
+  background-color: var(--bg-color);
 }

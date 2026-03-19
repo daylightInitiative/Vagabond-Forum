@@ -104,15 +104,33 @@
                     window.location.reload();
                 }
 
+                function convertToNumber(inputString) {
+                    const numberValue = Number(inputString);
+
+                    if (isNaN(numberValue)) {
+                        console.error(`Error: "${inputString}" is not a valid integer`);
+                        return null;
+                    } else {
+                        return numberValue;
+                    }
+                }
+
                 // Must include a DOMContentLoaded if accessing the csrf token, as it is not always immediately available
                 document.addEventListener('DOMContentLoaded', function () {
 
                     const message_button = document.getElementById('messageUserButton');
                     message_button.addEventListener('click', function () {
                         //window.location.href = "{{ url_for('messaging.serve_chat_home') }}";
-                        createMessageGroup([2, 4]);
-                        createMessageGroup([1, 4]);
-                        createMessageGroup([3, 4]);
+                        let user_userid = convertToNumber("{{ current_userid }}");
+                        let page_userid = convertToNumber("{{ userinfo.id }}");
+
+                        if (user_userid != null && page_userid != null) {
+                            createMessageGroup([user_userid, page_userid])
+                        }
+
+                        // createMessageGroup([2, 4]);
+                        // createMessageGroup([1, 4]);
+                        // createMessageGroup([3, 4]);
                     });
 
                     // mute button toggling
