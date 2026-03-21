@@ -17,27 +17,6 @@ def get_new_csrf_token():
         return jsonify({"csrf_token": get_csrf_token()})
     abort(403)
 
-# needed to seperate the admission of a cookie to a seperate request, because it interferes with the strict cookie policy
-@session_bp.route("/setup_session", methods=["GET"])
-@csrf_exempt
-def setup_session():
-    sid = request.args.get("sid")
-    if not sid:
-        return error_response(RouteError.INVALID_FORM_DATA, 422)
-    
-    # if the cookie already exists no sense in making a new one.
-    if request.cookies.get("sessionID") != None:
-        return error_response(RouteError.INVALID_SESSION, 401)
-
-    if not is_valid_session(sessionID=sid):
-        return error_response(RouteError.INVALID_SESSION, 401)
-
-    response = make_response(redirect(url_for("index")))
-    response.set_cookie("sessionID", value=sid, max_age=7200, samesite="Strict")
-
-    return response
-
-
 @session_bp.route("/invalidate_other_sessions", methods=["POST"])
 def sign_out_other_sessions():
     abort_if_not_signed_in()

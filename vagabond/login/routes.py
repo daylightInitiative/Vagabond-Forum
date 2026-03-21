@@ -1,6 +1,7 @@
 from vagabond.constants import RouteError
 from vagabond.email import confirm_2FA_code, generate_2FA_code, generate_token, is_2fa_enabled, send_2auth_login_code, send_2fa_code, send_signup_code
 from vagabond.sessions.module import (
+    is_valid_session,
     redirect_if_already_logged_in,
     create_session, invalidate_session,
     get_session_id, get_fingerprint,
@@ -37,6 +38,12 @@ def serve_login():
         if not email or not password:
             return error_response(RouteError.INVALID_FORM_DATA, 422)
         
+        # we need to check the edge case and prevent multiple sessions from being duplicated with this system
+        existing_sid = request.cookies.get("sessionID")
+        if existing_sid != None and is_valid_session(sessionID=existing_sid):
+            log.debug("Existing valid sessionID cookie found, ommiting this login attempt")
+            return error_response(RouteError.INVALID_SESSION, 401)
+        
         is_authenticated, errmsg = is_valid_login(email=email, password=password)
         
         if is_authenticated:
@@ -64,11 +71,18 @@ def serve_login():
             sid = create_session(userid=userid, request_obj=request)
             # create the session, but dont give them the cookie yet
 
-            if not sid:
+            if not sid or not is_valid_session(sessionID=sid):
                 return custom_render_template("login.html", errmsg="Internal server error: Unable to acquire session ID")
 
-            auth_response = redirect(url_for('session.setup_session', sid=sid))
+            # instead of redirecting we should just do it here without exposing the uninitialized sid to other domains
+
+            auth_response = make_response(redirect(url_for("index")))
+            auth_response.set_cookie("sessionID", value=sid, max_age=7200, samesite="Strict")
+
             return auth_response
+
+            # auth_response = redirect(url_for('session.setup_session', sid=sid))
+            # return auth_response
         else:
             return custom_render_template("login.html", errormsg=errmsg)
 

@@ -1,35 +1,121 @@
 {% extends "base.html" %}
 
 {% block content %}
-    
-    <div style="width: 250px; align-self: center; padding: 25px;">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" required>
-        <br><br>
-        <button id="lookup_username" class="btn btn-primary" type="button">Lookup</button>
-    </div>
-    <div id="admin-panel" style="display: none; width: 250px; align-self: center; padding: 25px;">
-        <img id="profile-picture" style="width: 200px; height: 200px;" src="">
-        <div id="profile-info"></div>
-        <br><br>
-        <button id="ban_button" class="btn btn-primary" type="button">Ban</button>
-        <button id="unban_button" class="btn btn-primary" type="button">Unban</button>
-        <button id="hellban_button" class="btn btn-primary" type="button">Hellban</button>
-        <br><br>
-        <select id="roleselect" class="form-select">
-            <option value="user">User</option>
-            <option value="moderator">Moderator</option>
-            <option value="admin">Admin</option>
-        </select>
-        <br>
-        <button id="change_role_button" class="btn btn-primary" type="button">Change</button>
-    </div>
+
+    <table class="unstyledTable">
+    <thead>
+    <tr>
+    <th>Id</th>
+    <th>Username</th>
+    <th>Email</th>
+    <th>Permission Level</th>
+    <th>Account Locked</th>
+    <th>Join Date</th>
+    <th>Last Login</th>
+    <th>2FA Status</th>
+    <th>Moderation Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+        {% if user_table %}
+        
+            {% for user in user_table %}
+                <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.user_role }}</td>
+                <td>{{ user.account_locked }}</td>
+                <td>{{ user.join_date }}</td>
+                <td>{{ user.lastseen }}</td>
+                <td>{{ user.is_2fa_enabled }}</td>
+                <td style="display: inline-block;">
+                    <select style="width: fit-content;" id="roleselect" class="form-select">
+                        <option value="user">User</option>
+                        <option value="moderator">Moderator</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button id="ban_button" class="btn btn-primary" type="button">Ban</button>
+                    <button id="unban_button" class="btn btn-primary" type="button">Unban</button>
+                    <button id="hellban_button" class="btn btn-primary" type="button">Hellban</button>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+    </table>
+
+    <!-- so to do this we're going to feed information from the api endpoint to here via dictionary
+    -->
+    <!--
+    <p>This is a test</p>
+    <table class="unstyledTable">
+    <thead>
+    <tr>
+    <th>Id</th>
+    <th>Username</th>
+    <th>Email</th>
+    <th>Permission Level</th>
+    <th>Account Status</th>
+    <th>Join Date</th>
+    <th>Last Login</th>
+    <th>2FA Status</th>
+    <th>Moderation Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>cell1_1</td>
+    <td>cell2_1</td>
+    <td>cell3_1</td>
+    <td>cell4_1</td>
+    <td>cell5_1e</td>
+    <td>cell6_1e</td>
+    <td>cell7_1</td>
+    <td>cell8_e1</td>
+    <td><button>eeee</button></td>
+    </tr>
+    <tr>
+    <td>cell1_2</td>
+    <td>cell2_2</td>
+    <td>cell3_2</td>
+    <td>cell4_2</td>
+    <td>cell5_2</td>
+    <td>cell6_2</td>
+    <td>cell7_2</td>
+    <td>cell8_2</td>
+    <td>cell9_2</td>
+    </tr>
+    <tr>
+    <td>cell1_3</td>
+    <td>cell2_3</td>
+    <td>cell3_3</td>
+    <td>cell4_3</td>
+    <td>cell5_3</td>
+    <td>cell6_3</td>
+    <td>cell7_3</td>
+    <td>cell8_3</td>
+    <td>cell9_3</td>
+    </tr>
+    <tr>
+    <td>cell1_4</td>
+    <td>cell2_4</td>
+    <td>cell3_4</td>
+    <td>cell4_4</td>
+    <td>cell5_4</td>
+    <td>cell6_4</td>
+    <td>cell7_4</td>
+    <td>cell8_4</td>
+    <td>cell9_4</td>
+    </tr>
+    </tbody>
+    </table>
+     -->
 
     <script type="module">
         import { easyfetch } from '/static/js/easyfetch.js';
 
         async function onSubmitUsername(username) {
-            const profile_info = document.getElementById('profile-info');
+            // const profile_info = document.getElementById('profile-info');
 
             const response = await easyfetch('/admin', {
                 method: "POST",
@@ -41,41 +127,41 @@
 
             if (!response.ok) {
                 console.log(response.error);
-                admin_panel.style.display = 'none';
+                // admin_panel.style.display = 'none';
                 return;
             }
 
-            profile_info.querySelectorAll("p").forEach(element => {
-                element.remove();
-            });
+            // profile_info.querySelectorAll("p").forEach(element => {
+            //     element.remove();
+            // });
 
             const userinfo = response.data;
 
             console.log(userinfo);
-            const profile_picture = document.getElementById('profile-picture');
+            //const profile_picture = document.getElementById('profile-picture');
 
-            if (userinfo.avatar_hash && profile_picture) {
-                profile_picture.src = userinfo.avatar_hash;
-            }
+            // if (userinfo.avatar_hash && profile_picture) {
+            //     profile_picture.src = userinfo.avatar_hash;
+            // }
 
-            const admin_panel = document.getElementById('admin-panel');
-            admin_panel.style.display = 'block';
+            // const admin_panel = document.getElementById('admin-panel');
+            // admin_panel.style.display = 'block';
 
-            const display_dict = {
-                "Username": username,
-                "UserID": userinfo.user_id,
-                "Account Locked": userinfo.account_locked,
-                "Permission Level": userinfo.user_role,
-                "Joined": userinfo.join_date,
-                "Last Seen": userinfo.lastseen,
-                "Is Online": userinfo.is_online
-            };
+            // const display_dict = {
+            //     "Username": username,
+            //     "UserID": userinfo.user_id,
+            //     "Account Locked": userinfo.account_locked,
+            //     "Permission Level": userinfo.user_role,
+            //     "Joined": userinfo.join_date,
+            //     "Last Seen": userinfo.lastseen,
+            //     "Is Online": userinfo.is_online
+            // };
 
-            Object.keys(display_dict).forEach(key => {
-                let new_text = document.createElement("p");
-                new_text.textContent = `${key}: ` + display_dict[key];
-                profile_info.appendChild(new_text);
-            });
+            // Object.keys(display_dict).forEach(key => {
+            //     let new_text = document.createElement("p");
+            //     new_text.textContent = `${key}: ` + display_dict[key];
+            //     profile_info.appendChild(new_text);
+            // });
         }
 
         async function onSendAction(username, actionName, extraInfo = {}) {
@@ -100,24 +186,24 @@
 
         document.addEventListener("DOMContentLoaded", (event) => {
 
-            const username = document.getElementById('username');
-            const display_username = document.getElementById('username-display');
-            const submit_username = document.getElementById('lookup_username');
+            // const username = document.getElementById('username');
+            // const display_username = document.getElementById('username-display');
+            // const submit_username = document.getElementById('lookup_username');
 
-            submit_username.addEventListener('click', () => onSubmitUsername(username.value));
+            // submit_username.addEventListener('click', () => onSubmitUsername(username.value));
 
             const ban_button = document.getElementById('ban_button');
             const unban_button = document.getElementById('unban_button');
             const hellban_button = document.getElementById('hellban_button');
-            const change_role_button = document.getElementById('change_role_button');
+            // const change_role_button = document.getElementById('change_role_button');
 
             ban_button.addEventListener('click', () => onSendAction(username.value, "ban"));
             unban_button.addEventListener('click', () => onSendAction(username.value, "unban"));
 
             hellban_button.addEventListener('click', () => onSendAction(username.value, "shadowban"));
-            change_role_button.addEventListener('click', () => onSendAction(username.value, "changerole", {
-                new_user_role: document.getElementById('roleselect').value
-            }));
+            // change_role_button.addEventListener('click', () => onSendAction(username.value, "changerole", {
+            //     new_user_role: document.getElementById('roleselect').value
+            // }));
 
 
             // const response = await easyfetch('/api/data', {

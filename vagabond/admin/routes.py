@@ -10,7 +10,7 @@ from vagabond.admin import admin_bp
 from vagabond.services import dbmanager as db, limiter
 import logging
 
-from vagabond.utility import contains_dict_or_error, get_user_info, get_userid_from_username, get_username_from_userid, is_valid_userid
+from vagabond.utility import contains_dict_or_error, get_user_info, get_userid_from_username, get_username_from_userid, is_valid_userid, rows_to_dict
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ def create_ticket():
 
     return success_response(SuccessMessage.CREATED_TICKET )
 
+# for now we are going to develop out the list layout and then divide each section of the admin panel into web dirs
 @admin_bp.route("/admin", methods=['GET', 'POST'])
 @requires_permission([Perms.ADMIN, Perms.MODERATOR])
 def serve_admin_panel():
@@ -54,7 +55,23 @@ def serve_admin_panel():
         return error_response(RouteError.INVALID_USER_ID, 422)
     
     if request.method == "GET":
-        return render_template("admin_panel.html")
+
+        page_offset = request.args.get("p", "0")
+
+        if not page_offset:
+            return error_response(RouteError.INVALID_PAGE_ID, 422)
+        
+        rows, cols = db.read(query_str="""
+            SELECT id, username, email, user_role, join_date, lastSeen, is_2fa_enabled, account_locked
+            FROM users
+            LIMIT 10
+            OFFSET %s
+        """, get_columns=True, params=(page_offset))
+
+        info_dict = rows_to_dict(rows=rows, columns=cols)
+        log.debug(info_dict)
+
+        return render_template("admin_panel.html", user_table=info_dict)
     elif request.method == "POST":
         data = request.get_json()
         

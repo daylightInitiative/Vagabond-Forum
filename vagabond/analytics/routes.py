@@ -11,7 +11,7 @@ import logging
 log = logging.getLogger(__name__)
 
 @analytics_bp.route('/get_analytics_data', methods=['GET'])
-@requires_permission([Perms.ADMIN, Perms.MODERATOR])
+@requires_permission([Perms.ADMIN])
 def send_analytics_data():
     if request.method == "GET":
         abort_if_not_signed_in()
@@ -69,8 +69,9 @@ def acquiesce_exitpage():
         # for right now before we get more "advanced" analytics
         # we're just going to track if the user is_online or not.
         analytics_data = request.get_json()
-
         exit_page_path = analytics_data.get("exitpage")
+
+
 
         # save exit page data
         db.write(query_str="""
