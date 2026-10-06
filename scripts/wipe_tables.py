@@ -24,20 +24,19 @@ db = DBManager(app_config)
 # this is idiot safe (the tables only create if they IF NOT EXISTS)
 # just used in development
 
-if __name__ == '__main__':
-    db_version = db.write(query_str=SHOW_SERVER_VERSION, fetch=True)
-    print("Running: ", db_version[0][0])
-    confirm = input("Are you sure you want to wipe all tables in the db (development purposes only): (y/yes)").lower()
+db_version = db.write(query_str=SHOW_SERVER_VERSION, fetch=True)
+print("Running: ", db_version[0][0])
+confirm = input("Are you sure you want to wipe all tables in the db (development purposes only): (y/yes)").lower()
 
-    if confirm == "y" or confirm == "yes":
-        db.write(query_str="""
-                DO $$ 
-            DECLARE 
-                r RECORD;
-            BEGIN 
-                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-                END LOOP; 
-            END $$;
-        """)
-        print("Wiped all needed tables")
+if confirm == "y" or confirm == "yes":
+    db.write(query_str="""
+            DO $$ 
+        DECLARE 
+            r RECORD;
+        BEGIN 
+            FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+            END LOOP; 
+        END $$;
+    """)
+    print("Wiped all needed tables")

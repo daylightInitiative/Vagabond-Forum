@@ -57,16 +57,22 @@ def serve_admin_panel():
     if request.method == "GET":
 
         page_offset = request.args.get("p", "0")
+        last_lid = request.args.get("lid", "0")
 
         if not page_offset:
             return error_response(RouteError.INVALID_PAGE_ID, 422)
         
+        if not last_lid:
+            return error_response(RouteError.INVALID_FORM_DATA, 422)
+        
         rows, cols = db.read(query_str="""
             SELECT id, username, email, user_role, join_date, lastSeen, is_2fa_enabled, account_locked
             FROM users
+            WHERE id > %s
+            ORDER BY id
             LIMIT 10
             OFFSET %s
-        """, get_columns=True, params=(page_offset))
+        """, get_columns=True, params=(last_lid, page_offset))
 
         info_dict = rows_to_dict(rows=rows, columns=cols)
         log.debug(info_dict)

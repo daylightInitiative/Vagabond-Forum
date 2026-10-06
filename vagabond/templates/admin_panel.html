@@ -2,42 +2,38 @@
 
 {% block content %}
 
-    <table class="unstyledTable">
+    <table id="users-table">
     <thead>
-    <tr>
-    <th>Id</th>
-    <th>Username</th>
-    <th>Email</th>
-    <th>Permission Level</th>
-    <th>Account Locked</th>
-    <th>Join Date</th>
-    <th>Last Login</th>
-    <th>2FA Status</th>
-    <th>Moderation Actions</th>
-    </tr>
+        <tr>
+            <th>Id</th><th>Username</th><th>Email</th><th>Permission Level</th>
+            <th>Account Locked</th><th>Join Date</th><th>Last Login</th><th>2FA Status</th>
+            <th>Moderation Actions</th>
+        </tr>
     </thead>
     <tbody>
         {% if user_table %}
-        
             {% for user in user_table %}
                 <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.username }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.user_role }}</td>
-                <td>{{ user.account_locked }}</td>
-                <td>{{ user.join_date }}</td>
-                <td>{{ user.lastseen }}</td>
-                <td>{{ user.is_2fa_enabled }}</td>
-                <td style="display: inline-block;">
-                    <select style="width: fit-content;" id="roleselect" class="form-select">
-                        <option value="user">User</option>
-                        <option value="moderator">Moderator</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                    <button id="ban_button" class="btn btn-primary" type="button">Ban</button>
-                    <button id="unban_button" class="btn btn-primary" type="button">Unban</button>
-                    <button id="hellban_button" class="btn btn-primary" type="button">Hellban</button>
+                    <td>{{ user.id }}</td>
+
+                    <td class="username-cell">{{ user.username }}</td> 
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.user_role }}</td>
+                    <td>{{ user.account_locked }}</td>
+                    <td>{{ user.join_date }}</td>
+                    <td>{{ user.lastseen }}</td>
+                    <td>{{ user.is_2fa_enabled }}</td>
+                    <td style="gap: 10px; display: flex;" name="mod-actions" data-username="{{ user.username }}">
+                        <button class="btn btn-primary btn-ban" type="button">Ban</button>
+                        <button class="btn btn-primary btn-unban" type="button">Unban</button>
+                        <button class="btn btn-primary btn-hellban" type="button">Hellban</button>
+                        <select class="form-select status-select" style="width: fit-content;">
+                            <option value="user">User</option>
+                            <option value="moderator">Moderator</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button class="btn btn-primary btn-changerole" type="button">Change role</button>
+                    </td>
                 </tr>
             {% endfor %}
         {% endif %}
@@ -45,72 +41,7 @@
     </table>
 
     <!-- so to do this we're going to feed information from the api endpoint to here via dictionary
-    -->
-    <!--
-    <p>This is a test</p>
-    <table class="unstyledTable">
-    <thead>
-    <tr>
-    <th>Id</th>
-    <th>Username</th>
-    <th>Email</th>
-    <th>Permission Level</th>
-    <th>Account Status</th>
-    <th>Join Date</th>
-    <th>Last Login</th>
-    <th>2FA Status</th>
-    <th>Moderation Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-    <td>cell1_1</td>
-    <td>cell2_1</td>
-    <td>cell3_1</td>
-    <td>cell4_1</td>
-    <td>cell5_1e</td>
-    <td>cell6_1e</td>
-    <td>cell7_1</td>
-    <td>cell8_e1</td>
-    <td><button>eeee</button></td>
-    </tr>
-    <tr>
-    <td>cell1_2</td>
-    <td>cell2_2</td>
-    <td>cell3_2</td>
-    <td>cell4_2</td>
-    <td>cell5_2</td>
-    <td>cell6_2</td>
-    <td>cell7_2</td>
-    <td>cell8_2</td>
-    <td>cell9_2</td>
-    </tr>
-    <tr>
-    <td>cell1_3</td>
-    <td>cell2_3</td>
-    <td>cell3_3</td>
-    <td>cell4_3</td>
-    <td>cell5_3</td>
-    <td>cell6_3</td>
-    <td>cell7_3</td>
-    <td>cell8_3</td>
-    <td>cell9_3</td>
-    </tr>
-    <tr>
-    <td>cell1_4</td>
-    <td>cell2_4</td>
-    <td>cell3_4</td>
-    <td>cell4_4</td>
-    <td>cell5_4</td>
-    <td>cell6_4</td>
-    <td>cell7_4</td>
-    <td>cell8_4</td>
-    <td>cell9_4</td>
-    </tr>
-    </tbody>
-    </table>
      -->
-
     <script type="module">
         import { easyfetch } from '/static/js/easyfetch.js';
 
@@ -139,7 +70,7 @@
 
             console.log(userinfo);
             //const profile_picture = document.getElementById('profile-picture');
-
+            
             // if (userinfo.avatar_hash && profile_picture) {
             //     profile_picture.src = userinfo.avatar_hash;
             // }
@@ -181,6 +112,10 @@
             const response = await easyfetch('/admin', params);
             console.log(response);
 
+            if (response.ok) {
+                window.location.reload();
+            }
+
             // flash notification TODO
         }
 
@@ -192,24 +127,28 @@
 
             // submit_username.addEventListener('click', () => onSubmitUsername(username.value));
 
-            const ban_button = document.getElementById('ban_button');
-            const unban_button = document.getElementById('unban_button');
-            const hellban_button = document.getElementById('hellban_button');
-            // const change_role_button = document.getElementById('change_role_button');
+            const admin_buttons = document.getElementsByName("mod-actions");
 
-            ban_button.addEventListener('click', () => onSendAction(username.value, "ban"));
-            unban_button.addEventListener('click', () => onSendAction(username.value, "unban"));
+            for (const element of admin_buttons) {
 
-            hellban_button.addEventListener('click', () => onSendAction(username.value, "shadowban"));
-            // change_role_button.addEventListener('click', () => onSendAction(username.value, "changerole", {
-            //     new_user_role: document.getElementById('roleselect').value
-            // }));
+                const username = element.dataset.username;
+                let last_index = 0;
 
+                // its better to use classes here instead of ids because they are unique
+                const ban_button = element.querySelector('.btn-ban');
+                const unban_button = element.querySelector('.btn-unban');
+                const hellban_button = element.querySelector('.btn-hellban');
 
-            // const response = await easyfetch('/api/data', {
-            //     method: 'GET'
-            // });
-
+                ban_button.addEventListener('click', () => onSendAction(username, "ban"));
+                unban_button.addEventListener('click', () => onSendAction(username, "unban"));
+                hellban_button.addEventListener('click', () => onSendAction(username, "shadowban"));
+                
+                const role_status = element.querySelector('.status-select');
+                const change_role_button = element.querySelector('.btn-changerole');
+                change_role_button.addEventListener('click', () => onSendAction(username, "changerole", {
+                    new_user_role: role_status.value
+                }));
+            }
         });
     </script>
 

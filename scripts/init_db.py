@@ -1,0 +1,113 @@
+
+import base64
+import json
+import os
+from vagabond.constants import SYSTEM_ACCOUNT_ID, ModerationAction
+from vagabond.dbmanager import DBManager
+from vagabond.config import Config
+from vagabond.queries import *
+from vagabond.utility import deep_get, generate_random_password, ROOT_FOLDER
+from scripts.generate_hash import create_hash
+from vagabond.avatar import create_user_avatar, update_user_avatar
+from vagabond.profile.module import create_profile
+
+# populates the empty database with the needed tables if not exists
+# (not part of the app but uses some components)
+
+config_path = os.getenv("CONFIG_PATH", "")
+if not config_path:
+    print("USAGE: CONFIG_PATH=/path/to/config.json")
+    quit(1)
+
+with open(config_path, "r") as f:
+    config_data = json.load(f)
+
+app_config = Config(data=config_data)
+db = DBManager(app_config)
+
+# this is idiot safe (the tables only create if they IF NOT EXISTS)
+# just used in development
+
+db_version = db.write(query_str=SHOW_SERVER_VERSION, fetch=True)
+print("Running: ", db_version[0][0])
+db.write(query_str=INIT_DB_TABLES)
+print("Wrote all needed tables")
+
+# if this was prod i would use load_dotenv (it makes it harder to deploy to test docker instance for others to repro)
+# secrets.env is for our webserver, while the other .env file is used for the docker container
+users_config = ROOT_FOLDER / "users.json"
+
+with open(users_config, "r") as f:
+    config_data = json.load(f)
+
+    for user in config_data:
+
+        email = user.get("email")
+        username = user.get("username")
+        raw_password = user.get("password", generate_random_password(15)) # TODO: parsing of csv? or xlsx
+        user_role = user.get("role", "user")
+
+        hashstr, saltstr = create_hash(raw_password)
+
+        # email, username, account_locked, loginAttempts, is_online, hashed_password, user_role
+        
+        
+
+        get_userid = db.write(query_str=INIT_SITE_ACCOUNTS, fetch=True, params=(
+            email, username, False, False, hashstr, saltstr, user_role,))
+        
+        new_user_id = int(deep_get(get_userid, 0, 0))
+
+        db.write(query_str="""
+            INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)
+                VALUES (%s, %s, %s, %s, NOW())
+        """, params=(
+            ModerationAction.CHANGE_ROLE.value,
+            new_user_id,
+            SYSTEM_ACCOUNT_ID, # "SYSTEM" user
+            "Automated action upon startup"
+        ))
+
+        # create users avatar
+        new_avatar = create_user_avatar(userid=new_user_id)
+        update_user_avatar(userID=new_user_id, avatar_hash=new_avatar)
+        create_profile(userID=new_user_id)
+
+print("Setup all pre registered accounts")
+categories_config = ROOT_FOLDER / "categories.json"
+
+# create all default categories dynamically
+with open(categories_config, "r") as f:
+    config_data = json.load(f)
+
+    for cat_dict in config_data:
+        
+        name = cat_dict.get("category_name")
+        admin_locked = cat_dict.get("admin_locked", False)
+
+        db.write(query_str="""
+            INSERT INTO categories (name, category_locked)
+                VALUES (%s, %s)
+        """, params=(name, admin_locked))
+
+# create some dummy posts
+db.write(query_str="""
+    INSERT INTO posts (category_id, title, contents, author, url_title)
+        VALUES (%s, %s, %s, %s, %s)
+""", params=(1, "Welcome to the forum!", "This forum is about survival, backpacking and hunting!", 1, "welcome-to-the-forum"))
+
+db.write(query_str="""
+    INSERT INTO posts (category_id, title, contents, author, url_title)
+        VALUES (%s, %s, %s, %s, %s)
+""", params=(2, "Basic Pack Setup", "A good pack is small, and purpose driven make sure to always carry water filtering equipment", 1, "basic-pack-setup"))
+
+db.write(query_str="""
+    INSERT INTO posts (category_id, title, contents, author, url_title)
+        VALUES (%s, %s, %s, %s, %s)
+""", params=(2, "Reach out to us", "We are super friendly", 1, "reach-out-to-us"))
+
+# create some bs news stuff
+db.write(query_str="""
+    INSERT INTO news_feed (title, contents, pinned, author)
+        VALUES (%s, %s, %s, %s)
+""", params=("Welcome survivors", "Current news, updates and announcements from our wonderful staff or developers will appear here, stop by to see important information about the current state of the forum.", False, 1))
