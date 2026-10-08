@@ -25,6 +25,8 @@ with open(config_path, "r") as f:
 app_config = Config(data=config_data)
 db = DBManager(app_config)
 
+print(app_config.db_config)
+
 # this is idiot safe (the tables only create if they IF NOT EXISTS)
 # just used in development
 

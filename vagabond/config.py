@@ -47,6 +47,7 @@ class Config():
                 "console_log_level",
                 "db_config",
                 "flask_config",
+                "forum_config",
                 "smtp_config"
             ]
             for field in fields:

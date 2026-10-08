@@ -1,7 +1,8 @@
 from multiprocessing import Value
-from vagabond.constants import SYSTEM_ACCOUNT_ID, PostType, UserRole, ModerationAction
+from textwrap import indent
+from vagabond.constants import ROLE_PERMISSIONS, SYSTEM_ACCOUNT_ID, PostType, UserRole, ModerationAction
 from vagabond.services import dbmanager as db
-from vagabond.utility import deep_get, deep_get_as_type, get_groupid_from_message, is_valid_userid
+from vagabond.utility import deep_get, deep_get_as_type, get_groupid_from_message, get_permission_level, get_userrole_from_userid, is_valid_userid
 from vagabond.sessions.module import get_session_id, get_userid_from_session
 from flask import abort, redirect, url_for, jsonify
 
@@ -154,6 +155,23 @@ def change_role(userid: str, user_role: UserRole, admin_userid: str | None = Non
     if not is_valid_user_role(user_role):
         log.warning("Invalid role %s passed to is_valid_role", user_role)
         return None
+
+    # get the user role from the requester
+    requester_role = get_userrole_from_userid(userid=admin_userid)
+    target_role = get_userrole_from_userid(userid=userid)
+
+    invoker_permlevel = get_permission_level(requester_role)
+    target_permlevel = get_permission_level(target_role)
+    log.warning(f"%s ({UserRole(requester_role)}) wants to change %s to %s", admin_userid, userid, user_role)
+
+    if requester_role not in [UserRole.SYSTEM, UserRole.SUPERADMIN]:
+        # edge case where we dont want anyone to be able to change SYSTEM's permission
+        return None
+
+    if invoker_permlevel < target_permlevel:
+        log.warning(f"User %s[{requester_role}]({invoker_permlevel}) failed to set role of %s[{target_role}]({target_permlevel})", admin_userid, userid)
+        return None
+
 
     db.write(query_str="""
         INSERT INTO moderation_actions (action, target_user_id, performed_by, reason, created_at)

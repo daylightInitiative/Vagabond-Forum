@@ -1,12 +1,9 @@
 
 import json
-from multiprocessing import connection
-import shutil
-import subprocess
-import platform
 import base64
 import os
 
+from scripts.pgshell import run_psql_cmd
 from vagabond.config import Config
 from vagabond.utility import ROOT_FOLDER
 
@@ -33,83 +30,43 @@ env = {
 
 def create_postgres_users():
     print("Creating postgresql users")
-    #print(app_config.db_config)
-    #psql = shutil.which("psql")
-    # for now im doing the windows branch
-    current_os = platform.system()
 
     db_user = app_config.db_config['user']
     db_database = app_config.db_config['database']
     db_host = app_config.db_config['host']
     db_password = app_config.db_config['password']
 
-    connection_uri = f"postgresql://{db_user}:{db_password}@{db_host}/{db_database}"
-    login_psql = None
+    psql_create_users = [
+        f"CREATE USER {app_config.db_config['user']} WITH PASSWORD '{app_config.db_config['password']}'",
+        f"GRANT ALL PRIVILEGES ON DATABASE {app_config.db_config['database']} TO {app_config.db_config['user']}",
+        "SELECT username FROM pg_user"
+    ]
 
-    if current_os == "Windows":
-        # go into wsl, open psql shell and setup users
+    pgopts = {
+        "user": db_user,
+        "database": db_database,
+        "host": db_host,
+        "password": db_password
+    }
 
-        login_psql = [
-            "wsl",
-            "psql", 
-            connection_uri
-        ]
-
-    elif current_os == "Linux":
-
-        login_psql = [
-            "psql", 
-            connection_uri
-        ]
-        
-    else:
-        print("Currently unsupported platform.")
-        return
-
-    # spawn our process
-    try:
-        process = subprocess.Popen(
-            login_psql,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-
-        psql_create_users = (
-            f"CREATE USER {app_config.db_config['user']} WITH PASSWORD '{app_config.db_config['password']}';\n"
-            f"GRANT ALL PRIVILEGES ON DATABASE {app_config.db_config['database']} TO {app_config.db_config['user']};\n"
-            f"SELECT usename FROM pg_user;\n"
-            f"\\q\n"
-        )
-
-        stdout_data, stderr_data = process.communicate(input=psql_create_users)
-
-        if process.returncode == 0:
-            users = [line.strip() for line in stdout_data.splitlines() if line.strip()]
-            print("PostgreSQL Users:", users)
-        else:
-            print(f"Error ({process.returncode}):", stderr_data)
-    except Exception as e:
-        print("An unexpected error occured while setting up postgresql accounts. Error: ", e)
-    finally:
-        print("Cleaning up...")
-        if 'process' in locals() and process.poll() is None:
-            process.kill()
-        print("Shell closed.")
+    run_psql_cmd(pgopts, psql_create_users)
 
 
 def create_secrets():
-    if not os.path.exists(ROOT_FOLDER / "secrets.env"):
+    file_path = ROOT_FOLDER / "secrets.env"
+    if os.path.exists(file_path):
         # we need to also generate some defaults for our database
         # since this is only a test website, the credentials will be generic
         # generate a new flask secret key
-        with open(ROOT_FOLDER / "secrets.env", 'w') as f:
-            for key, secret in env.items():
-                fmt_str = format_env_key(key, secret)
-                f.write(fmt_str)
+        print("Purged old secrets.env file")
+        file_path.unlink(missing_ok=True)
+    with open(file_path, 'w') as f:
+        for key, secret in env.items():
+            fmt_str = format_env_key(key, secret)
+            f.write(fmt_str)
 
-        print("Wrote secrets.env file")
+    print("Wrote secrets.env file")
+        
 
 create_secrets()
 create_postgres_users()

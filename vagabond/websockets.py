@@ -12,6 +12,7 @@ from vagabond.sessions.module import is_valid_session
 
 log = logging.getLogger(__name__)
 
+# create our custom refresh event callback inside this file
 
 # on connect we want them to send the sid cookie
 @socketio.on('connect')
@@ -21,7 +22,6 @@ def connect_event(auth):
         raise ConnectionRefusedError('Unauthorized: Invalid SessionID')
     log.warning("websocket auth validated")
     # emit('my response', {'data': 'Connected'})
-    
 
 @socketio.on('disconnect')
 def disconnect_event(reason):

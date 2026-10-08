@@ -9,11 +9,15 @@ SYSTEM_ACCOUNT_ID = "1"
 from enum import Enum, auto, StrEnum
 # errors (consistency is important with our api)
 
-
+# the order of this is important, .index(UserRole) + 1 is used to determine permissions
 class UserRole(StrEnum):
     USER = "user"               # normal registered user
     MODERATOR = "moderator"     # forum moderator
     ADMIN = "admin"             # site admins who moderate, well..moderators
+    SUPERADMIN = "superadmin"   # super administrator, who oversees the other admins
+    SYSTEM = "system"           # special system role for the SYSTEM account
+
+ROLE_PERMISSIONS = list(UserRole)
 
 class PostType(Enum):
 

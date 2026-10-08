@@ -290,8 +290,11 @@
                     });
                 });
 
+                
+
                 socket.on('new_message', async function() {
                     console.log("received a update notifcation");
+                    window.location.reload();
                     get_messages();
                 });
 

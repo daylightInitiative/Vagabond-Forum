@@ -1,6 +1,6 @@
 
-echo "Must have 'pipenv' installed, 'pip install pipenv' or from your package manager!"
-echo "Installing packages..."
+Write-Host "Must have 'pipenv' installed, 'pip install pipenv' or from your package manager!"
+Write-Host "Installing packages..."
 
 
 if ((wsl --list --verbose | Out-String) -match 'Stopped') {
@@ -14,11 +14,14 @@ Write-Host "--- PostgreSQL Status ---" -ForegroundColor Cyan
 wsl systemctl status postgresql
 Write-Host "--- Powershell Log Status ---" -ForegroundColor Cyan
 
-Write-Host "Purging old secrets.env"
-Remove-Item -Path "secrets.env"
+
 
 # this script installs all the packages from the pipenv virtual environment, assuming it is installed
 pipenv install
+# changing this to Write-Host does not work here and creates a severe error.
 echo "yes" | pipenv run python -m scripts.wipe_tables
 pipenv run python -m scripts.setup_creds
 pipenv run python -m scripts.init_db
+
+# Write-Host "Purging old secrets.env"
+# Remove-Item -Path "secrets.env"

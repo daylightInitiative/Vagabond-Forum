@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 
 from flask import Response, jsonify
-from vagabond.constants import MAX_URL_TITLE, RouteError
+from vagabond.constants import MAX_URL_TITLE, ROLE_PERMISSIONS, RouteError, UserRole
 from vagabond.services import dbmanager as db
 import secrets
 import string
@@ -18,9 +18,15 @@ SQL_FOLDER = ROOT_FOLDER / "sql"
 included_reload_files = []
 
 # restart stat on all json file changes
-for file in ROOT_FOLDER.iterdir():
-    if 'json' in file.suffix:
-        included_reload_files.append(file.absolute())
+RELOAD_FILE_TYPES = ['.html', '.css', '.json']
+for dirpath, dirnames, filenames in ROOT_FOLDER.walk():
+    for file in filenames:
+        file_path = dirpath / file
+
+        #print(file_path.suffix)
+        if file_path.suffix in RELOAD_FILE_TYPES:
+            included_reload_files.append(file_path)
+            #print(included_reload_files)
 
 # append the rest (our sql files)
 for file in SQL_FOLDER.iterdir():
@@ -194,3 +200,14 @@ def get_userid_from_email(email: str) -> str | None:
             WHERE email = %s
         """, fetch=True, params=(email,))
     return deep_get_as_type(get_userid, str, 0, 0) or None
+
+def get_userrole_from_userid(userid: str) -> UserRole | None:
+    get_user_role = db.read(query_str="""
+            SELECT user_role
+            FROM users
+            WHERE id = %s
+    """, fetch=True, params=(userid,))
+    return deep_get_as_type(get_user_role, str, 0, 0) or None
+
+def get_permission_level(user_role: UserRole) -> int | None:
+    return ROLE_PERMISSIONS.index(user_role)

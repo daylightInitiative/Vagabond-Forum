@@ -20,6 +20,9 @@ from random import randint
 from dotenv import load_dotenv, find_dotenv
 from vagabond.flask_wrapper import custom_render_template
 from werkzeug.middleware.proxy_fix import ProxyFix # when using nginx, we need to use this
+from vagabond.services import socketio
+import vagabond.websockets # make sure to setup the handlers
+import werkzeug._reloader
 
 #blueprints
 from vagabond.sessions import session_bp
@@ -192,19 +195,45 @@ def index():
 
     return custom_render_template("index.html", number=random_number, num_hits=num_hits, forum_categories=categories_list or {})
 
+def refresh_debug_pages():
+    socketio.emit("debug_refresh", {'status': 'Success'})
 
 @app.route('/static/<path:filename>')
 @limiter.exempt
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-from vagabond.services import socketio
-import vagabond.websockets # make sure to setup the handlers
+
+if app_config.forum_config.get("debug") == True:
+    log.warning("Debug mode is enabled, hot refreshing of webpages will occur. config.json:debug=True")
+
+    original_trigger_reload = werkzeug._reloader.ReloaderLoop.trigger_reload
+
+    def custom_trigger_reload(self, filename):
+        log.warning("%s is being hot reloaded. Debug mode is enabled.", filename)
+        refresh_debug_pages()
+        return original_trigger_reload(self, filename)
+
+    werkzeug._reloader.ReloaderLoop.trigger_reload = custom_trigger_reload
+
+# apply our custom hook into hot refreshing
+
 
 if __name__ == '__main__':
 
     host = app_config.flask_config.get("host")
     lport = app_config.flask_config.get("post")
 
+    # socketio.run(
+    #     app, 
+    #     debug=True, 
+    #     reloader_options={'extra_files': ['path/to/file1.html', 'path/to/file2.json']}
+    # )
+
     #app.run(debug=True, host=host, port=lport, extra_files=included_reload_files)
-    socketio.run(app, debug=True, host=host, port=lport, extra_files=included_reload_files)
+    socketio.run(app,
+        debug=True,
+        host=host,
+        port=lport,
+        reloader_options={'extra_files': included_reload_files}
+    )

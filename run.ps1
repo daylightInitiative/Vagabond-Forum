@@ -11,17 +11,26 @@ $env:CONFIG_PATH = "config.json"
 $env:CONFIG_PATH = "config.json"
 
 # for normal runs on windows, remove the need to manually start wsl
-if ((wsl --list --verbose | Out-String) -match 'Stopped') {
-    Write-Host "WSL is currently stopped. Running in the background..." -ForegroundColor Cyan
-    # 'dbus-launch true' keeps WSL alive in the background
-    wsl --exec dbus-launch true | Out-Null
-    Start-Sleep -Seconds 3
+if ((wsl --list --verbose | Out-String) -match "Stopped") { 
+    Write-Host "WSL is currently stopped. Running background process..." -ForegroundColor Cyan 
+    
+    Start-Process -FilePath "wsl" -ArgumentList "--exec sleep infinity" -NoNewWindow
+    
+    Start-Sleep -Seconds 3 
 }
+
+Write-Host "--- PostgreSQL Status ---" -ForegroundColor Cyan
+Write-Host "Waiting for PostgreSQL to start..." -ForegroundColor Cyan
+
+while (-not (Test-NetConnection -ComputerName "localhost" -Port 5432 -InformationAction SilentlyContinue).TcpTestSucceeded) {
+    Start-Sleep -Seconds 1
+}
+
+Write-Host "PostgreSQL is running" -ForegroundColor Green
 
 # if secrets.env isn't generated then we need to proceed with setup again
 
 
-Write-Host "--- PostgreSQL Status ---" -ForegroundColor Cyan
 wsl systemctl status postgresql
 Write-Host "--- Powershell Log Status ---" -ForegroundColor Cyan
 

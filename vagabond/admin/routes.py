@@ -39,7 +39,7 @@ def create_ticket():
 
 # for now we are going to develop out the list layout and then divide each section of the admin panel into web dirs
 @admin_bp.route("/admin", methods=['GET', 'POST'])
-@requires_permission([Perms.ADMIN, Perms.MODERATOR])
+@requires_permission([Perms.SYSTEM, Perms.SUPERADMIN, Perms.ADMIN])
 def serve_admin_panel():
     
     abort_if_not_signed_in()
